@@ -1,5 +1,6 @@
 package finn_daniel.carpoolmanager;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -20,23 +21,25 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
-import android.widget.ListAdapter;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private List listviewTitle = new ArrayList();
     private List listviewisDriver = new ArrayList();
+    private List listviewPassengers = new ArrayList();
     private List listviewOwnDrivenAmount = new ArrayList();
     private List listviewAllDrivenAmount = new ArrayList();
+    ListView listView_groupList;
+
+    int aktuell;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +70,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
 
+        listView_groupList = findViewById(R.id.listView_groupList);
         listeLaden();
+        listeClickListener();
     }
 
     @Override
@@ -125,18 +130,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         ArrayList driver1 = new ArrayList();
         driver1.add("Die Bekloppten");
         driver1.add(true);
+        driver1.add("Arsch 1, Derda31, DeineMudda");
         driver1.add(7);
         driver1.add(31);
 
         ArrayList driver2 = new ArrayList();
         driver2.add("Deine Mudda");
         driver2.add(false);
+        driver2.add("Pudding, Die Olle, Niemand");
         driver2.add(0);
         driver2.add(568);
 
         ArrayList driver3 = new ArrayList();
         driver3.add("Mip");
         driver3.add(true);
+        driver3.add("Noch Einer, und Noch Einer, und Noch Einer");
         driver3.add(9);
         driver3.add(10);
 
@@ -147,14 +155,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         this.listviewTitle.clear();
         this.listviewisDriver.clear();
+        this.listviewPassengers.clear();
         this.listviewOwnDrivenAmount.clear();
         this.listviewAllDrivenAmount.clear();
 
         for (int i = 0; i < driverTest.size(); i++) {
             listviewTitle.add(driverTest.get(i).get(0));
             listviewisDriver.add(driverTest.get(i).get(1));
-            listviewOwnDrivenAmount.add(driverTest.get(i).get(2));
-            listviewAllDrivenAmount.add(driverTest.get(i).get(3));
+            listviewPassengers.add(driverTest.get(i).get(2));
+            listviewOwnDrivenAmount.add(driverTest.get(i).get(3));
+            listviewAllDrivenAmount.add(driverTest.get(i).get(4));
         }
 
 //        TextView var11;
@@ -167,22 +177,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //            Intrinsics.checkExpressionValueIsNotNull(var11, "textView_keine_reminder");
 //            var11.setVisibility(4);
 //        }
+        // ToDo: Mitfahrer farblich kennzeichnen
 
-        ArrayList aList = new ArrayList();
+        ArrayList aList = new ArrayList<>();
 
         for(int i = 0; i < driverTest.size(); ++i) {
             HashMap hm = new HashMap();
-            ((Map)hm).put("listview_title", listviewTitle.get(i));
-            ((Map)hm).put("listview_isDriver", (Boolean)listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
-            ((Map)hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
-            ((Map)hm).put("listview_discription_allAmount", listviewAllDrivenAmount.get(i));
+            (hm).put("listview_title", listviewTitle.get(i));
+            (hm).put("listview_isDriver", (Boolean)listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
+            (hm).put("listview_discription_passengers", listviewPassengers.get(i));
+            (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
+            (hm).put("listview_discription_allAmount", listviewAllDrivenAmount.get(i));
             aList.add(hm);
         }
 
-        String[] from = new String[]{"listview_title", "listview_isDriver", "listview_discription_ownAmount", "listview_discription_allAmount"};
-        int[] to = new int[]{R.id.groupList_name, R.id.listview_image, R.id.groupList_ownAmount, R.id.groupList_allAmount};
+        String[] from = new String[]{"listview_title", "listview_isDriver", "listview_discription_passengers", "listview_discription_ownAmount", "listview_discription_allAmount"};
+        int[] to = new int[]{R.id.groupList_name, R.id.listview_image, R.id.passengers, R.id.groupList_ownAmount, R.id.groupList_allAmount};
         SimpleAdapter simpleAdapter = new SimpleAdapter(this.getBaseContext(), aList, R.layout.group_list_item, from, to);
-        ListView listView_groupList = findViewById(R.id.listView_groupList);
         listView_groupList.setAdapter(simpleAdapter);
 
 //      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
@@ -216,6 +227,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //        listView_groupList.getViewTreeObserver().addOnPreDrawListener((OnPreDrawListener)mOnPreDrawListener);
 //        this.listeClickListener();
     }
+
+
+    void listeClickListener(){
+        listView_groupList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, final int index, long l) {
+                aktuell = index;
+                Intent intent = new Intent(MainActivity.this, GroupOverview.class);
+
+//        intent.putExtra(EXTRA_MESSAGE, message);
+                startActivity(intent);            }
+        });
+    }
+
 
 
     public void msgBox(String nachricht) {
