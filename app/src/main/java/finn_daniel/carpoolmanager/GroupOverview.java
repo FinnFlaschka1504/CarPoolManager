@@ -1,19 +1,26 @@
 package finn_daniel.carpoolmanager;
 
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TableLayout;
 
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
+
+import com.google.android.material.tabs.TabLayout;
 
 public class GroupOverview extends FragmentActivity {
     /**
      * The number of pages (wizard steps) to show in this demo.
      */
-    private static final int NUM_PAGES = 4;
+    private static final int NUM_PAGES = 2;
 
     /**
      * The pager widget, which handles animation and allows swiping horizontally to access previous
@@ -35,6 +42,9 @@ public class GroupOverview extends FragmentActivity {
         mPager = (ViewPager) findViewById(R.id.pager);
         pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
         mPager.setAdapter(pagerAdapter);
+
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout_group);
+        tabLayout.setupWithViewPager(mPager);
     }
 
     @Override
@@ -50,7 +60,7 @@ public class GroupOverview extends FragmentActivity {
     }
 
     /**
-     * A simple pager adapter that represents 5 ScreenSlidePageFragment objects, in
+     * A simple pager adapter that represents 5 ViewPager_GroupOverview objects, in
      * sequence.
      */
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
@@ -60,7 +70,13 @@ public class GroupOverview extends FragmentActivity {
 
         @Override
         public Fragment getItem(int position) {
-            return new ScreenSlidePageFragment();
+
+            switch (position) {
+                case 0: return new ViewPager_GroupOverview();
+                case 1: return new ViewPager_GroupCalender();
+                default: return new ViewPager_GroupOverview();
+
+            }
         }
 
         @Override
@@ -68,5 +84,33 @@ public class GroupOverview extends FragmentActivity {
             return NUM_PAGES;
         }
     }
+
+
+
 }
 
+class ViewPager_GroupOverview extends Fragment {
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        ViewGroup rootView = (ViewGroup) inflater.inflate(
+                R.layout.group_overview, container, false);
+
+        return rootView;
+
+    }
+}
+
+class ViewPager_GroupCalender extends Fragment {
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        ViewGroup rootView = (ViewGroup) inflater.inflate(
+                R.layout.group_calender, container, false);
+
+        return rootView;
+
+    }
+}
