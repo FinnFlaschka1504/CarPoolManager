@@ -14,6 +14,11 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import android.view.MenuItem;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -27,8 +32,10 @@ import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -39,7 +46,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private List listviewAllDrivenAmount = new ArrayList();
     ListView listView_groupList;
 
+    List<String> createData_gruppenNamen;
+    List<String> createData_userNamen;
+    ArrayList<ArrayList<String>> createData_mitfahrer;
+    ArrayList<ArrayList<String>> createData_fahrer;
+    ArrayList<ArrayList<Integer>> createData_fahrten;
+
+    Map<String, User> createData_userMap = new HashMap<>();
+    Map<String, List<String>> createData_userGroupMap = new HashMap<>();
+    Map<String, String > createData_userIdMap = new HashMap<>();
+    Map<String, String > createData_groupIdMap = new HashMap<>();
+
+    DatabaseReference databaseReference;
+
     int aktuell;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
 
-
+        databaseReference = FirebaseDatabase.getInstance().getReference();
 
         listView_groupList = findViewById(R.id.listView_groupList);
         listeLaden();
@@ -250,5 +272,111 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void bildClickTest(View view) {
         msgBox("Konto Informationen Öffnen");
+    }
+
+    public void createListData(View view) {
+        createData_gruppenNamen = new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda", "Mip"));
+        createData_userNamen = new ArrayList<String>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda", "Pudding", "Die Olle", "Niemand", "Noch Einer", "und Noch Einer", "und Noch Noch Einer"));
+
+        createData_userGroupMap.put("Arsch 1", new ArrayList<String>(Arrays.asList("Die Bekloppten")));
+        createData_userGroupMap.put("Derda31", new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda")));
+        createData_userGroupMap.put("DeineMudda", new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda", "Mip")));
+        createData_userGroupMap.put("Pudding", new ArrayList<String>(Arrays.asList("Deine Mudda")));
+        createData_userGroupMap.put("Die Olle", new ArrayList<String>(Arrays.asList("Deine Mudda")));
+        createData_userGroupMap.put("Niemand", new ArrayList<String>(Arrays.asList("Deine Mudda")));
+        createData_userGroupMap.put("Noch Einer", new ArrayList<String>(Arrays.asList("Mip")));
+        createData_userGroupMap.put("und Noch Einer", new ArrayList<String>(Arrays.asList("Mip")));
+        createData_userGroupMap.put("und Noch Noch Einer", new ArrayList<String>(Arrays.asList("Mip")));
+
+        createData_mitfahrer = new ArrayList<ArrayList<String>>();
+        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda")));
+        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("Pudding", "Die Olle", "Derda31", "Niemand", "DeineMudda")));
+        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("Noch Einer", "und Noch Einer", "und Noch Noch Einer", "DeineMudda")));
+
+        createData_fahrer = new ArrayList<ArrayList<String>>();
+        createData_fahrer.add(new ArrayList<>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda")));
+        createData_fahrer.add(new ArrayList<>(Arrays.asList("Pudding", "Die Olle", "Niemand")));
+        createData_fahrer.add(new ArrayList<>(Arrays.asList("und Noch Einer", "DeineMudda")));
+
+        createData_fahrten = new ArrayList<>();
+        createData_fahrten.add(new ArrayList<>(Arrays.asList(7,31)));
+        createData_fahrten.add(new ArrayList<>(Arrays.asList(0,568)));
+        createData_fahrten.add(new ArrayList<Integer>(Arrays.asList(9,10)));
+
+        databaseReference.child("Groups").removeValue();
+        databaseReference.child("User").removeValue();
+
+        for (String name : createData_gruppenNamen) {
+            Group newGroup = new Group();
+            newGroup.setName(name);
+            createData_groupIdMap.put(name, newGroup.getGroup_id());
+            databaseReference.child("Groups").child(newGroup.group_id).setValue(newGroup);
+        }
+
+        for (String name : createData_userNamen) {
+            User newUser = new User();
+            newUser.setUserName(name);
+            createData_userIdMap.put(name, newUser.getUser_id());
+            for (String gruppe : createData_userGroupMap.get(name)) {
+//                String gruppenID = getGroupIdByName(name);
+                newUser.addGroup(createData_groupIdMap.get(gruppe));
+                // ToDo
+            }
+
+            databaseReference.child("User").child(newUser.user_id).setValue(newUser);
+        }
+
+        databaseReference.child("Groups").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+
+
+                for (DataSnapshot messageSnapshot: dataSnapshot.getChildren()) {
+                    Group foundGroup = messageSnapshot.getValue(Group.class);
+                    for (String user : createData_mitfahrer.get(createData_gruppenNamen.indexOf(foundGroup.getName()))) {
+                        foundGroup.addUser(createData_userIdMap.get(user));
+                    }
+                    for (String user : createData_fahrer.get(createData_gruppenNamen.indexOf(foundGroup.getName()))) {
+                        foundGroup.addDriver(createData_userIdMap.get(user));
+                    }
+
+                    try {
+                        databaseReference.child("Groups").child(foundGroup.group_id).setValue(foundGroup);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+
+    }
+
+    private String getGroupIdByName(final String name) {
+        databaseReference.child("Group").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+
+
+                for (DataSnapshot messageSnapshot: dataSnapshot.getChildren()) {
+                    Group foundGroup = messageSnapshot.getValue(Group.class);
+                    if (foundGroup.getName().equals(name))
+                        return;
+                }
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+        return null;
     }
 }
