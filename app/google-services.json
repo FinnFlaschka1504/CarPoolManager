@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "777676415663",
+    "firebase_url": "https://carpoolmanager-acc35.firebaseio.com",
+    "project_id": "carpoolmanager-acc35",
+    "storage_bucket": "carpoolmanager-acc35.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777676415663:android:52094abc75e869a1",
+        "android_client_info": {
+          "package_name": "finn_daniel.carpoolmanager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "777676415663-avkl3vb089c2i3i6okha24ah3t8in4tk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "finn_daniel.carpoolmanager",
+            "certificate_hash": "640fcd170c3ae9af6d8e27522b67fce1c1122605"
+          }
+        },
+        {
+          "client_id": "777676415663-gmmoah1dce8umv9vqqkirgo8d3mj0ili.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYCG30FeNwmjo6oc6PEvA-MStjfbE9dk8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "777676415663-gmmoah1dce8umv9vqqkirgo8d3mj0ili.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

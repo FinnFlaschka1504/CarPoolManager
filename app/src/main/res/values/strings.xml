@@ -11,4 +11,11 @@
     <string name="aboutTheApp">Über die App</string>
 
 
+    <string name="test">Test</string>
+
+    <string-array name="settings_groups_standardView">
+        <item>Übersicht</item>
+        <item>Kalender</item>
+    </string-array>
+
 </resources>

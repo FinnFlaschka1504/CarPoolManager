@@ -117,7 +117,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             msgBox("groups");
         }
         else if (id == R.id.settings) {
-            msgBox("settings");
+            Intent intent = new Intent(MainActivity.this, Settings.class);
+            startActivity(intent);
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);

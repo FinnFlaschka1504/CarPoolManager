@@ -14,7 +14,6 @@
         <activity
             android:name=".MainActivity"
             android:label="Fahrgemeinschaft Manager"
-
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,8 +21,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".GroupOverview"
-            android:parentActivityName=".MainActivity"></activity>
+        <activity
+            android:name=".GroupOverview"
+            android:parentActivityName=".MainActivity" />
+        <activity android:name=".Settings"
+            android:parentActivityName=".MainActivity" ></activity>
     </application>
 
 </manifest>

@@ -1,5 +1,6 @@
 package finn_daniel.carpoolmanager;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,21 +18,10 @@ import androidx.viewpager.widget.ViewPager;
 import com.google.android.material.tabs.TabLayout;
 
 public class GroupOverview extends FragmentActivity {
-    /**
-     * The number of pages (wizard steps) to show in this demo.
-     */
     private static final int NUM_PAGES = 2;
-
-    /**
-     * The pager widget, which handles animation and allows swiping horizontally to access previous
-     * and next wizard steps.
-     */
     private ViewPager mPager;
-
-    /**
-     * The pager adapter, which provides the pages to the view pager widget.
-     */
     private PagerAdapter pagerAdapter;
+    String standardView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,23 +29,32 @@ public class GroupOverview extends FragmentActivity {
         setContentView(R.layout.activity_group);
 
         // Instantiate a ViewPager and a PagerAdapter.
+
+        SharedPreferences mySPR = getSharedPreferences("Settings",0);
+        standardView = mySPR.getString("standardView", "Übersicht");
+
         mPager = (ViewPager) findViewById(R.id.pager);
         pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
         mPager.setAdapter(pagerAdapter);
+        mPager.setCurrentItem(standardView.equals("Übersicht") ? 0 : 1);
 
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout_group);
         tabLayout.setupWithViewPager(mPager);
+        tabLayout.getTabAt(0).setText("Übersicht");
+        tabLayout.getTabAt(1).setText("Kalender");
+
+
     }
 
     @Override
     public void onBackPressed() {
-        if (mPager.getCurrentItem() == 0) {
+        if ((mPager.getCurrentItem() == 0 && standardView.equals("Übersicht")) || (mPager.getCurrentItem() == 1 && standardView.equals("Kalender"))) {
             // If the user is currently looking at the first step, allow the system to handle the
             // Back button. This calls finish() on this activity and pops the back stack.
             super.onBackPressed();
         } else {
             // Otherwise, select the previous step.
-            mPager.setCurrentItem(mPager.getCurrentItem() - 1);
+            mPager.setCurrentItem(mPager.getCurrentItem() == 0 ? 1 : 0);
         }
     }
 
