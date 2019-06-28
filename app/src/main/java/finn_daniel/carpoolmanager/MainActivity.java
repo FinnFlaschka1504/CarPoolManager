@@ -1,6 +1,12 @@
 package finn_daniel.carpoolmanager;
 
+import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -19,6 +25,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.gson.Gson;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -29,8 +36,10 @@ import android.view.Menu;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,9 +66,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Map<String, String > createData_userIdMap = new HashMap<>();
     Map<String, String > createData_groupIdMap = new HashMap<>();
 
+    Gson gson = new Gson();
     DatabaseReference databaseReference;
 
     int aktuell;
+    Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
+    String loggedInUser_Name = "DeineMudda";
+    String loggedInUser_Id;
+    List<String> loggedInUser_groupsIdList = new ArrayList<>();
+    Map<String , Group> loggedInUser_groupsMap = new HashMap<>();
+    Map<String , User> loggedInUser_groupPassengerMap = new HashMap<>();
+    int loggedInUser_passengerCount = 0;
 
 
 
@@ -93,8 +110,265 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
         listView_groupList = findViewById(R.id.listView_groupList);
-        listeLaden();
-        listeClickListener();
+
+        if (!isOnline()) {
+            showNoInternetSnackBar();
+            TextView main_noInternet = findViewById(R.id.main_noInternet);
+            main_noInternet.setVisibility(View.VISIBLE);
+            main_noInternet.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (!isOnline()) {
+                        showActivateInternetDialog();
+                    } else {
+                        findViewById(R.id.main_noInternet).setVisibility(View.GONE);
+                        getUserIdfromUserName();
+                    }
+
+                }
+            });
+            SharedPreferences mySPR = getSharedPreferences("OfflineDaten",0);
+            int count = 0;
+            while (true) {
+                String loggedInUser_groupsList_string = mySPR.getString("loggedInUser_groupsList_" + count, "--Leer--");
+                if (!loggedInUser_groupsList_string.equals("--Leer--")) {
+                    Group newGroup = gson.fromJson(loggedInUser_groupsList_string, Group.class);
+                    loggedInUser_groupsMap.put(newGroup.getGroup_id(), newGroup);
+                }
+                else
+                    break;
+                count++;
+            }
+            count = 0;
+            User foundUser;
+            while (true) {
+                String loggedInUser_groupPassengerMap_string = mySPR.getString("loggedInUser_groupPassengerMap_" + count, "--Leer--");
+                if (!loggedInUser_groupPassengerMap_string.equals("--Leer--")) {
+                    foundUser = gson.fromJson(loggedInUser_groupPassengerMap_string, User.class);
+                }
+                else
+                    break;
+                count++;
+                loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+            }
+            String loggedInUser_Id_string = mySPR.getString("loggedInUser_Id", "--Leer--");
+            if (!loggedInUser_Id_string.equals("--Leer--")) {
+                loggedInUser_Id = loggedInUser_Id_string;
+            }
+            listeLaden();
+            listeClickListener();
+            return;
+        }
+
+
+
+        getUserIdfromUserName();
+
+    }
+
+    private void showNoInternetSnackBar() {
+        Snackbar.make(findViewById(R.id.include), "Es gibt keine verbindung zum Internet!", Snackbar.LENGTH_LONG)
+                .setAction("Aktivieren", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        showActivateInternetDialog();
+                    }
+                })
+                .show();
+    }
+
+    private void showActivateInternetDialog() {
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle("Was möchtest du aktivieren?")
+//                                    .setMessage("Are you sure you want to delete this entry?")
+                .setPositiveButton("W-Lan", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                        wifi.setWifiEnabled(true);
+                        msgBox("W-Lan aktiviert");
+                    }
+                })
+                .setNegativeButton("Mobiel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(Intent.ACTION_MAIN);
+                        intent.setComponent(new ComponentName("com.android.settings",
+                                "com.android.settings.Settings$DataUsageSummaryActivity"));
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+
+                    }
+                })
+                .show();
+    }
+
+
+    private void getUserIdfromUserName() {
+        databaseReference.child("Users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+
+                for (DataSnapshot messageSnapshot: dataSnapshot.getChildren()) {
+                    User foundUser = messageSnapshot.getValue(User.class);
+                    if (foundUser.getUserName().equals(loggedInUser_Name)) {
+                        loggedInUser_Id = foundUser.getUser_id();
+                        System.out.println(loggedInUser_Id);
+                    }
+                }
+
+                getGroupsfromUser();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void getGroupsfromUser() {
+        // ToDo: App stürtzt beim aktuallisieren ab
+        databaseReference.child("Users").child(loggedInUser_Id).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+                User foundUser = dataSnapshot.getValue(User.class);
+                loggedInUser_groupsIdList = foundUser.getGroupIdList();
+                // addValueEventListener
+                for (String groupId : loggedInUser_groupsIdList) {
+                    databaseReference.child("Groups").child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.getValue() == null)
+                                return;
+                            Group foundGroup = dataSnapshot.getValue(Group.class);
+                            loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup);
+                            if (loggedInUser_groupsMap.size() == loggedInUser_groupsIdList.size()) {
+                                getGroupPassengers();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    });
+                    hasGroupChangeListener.put(groupId, false);
+                    addGroupChangeListener(groupId);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void addGroupChangeListener(final String groupId) {
+        databaseReference.child("Groups").child(groupId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+                // ToDo: was passiert wenn gelöscht?
+                Group foundGroup = dataSnapshot.getValue(Group.class);
+                if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {
+                    hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
+                    return;
+                }
+                int i = 0;
+
+                if (!loggedInUser_groupsMap.containsKey(foundGroup.getGroup_id()))
+                    return;
+                // ToDo: Was passiert wenn neue Gruppe
+
+                foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList());
+
+
+                List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
+
+                for (String user : changeList.get(1)) {
+                    loggedInUser_groupPassengerMap.remove(user);
+                }
+                for (String user : changeList.get(0)) {
+                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.getValue() == null)
+                                return;
+                            User foundUser = dataSnapshot.getValue(User.class);
+                            loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    });
+                }
+
+                loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup);
+
+                listeLaden();
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void getGroupPassengers() {
+        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
+            loggedInUser_passengerCount += entry.getValue().getUserIdList().size();
+        }
+        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
+            for (String user : entry.getValue().getUserIdList()) {
+                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.getValue() == null)
+                            return;
+                        User foundUser = dataSnapshot.getValue(User.class);
+                        loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+                        loggedInUser_passengerCount--;
+                        if (loggedInUser_passengerCount == 0) {
+                            listeLaden();
+                            listeClickListener();
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                    }
+                });
+
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        SharedPreferences mySPR = getSharedPreferences("OfflineDaten", 0);
+        SharedPreferences.Editor editor = mySPR.edit();
+        editor.clear();
+
+        //ToDo: Alle einträge vorher löschen - delete shared preferences
+
+        int count = 0;
+        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
+            editor.putString("loggedInUser_groupsList_" + count, gson.toJson(entry.getValue()));
+            count++;
+        }
+        count = 0;
+        for (Map.Entry<String, User> entry : loggedInUser_groupPassengerMap.entrySet()) {
+            editor.putString("loggedInUser_groupPassengerMap_" + count, gson.toJson(entry.getValue()));
+            count++;
+        }
+        editor.putString("loggedInUser_Id", loggedInUser_Id);
+
+        editor.commit();
+        super.onStop();
     }
 
     @Override
@@ -150,6 +424,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private final void listeLaden() {
 
+        TextView main_groupInfo = findViewById(R.id.main_groupInfo);
+        main_groupInfo.setVisibility(View.GONE);
+
         ArrayList driver1 = new ArrayList();
         driver1.add("Die Bekloppten");
         driver1.add(true);
@@ -176,18 +453,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         driverTest.add(driver2);
         driverTest.add(driver3);
 
+        // ---------------------------------------------------------------------
+
         this.listviewTitle.clear();
         this.listviewisDriver.clear();
         this.listviewPassengers.clear();
         this.listviewOwnDrivenAmount.clear();
         this.listviewAllDrivenAmount.clear();
 
-        for (int i = 0; i < driverTest.size(); i++) {
-            listviewTitle.add(driverTest.get(i).get(0));
-            listviewisDriver.add(driverTest.get(i).get(1));
-            listviewPassengers.add(driverTest.get(i).get(2));
-            listviewOwnDrivenAmount.add(driverTest.get(i).get(3));
-            listviewAllDrivenAmount.add(driverTest.get(i).get(4));
+        int count = 0;
+        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
+            listviewTitle.add(entry.getValue().getName());
+            listviewisDriver.add(entry.getValue().getDriverIdList().contains(loggedInUser_Id));
+
+            String passengers = "";
+            for (int n = 0; n < entry.getValue().getUserIdList().size(); n++) {
+                passengers = passengers.concat(loggedInUser_groupPassengerMap.get(entry.getValue().getUserIdList().get(n)).getUserName());
+                if (n < entry.getValue().getUserIdList().size() - 1)
+                    passengers = passengers.concat(", ");
+            }
+
+            listviewPassengers.add(passengers);
+            listviewOwnDrivenAmount.add(driverTest.get(count).get(3));
+            listviewAllDrivenAmount.add(driverTest.get(count).get(4));
+            count++;
         }
 
 //        TextView var11;
@@ -204,7 +493,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         ArrayList aList = new ArrayList<>();
 
-        for(int i = 0; i < driverTest.size(); ++i) {
+        for(int i = 0; i < loggedInUser_groupsMap.size(); ++i) {
             HashMap hm = new HashMap();
             (hm).put("listview_title", listviewTitle.get(i));
             (hm).put("listview_isDriver", (Boolean)listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
@@ -304,7 +593,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         createData_fahrten.add(new ArrayList<Integer>(Arrays.asList(9,10)));
 
         databaseReference.child("Groups").removeValue();
-        databaseReference.child("User").removeValue();
+        databaseReference.child("Users").removeValue();
 
         for (String name : createData_gruppenNamen) {
             Group newGroup = new Group();
@@ -315,6 +604,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         for (String name : createData_userNamen) {
             User newUser = new User();
+//            newUser.generateId();
             newUser.setUserName(name);
             createData_userIdMap.put(name, newUser.getUser_id());
             for (String gruppe : createData_userGroupMap.get(name)) {
@@ -323,7 +613,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 // ToDo
             }
 
-            databaseReference.child("User").child(newUser.user_id).setValue(newUser);
+            databaseReference.child("Users").child(newUser.user_id).setValue(newUser);
         }
 
         databaseReference.child("Groups").addListenerForSingleValueEvent(new ValueEventListener() {
@@ -355,6 +645,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+    }
+
+    public boolean isOnline() {
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+            int     exitValue = ipProcess.waitFor();
+            return (exitValue == 0);
+        }
+        catch (IOException e)          { e.printStackTrace(); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+
+        return false;
     }
 
     private String getGroupIdByName(final String name) {

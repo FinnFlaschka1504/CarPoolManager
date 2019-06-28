@@ -37,4 +37,12 @@ public class User {
     public void setUserName(String userName) {
         this.userName = userName;
     }
+
+    public List<String> getGroupIdList() {
+        return groupIdList;
+    }
+
+    public void setGroupIdList(List<String> groupIdList) {
+        this.groupIdList = groupIdList;
+    }
 }

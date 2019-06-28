@@ -19,6 +19,22 @@ public class Group {
         group_id = "group_" + UUID.randomUUID().toString();
     }
 
+    List<List<String>> getChangedUserLists(Group oldVersion) {
+        List<String> newList = new ArrayList<>(userIdList);
+        List<String> oldList = oldVersion.getUserIdList();
+        List<String> newList_clone = new ArrayList<>(newList);
+        for (String userId : newList_clone ) {
+            if (oldList.contains(userId)) {
+                newList.remove(userId);
+                oldList.remove(userId);
+            }
+        }
+        List<List<String>> returnList = new ArrayList<>();
+        returnList.add(newList);
+        returnList.add(oldList);
+        return returnList;
+    }
+
     public void addUser(String user_id) {
         userIdList.add(user_id);
     }
