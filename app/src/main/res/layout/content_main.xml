@@ -24,15 +24,27 @@
                 android:id="@+id/textView2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp"
+                android:layout_marginLeft="12dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp"
                 android:text="Deine Gruppen:"
+                android:textColor="#009688"
                 android:textSize="18sp"
                 android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/progressBar_loadData"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp" />
 
             <TextView
                 android:id="@+id/main_noInternet"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginLeft="8dp"
                 android:text="(Offline - Klick zum aktuallisieren)"
                 android:visibility="invisible" />
         </LinearLayout>

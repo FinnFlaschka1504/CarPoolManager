@@ -12,6 +12,7 @@
 
 
     <string name="test">Test</string>
+    <string name="account">Account</string>
 
     <string-array name="settings_groups_standardView">
         <item>Übersicht</item>

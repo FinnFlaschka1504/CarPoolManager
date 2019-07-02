@@ -1,25 +1,34 @@
 package finn_daniel.carpoolmanager;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-
-import android.view.View;
-
-import androidx.core.view.GravityCompat;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-
-import android.view.MenuItem;
-
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -27,32 +36,22 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 
-import androidx.drawerlayout.widget.DrawerLayout;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-
-import android.view.Menu;
-import android.widget.AdapterView;
-import android.widget.ListView;
-import android.widget.SimpleAdapter;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NetworkStateReceiver.NetworkStateReceiverListener {
 
-    private List listviewTitle = new ArrayList();
-    private List listviewisDriver = new ArrayList();
-    private List listviewPassengers = new ArrayList();
-    private List listviewOwnDrivenAmount = new ArrayList();
-    private List listviewAllDrivenAmount = new ArrayList();
+    private List<String> listviewTitle = new ArrayList<String>();
+    private List<Boolean> listviewisDriver = new ArrayList<>();
+    private List<String> listviewPassengers = new ArrayList<>();
+    private List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
+    private List<java.io.Serializable> listviewAllDrivenAmount = new ArrayList<>();
     ListView listView_groupList;
 
     List<String> createData_gruppenNamen;
@@ -68,22 +67,102 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     Gson gson = new Gson();
     DatabaseReference databaseReference;
+    private NetworkStateReceiver networkStateReceiver;
+    boolean wizzardManuellAktiviert = false;
 
-    int aktuell;
+    private String EXTRA_GROUP = "EXTRA_GROUP";
+    private String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
+    int loggedInUser_passengerCount = 0;
+
+
     Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
     String loggedInUser_Name = "DeineMudda";
     String loggedInUser_Id;
-    List<String> loggedInUser_groupsIdList = new ArrayList<>();
-    Map<String , Group> loggedInUser_groupsMap = new HashMap<>();
-    Map<String , User> loggedInUser_groupPassengerMap = new HashMap<>();
-    int loggedInUser_passengerCount = 0;
+    List<String> loggedInUser_groupsIdList = new ArrayList<>(); //<---
+    Map<String , Group> loggedInUser_groupsMap = new HashMap<>(); //<---
+    Map<String , User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
+    List<Group> sortedGroupList;
+    ValueEventListener groupChangeListener = new ValueEventListener() {
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            if (dataSnapshot.getValue() == null) {
+                // ToDo: Gruppe aus speicherungen der nutzer Löschen
+                final String removedGroup = dataSnapshot.getKey();
+                for (String user : loggedInUser_groupsMap.get(removedGroup).getUserIdList()) {
+                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.getValue() == null)
+                                return;
+                            User foundUser = dataSnapshot.getValue(User.class);
+                            foundUser.getGroupIdList().remove(removedGroup);
+                            databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
+                        }
 
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    });
+                }
+
+                loggedInUser_groupsIdList.remove(removedGroup);
+                loggedInUser_groupsMap.remove(removedGroup);
+                listeLaden();
+                return;
+            }
+            // ToDo: was passiert wenn gelöscht?
+            Group foundGroup = dataSnapshot.getValue(Group.class);
+            if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {
+                hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
+                return;
+            }
+            int i = 0;
+
+            foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList());
+
+
+            List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
+
+            for (String user : changeList.get(1)) {
+                loggedInUser_groupPassengerMap.remove(user);
+            }
+            for (String user : changeList.get(0)) {
+                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.getValue() == null)
+                            return;
+                        User foundUser = dataSnapshot.getValue(User.class);
+                        loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                    }
+                });
+            }
+
+            loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup);
+
+            listeLaden();
+
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+        }
+    };
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        networkStateReceiver = new NetworkStateReceiver();
+        networkStateReceiver.addListener(this);
+        this.registerReceiver(networkStateReceiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -112,21 +191,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         listView_groupList = findViewById(R.id.listView_groupList);
 
         if (!isOnline()) {
-            showNoInternetSnackBar();
-            TextView main_noInternet = findViewById(R.id.main_noInternet);
-            main_noInternet.setVisibility(View.VISIBLE);
-            main_noInternet.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (!isOnline()) {
-                        showActivateInternetDialog();
-                    } else {
-                        findViewById(R.id.main_noInternet).setVisibility(View.GONE);
-                        getUserIdfromUserName();
-                    }
-
-                }
-            });
             SharedPreferences mySPR = getSharedPreferences("OfflineDaten",0);
             int count = 0;
             while (true) {
@@ -162,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
 
-        getUserIdfromUserName();
+//        getUserIdfromUserName();
 
     }
 
@@ -227,7 +291,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void getGroupsfromUser() {
-        // ToDo: App stürtzt beim aktuallisieren ab
         databaseReference.child("Users").child(loggedInUser_Id).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -235,7 +298,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     return;
                 User foundUser = dataSnapshot.getValue(User.class);
                 loggedInUser_groupsIdList = foundUser.getGroupIdList();
-                // addValueEventListener
+                if (loggedInUser_groupsIdList.size() == 0) {
+                    TextView main_groupInfo = findViewById(R.id.main_groupInfo);
+                    main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
+                    return;
+                }
                 for (String groupId : loggedInUser_groupsIdList) {
                     databaseReference.child("Groups").child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
@@ -265,57 +332,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void addGroupChangeListener(final String groupId) {
-        databaseReference.child("Groups").child(groupId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.getValue() == null)
-                    return;
-                // ToDo: was passiert wenn gelöscht?
-                Group foundGroup = dataSnapshot.getValue(Group.class);
-                if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {
-                    hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
-                    return;
-                }
-                int i = 0;
 
-                if (!loggedInUser_groupsMap.containsKey(foundGroup.getGroup_id()))
-                    return;
-                // ToDo: Was passiert wenn neue Gruppe
-
-                foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList());
-
-
-                List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
-
-                for (String user : changeList.get(1)) {
-                    loggedInUser_groupPassengerMap.remove(user);
-                }
-                for (String user : changeList.get(0)) {
-                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            if (dataSnapshot.getValue() == null)
-                                return;
-                            User foundUser = dataSnapshot.getValue(User.class);
-                            loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
-                        }
-                    });
-                }
-
-                loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup);
-
-                listeLaden();
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        });
+        databaseReference.child("Groups").child(groupId).removeEventListener(groupChangeListener);
+        databaseReference.child("Groups").child(groupId).addValueEventListener(groupChangeListener);
     }
 
     private void getGroupPassengers() {
@@ -353,8 +372,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SharedPreferences.Editor editor = mySPR.edit();
         editor.clear();
 
-        //ToDo: Alle einträge vorher löschen - delete shared preferences
-
         int count = 0;
         for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
             editor.putString("loggedInUser_groupsList_" + count, gson.toJson(entry.getValue()));
@@ -369,6 +386,40 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         editor.commit();
         super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        networkStateReceiver.removeListener(this);
+        this.unregisterReceiver(networkStateReceiver);
+    }
+
+    @Override
+    public void networkAvailable() {
+        findViewById(R.id.main_noInternet).setVisibility(View.GONE);
+        findViewById(R.id.progressBar_loadData).setVisibility(View.VISIBLE);
+//        createListData();
+        getUserIdfromUserName();
+    }
+
+    @Override
+    public void networkUnavailable() {
+        showNoInternetSnackBar();
+        TextView main_noInternet = findViewById(R.id.main_noInternet);
+        main_noInternet.setVisibility(View.VISIBLE);
+        main_noInternet.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!isOnline()) {
+                    showActivateInternetDialog();
+                } else {
+                    findViewById(R.id.main_noInternet).setVisibility(View.GONE);
+                    getUserIdfromUserName();
+                }
+
+            }
+        });
     }
 
     @Override
@@ -427,28 +478,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         TextView main_groupInfo = findViewById(R.id.main_groupInfo);
         main_groupInfo.setVisibility(View.GONE);
 
-        ArrayList driver1 = new ArrayList();
+        ArrayList<java.io.Serializable> driver1 = new ArrayList<java.io.Serializable>();
         driver1.add("Die Bekloppten");
         driver1.add(true);
         driver1.add("Arsch 1, Derda31, DeineMudda");
         driver1.add(7);
         driver1.add(31);
 
-        ArrayList driver2 = new ArrayList();
+        ArrayList<java.io.Serializable> driver2 = new ArrayList<>();
         driver2.add("Deine Mudda");
         driver2.add(false);
         driver2.add("Pudding, Die Olle, Niemand");
         driver2.add(0);
         driver2.add(568);
 
-        ArrayList driver3 = new ArrayList();
+        ArrayList<java.io.Serializable> driver3 = new ArrayList<java.io.Serializable>();
         driver3.add("Mip");
         driver3.add(true);
         driver3.add("Noch Einer, und Noch Einer, und Noch Einer");
         driver3.add(9);
         driver3.add(10);
 
-        ArrayList<ArrayList> driverTest = new ArrayList();
+        ArrayList<ArrayList<java.io.Serializable>> driverTest = new ArrayList<>();
         driverTest.add(driver1);
         driverTest.add(driver2);
         driverTest.add(driver3);
@@ -461,15 +512,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         this.listviewOwnDrivenAmount.clear();
         this.listviewAllDrivenAmount.clear();
 
+        // ToDo: Einträge sortieren (Mapp zu List und dann sortieren)
+        sortedGroupList = new ArrayList<>(loggedInUser_groupsMap.values());
+        Collections.sort(sortedGroupList, new Comparator() {
+            public int compare(Group obj1, Group obj2) {
+                return obj1.getName().compareTo(obj2.getName());
+            }
+
+            public int compare(Object var1, Object var2) {
+                return this.compare((Group) var1, (Group) var2);
+            }
+        });
+
+        if (sortedGroupList.size() == 0) {
+            main_groupInfo.setVisibility(View.VISIBLE);
+            main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
+        }
+
         int count = 0;
-        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
-            listviewTitle.add(entry.getValue().getName());
-            listviewisDriver.add(entry.getValue().getDriverIdList().contains(loggedInUser_Id));
+        for (Group group : sortedGroupList) {
+            listviewTitle.add(group.getName());
+            listviewisDriver.add(group.getDriverIdList().contains(loggedInUser_Id));
 
             String passengers = "";
-            for (int n = 0; n < entry.getValue().getUserIdList().size(); n++) {
-                passengers = passengers.concat(loggedInUser_groupPassengerMap.get(entry.getValue().getUserIdList().get(n)).getUserName());
-                if (n < entry.getValue().getUserIdList().size() - 1)
+            for (int n = 0; n < group.getUserIdList().size(); n++) {
+                passengers = passengers.concat(loggedInUser_groupPassengerMap.get(group.getUserIdList().get(n)).getUserName());
+                if (n < group.getUserIdList().size() - 1)
                     passengers = passengers.concat(", ");
             }
 
@@ -491,12 +559,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //        }
         // ToDo: Mitfahrer farblich kennzeichnen
 
-        ArrayList aList = new ArrayList<>();
+        ArrayList<HashMap<String, java.io.Serializable>> aList = new ArrayList<HashMap<String, java.io.Serializable>>();
 
         for(int i = 0; i < loggedInUser_groupsMap.size(); ++i) {
-            HashMap hm = new HashMap();
+            HashMap<String, java.io.Serializable> hm = new HashMap<String, java.io.Serializable>();
             (hm).put("listview_title", listviewTitle.get(i));
-            (hm).put("listview_isDriver", (Boolean)listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
+            (hm).put("listview_isDriver", listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
             (hm).put("listview_discription_passengers", listviewPassengers.get(i));
             (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
             (hm).put("listview_discription_allAmount", listviewAllDrivenAmount.get(i));
@@ -538,6 +606,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //        listView_groupList = (ListView)this._$_findCachedViewById(id.listView_reminder);
 //        listView_groupList.getViewTreeObserver().addOnPreDrawListener((OnPreDrawListener)mOnPreDrawListener);
 //        this.listeClickListener();
+        findViewById(R.id.progressBar_loadData).setVisibility(View.GONE);
     }
 
 
@@ -545,11 +614,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         listView_groupList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, final int index, long l) {
-                aktuell = index;
-                Intent intent = new Intent(MainActivity.this, GroupOverview.class);
-
-//        intent.putExtra(EXTRA_MESSAGE, message);
-                startActivity(intent);            }
+                Intent intent = new Intent(MainActivity.this, GroupActivity.class);
+                intent.putExtra(EXTRA_GROUP, gson.toJson(sortedGroupList.get(index)));
+                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(loggedInUser_groupPassengerMap));
+                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(loggedInUser_groupPassengerMap));
+                startActivity(intent);
+            }
         });
     }
 
@@ -563,7 +633,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         msgBox("Konto Informationen Öffnen");
     }
 
-    public void createListData(View view) {
+    public void startWizzard(View view) {
+        wizzardManuellAktiviert = true;
+        createListData();
+    }
+
+    public void createListData() {
         createData_gruppenNamen = new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda", "Mip"));
         createData_userNamen = new ArrayList<String>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda", "Pudding", "Die Olle", "Niemand", "Noch Einer", "und Noch Einer", "und Noch Noch Einer"));
 
@@ -608,9 +683,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             newUser.setUserName(name);
             createData_userIdMap.put(name, newUser.getUser_id());
             for (String gruppe : createData_userGroupMap.get(name)) {
-//                String gruppenID = getGroupIdByName(name);
                 newUser.addGroup(createData_groupIdMap.get(gruppe));
-                // ToDo
             }
 
             databaseReference.child("Users").child(newUser.user_id).setValue(newUser);
@@ -637,6 +710,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                }
+                if (wizzardManuellAktiviert) {
+                    wizzardManuellAktiviert = false;
+                    Intent mStartActivity = new Intent(MainActivity.this, MainActivity.class);
+                    int mPendingIntentId = 123456;
+                    PendingIntent mPendingIntent = PendingIntent.getActivity(MainActivity.this, mPendingIntentId, mStartActivity, PendingIntent.FLAG_CANCEL_CURRENT);
+                    AlarmManager mgr = (AlarmManager) MainActivity.this.getSystemService(Context.ALARM_SERVICE);
+                    mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+                    System.exit(0);
                 }
             }
 

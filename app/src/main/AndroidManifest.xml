@@ -3,9 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="finn_daniel.carpoolmanager">
 
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.UPDATE_DEVICE_STATS "/>
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.UPDATE_DEVICE_STATS " />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
     <application
         android:allowBackup="true"
@@ -14,7 +14,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        tools:ignore="GoogleAppIndexingWarning">
+        tools:ignore="GoogleAppIndexingWarning"
+        tools:replace="android:label">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
         <activity
             android:name=".MainActivity"
             android:label="Fahrgemeinschaft Manager"
@@ -26,10 +30,16 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".GroupOverview"
+            android:name=".GroupActivity"
             android:parentActivityName=".MainActivity" />
-        <activity android:name=".Settings"
-            android:parentActivityName=".MainActivity" ></activity>
+        <activity
+            android:name=".Settings"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".AddTripActivity"
+            android:launchMode="singleTop"
+            android:label="Fahrt(-en) hinufügen"
+            android:parentActivityName=".GroupActivity" />
     </application>
 
 </manifest>
