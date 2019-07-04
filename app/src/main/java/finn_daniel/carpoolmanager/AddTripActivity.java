@@ -53,7 +53,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
@@ -86,6 +88,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String from;
     String to;
     Marker neuerMarker;
+    Map<String, Double> fuelCostMap = new HashMap<>();
 
 
 
@@ -500,6 +503,72 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding));
 
                         dialogSelectRoute_save.setEnabled(true);
+
+                        loadGasPrice();
+
+                    }
+                },
+                new Response.ErrorListener(){
+                    @Override
+                    public void onErrorResponse(VolleyError error){
+                        // Do something when error occurred
+//                        Snackbar.make(this,
+//                                "Error.",
+//                                Snackbar.LENGTH_LONG
+//                        ).show();
+                        Toast.makeText(AddTripActivity.this, "Error", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+
+        // Add JsonObjectRequest to the RequestQueue
+        requestQueue.add(jsonObjectRequest);
+    }
+
+    private void loadGasPrice() {
+        LatLng location = markerFrom.getPosition();
+        String request = "https://creativecommons.tankerkoenig.de/json/list.php?lat=" +
+                location.latitude +
+                "&lng=" +
+                location.longitude +
+                "&rad=5&sort=dist&type=" +
+                "all" + // TODO: 04.07.2019 ändern
+                "&apikey=" +
+                "f9852054-1931-01c3-76b0-03d00aefcd7b"; // TODO: 04.07.2019 ändern
+
+
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
+                Request.Method.GET,
+                request,
+                null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            if (!response.get("status").equals("ok")){
+                                Toast.makeText(AddTripActivity.this, "Fehler", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        JSONObject data = null;
+                        try {
+                            data = response.getJSONArray("stations").getJSONObject(0);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            fuelCostMap.put("diesel" , (Double) data.get("diesel"));
+                            fuelCostMap.put("e5" , (Double) data.get("e5"));
+                            fuelCostMap.put("e10" , (Double) data.get("e10"));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        int i = 0;
 
                     }
                 },
