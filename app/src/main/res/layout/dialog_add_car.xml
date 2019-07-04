@@ -63,7 +63,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="(€/100km)" />
+                    android:text="(l/100km)" />
             </LinearLayout>
 
             <EditText
@@ -72,10 +72,32 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ems="10"
-                android:hint="Verbrauch eingeben (€)"
+                android:hint="Verbrauch eingeben"
                 android:imeOptions="actionNext"
                 android:inputType="number|numberDecimal"
                 android:selectAllOnFocus="true" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:text="Sprit-Sorte:"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/dialogAddCar_selectFuelType"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:entries="@array/addTrip_dialog_selectFuelType"
+                android:prompt="@string/test" />
 
         </TableRow>
 
@@ -108,7 +130,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ems="10"
-                android:hint="Verschleiß eingeben (€)"
+                android:hint="Verschleiß eingeben"
                 android:imeOptions="actionDone"
                 android:inputType="number|numberDecimal"
                 android:selectAllOnFocus="true"

@@ -22,6 +22,8 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -72,6 +74,8 @@ import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
 public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    LinearLayout dialogSelectRoute_distanceLayout;
+    CheckBox addTrip_twoWays;
     Button dialogSelectRoute_save;
     Button addTrip_from;
     Button addTrip_to;
@@ -89,20 +93,21 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     TextView dialogSelectRoute_from;
     TextView dialogSelectRoute_to;
     TextView dialogSelectRoute_distance;
-    LinearLayout dialogSelectRoute_distanceLayout;
     TextView dialogRenamePoints_from;
     TextView dialogRenamePoints_to;
     TextView dialogAddCar_name;
     TextView dialogAddCar_consumption;
     TextView dialogAddCar_wear;
     Spinner addTrip_selectCar;
+    Spinner dialogAddCar_selectFuelType;
+    TextView addTrip_fuelCost;
 
     Map<String, Car> carIdMap = new HashMap<>();
     Map<String, String> carNameToIdMap = new HashMap<>();
     List<Car> carList = new ArrayList<>();
 //    Map<String, User> loggedinUser_map = new HashMap<>();
 
-
+    int costMultiplier = 2;
     User loggedInUser;
     SharedPreferences mySPR;
     Marker markerFrom;
@@ -121,6 +126,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String to;
     Marker neuerMarker;
     Car newCar;
+    Car selectedCar;
     DatabaseReference databaseReference;
     Map<String, Double> fuelCostMap = new HashMap<>();
 
@@ -148,9 +154,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         setContentView(R.layout.activity_add_trip);
 
         mySPR = getSharedPreferences("CarPoolManager_Daten",0);
-        String loggedinUser_map_string = mySPR.getString("loggedInUser", "--Leer--");
-        if (!loggedinUser_map_string.equals("--Leer--")) {
-            loggedInUser = gson.fromJson(loggedinUser_map_string, User.class);
+        String loggedinUser_string = mySPR.getString("loggedInUser", "--Leer--");
+        if (!loggedinUser_string.equals("--Leer--")) {
+            loggedInUser = gson.fromJson(loggedinUser_string, User.class);
         }
 
 
@@ -176,9 +182,10 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         addTrip_cost = findViewById(R.id.addTrip_cost);
         addTrip_addCar = findViewById(R.id.addTrip_addCar);
         addTrip_selectCar = findViewById(R.id.addTrip_selectCar);
+        addTrip_fuelCost = findViewById(R.id.addTrip_fuelCost);
+        addTrip_twoWays = findViewById(R.id.addTrip_twoWays);
 
         loadCarSpinner(false);
-
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -186,6 +193,13 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
         dialogSelectRoute_from.setOnFocusChangeListener(onFocusChangeListener);
         dialogSelectRoute_to.setOnFocusChangeListener(onFocusChangeListener);
+
+        Date heute = new Date();
+        String pattern = "dd.MM.yyyy E";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        String buttonText = simpleDateFormat.format(heute.getTime()).replace(" ", " (") + ")";
+        addTrip_selectDate.setText(buttonText);
+        date[0] = heute;
 
         addTrip_from.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -204,25 +218,20 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             }
         });
 
-        Date heute = new Date();
-        String pattern = "dd.MM.yyyy E";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-        String buttonText = simpleDateFormat.format(heute.getTime()).replace(" ", " (") + ")";
-        addTrip_selectDate.setText(buttonText);
-        date[0] = heute;
-
         addTrip_selectCar.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long arg3) {
-//                String city = "The city is " + parent.getItemAtPosition(position).toString();
-//                Toast.makeText(parent.getContext(), city, Toast.LENGTH_LONG).show();
-                Car selectedCar = carList.get(position);
-                addTrip_consumption.setText(selectedCar.getConsumption().toString().replace(".",",") + " €/100km");
+                selectedCar = carList.get(position);
+                addTrip_consumption.setText(selectedCar.getConsumption().toString().replace(".",",") + " l/100km");
                 addTrip_wear.setText(selectedCar.getWear().toString().replace(".",",") + " €/100km");
                 if (addTrip_distance.getText().toString().contains("km")) {
+                    switch (selectedCar.getFuelType()) {
+                        case DIESEL: addTrip_fuelCost.setText(fuelCostMap.get("diesel").toString().replace(".", ",") + " €/l"); break;
+                        case E5: addTrip_fuelCost.setText(fuelCostMap.get("e5").toString().replace(".", ",") + " €/l"); break;
+                        case E10: addTrip_fuelCost.setText(fuelCostMap.get("e10").toString().replace(".", ",") + " €/l"); break;
+                    }
                     calculateCost();
                 }
             }
-
             public void onNothingSelected(AdapterView<?> arg0) {
             }
         });
@@ -234,13 +243,30 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             }
         });
 
+        addTrip_twoWays.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                if (checked)
+                    costMultiplier = 2;
+                else
+                    costMultiplier = 1;
+                if (!carList.isEmpty() && addTrip_distance.getText().toString().contains("km"))
+                    calculateCost();
+            }
+        });
+
     }
 
     void calculateCost() {
         double distance = Double.valueOf(addTrip_distance.getText().toString().split(" ")[0].replace(",","."));
         DecimalFormat df = new DecimalFormat("#.00");
-        Car selectedCar = carList.get(addTrip_selectCar.getSelectedItemPosition());
-        Double costs = distance * (selectedCar.getConsumption() + selectedCar.getWear()) / 100;
+        double fuelCost = 0;
+        switch (selectedCar.getFuelType()) {
+            case DIESEL: fuelCost = fuelCostMap.get("diesel"); break;
+            case E5: fuelCost = fuelCostMap.get("e5"); break;
+            case E10: fuelCost = fuelCostMap.get("e10"); break;
+        }
+        Double costs = (distance * (((selectedCar.getConsumption() * fuelCost)+ selectedCar.getWear()) / 100)) * costMultiplier;
         addTrip_cost.setText( df.format(costs)+ " €");
         // ToDo: wenn kosten stehen kann gespeicert werden
         addTrip_save.setEnabled(true);
@@ -254,10 +280,11 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
         dialogAddCar_name = dialog_addCar.findViewById(R.id.dialogAddCar_name);
         dialogAddCar_consumption = dialog_addCar.findViewById(R.id.dialogAddCar_consumption);
+        dialogAddCar_selectFuelType = dialog_addCar.findViewById(R.id.dialogAddCar_selectFuelType);
+
         dialogAddCar_wear = dialog_addCar.findViewById(R.id.dialogAddCar_wear);
         dialogAddCar_cancel = dialog_addCar.findViewById(R.id.dialogAddCar_cancel);
         dialogAddCar_save = dialog_addCar.findViewById(R.id.dialogAddCar_save);
-
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
         lp.copyFrom(dialog_addCar.getWindow().getAttributes());
@@ -290,6 +317,11 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 newCar = new Car();
                 newCar.setName(dialogAddCar_name.getText().toString().trim());
                 newCar.setConsumption(Double.valueOf(dialogAddCar_consumption.getText().toString()));
+                switch (dialogAddCar_selectFuelType.getSelectedItem().toString()) {
+                    case "E5" : newCar.setFuelType(Car.fuelType.E5); break;
+                    case "E10" : newCar.setFuelType(Car.fuelType.E10); break;
+                    case "Diesel" : newCar.setFuelType(Car.fuelType.DIESEL); break;
+                }
                 newCar.setWear(Double.valueOf(dialogAddCar_wear.getText().toString()));
                 databaseReference.child("Cars").child(newCar.getCar_id()).setValue(newCar);
                 dialog_addCar.dismiss();
@@ -303,9 +335,11 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         foundUser.addCar(newCar.getCar_id());
                         databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
                         loggedInUser = foundUser;
+                        SharedPreferences.Editor editor = mySPR.edit();
+                        editor.putString("loggedInUser", gson.toJson(loggedInUser));
+                        editor.commit();
                         loadCarSpinner(true);
                     }
-
                     @Override
                     public void onCancelled(DatabaseError databaseError) {
                     }
@@ -317,6 +351,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     void loadCarSpinner(boolean newCar) {
         carIdMap.clear();
         carNameToIdMap.clear();
+        carList.clear();
         for (String carId : loggedInUser.getCarIdList()) {
             databaseReference.child("Cars").child(carId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -334,6 +369,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         }
                         ArrayAdapter<String> adp = new ArrayAdapter<>(AddTripActivity.this, android.R.layout.simple_spinner_dropdown_item, arrayList);
                         addTrip_selectCar.setAdapter(adp);
+                        addTrip_selectCar.setSelection(carList.size() - 1);
                         // ToDo: wenn neues auto dann das automatisch auswählen
 
                         //        addTrip_selectCar.setVisibility(View.VISIBLE);
@@ -432,7 +468,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 addTrip_distance.setText(dialogSelectRoute_distance.getText());
                 dialog_renamePoints.dismiss();
                 dialog_selectRoute.dismiss();
-                if (addTrip_selectCar.getAdapter() != null)
+                if (selectedCar != null)
                     calculateCost();
             }
         });
@@ -658,7 +694,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                     @Override
                     public void onResponse(JSONObject response) {
                         try {
-                            if (response.get("status").equals("ZERO_RESULTS")) {
+                            if (!response.get("status").equals("OK")) {
                                 Toast.makeText(AddTripActivity.this, "Keine Verbindung gefunden", Toast.LENGTH_SHORT).show();
                                 return;
                             }
@@ -744,12 +780,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 location.latitude +
                 "&lng=" +
                 location.longitude +
-                "&rad=5&sort=dist&type=" +
-                "all" + // TODO: 04.07.2019 ändern
+                "&rad=5&sort=dist&type=all" +
                 "&apikey=" +
-                "f9852054-1931-01c3-76b0-03d00aefcd7b"; // TODO: 04.07.2019 ändern
-
-
+                getString(R.string.tankerkoenig_api_key); // TODO: Api keys nur lokal speichern
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
@@ -781,24 +814,22 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-                        int i = 0;
-
+                        if (selectedCar != null) {
+                            switch (selectedCar.getFuelType()) {
+                                case DIESEL: addTrip_fuelCost.setText(fuelCostMap.get("diesel").toString().replace(".", ",") + " €/l"); break;
+                                case E5: addTrip_fuelCost.setText(fuelCostMap.get("e5").toString().replace(".", ",") + " €/l"); break;
+                                case E10: addTrip_fuelCost.setText(fuelCostMap.get("e10").toString().replace(".", ",") + " €/l"); break;
+                            }
+                        }
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        // Do something when error occurred
-//                        Snackbar.make(this,
-//                                "Error.",
-//                                Snackbar.LENGTH_LONG
-//                        ).show();
                         Toast.makeText(AddTripActivity.this, "Error", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
-
-        // Add JsonObjectRequest to the RequestQueue
         requestQueue.add(jsonObjectRequest);
     }
 

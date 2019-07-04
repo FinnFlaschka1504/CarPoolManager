@@ -18,7 +18,7 @@
         tools:replace="android:label">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" />
+            android:value="@string/google_api_key" />
         <activity
             android:name=".MainActivity"
             android:label="Fahrgemeinschaft Manager"

@@ -7,6 +7,12 @@ public class Car {
     private String name;
     private Double consumption;
     private Double wear;
+    private fuelType fuelType;
+    public enum fuelType
+    {
+        DIESEL, E5, E10
+    }
+
 
     public Car() {
         car_id = "car_" + UUID.randomUUID().toString();
@@ -42,5 +48,13 @@ public class Car {
 
     public void setWear(Double wear) {
         this.wear = wear;
+    }
+
+    public Car.fuelType getFuelType() {
+        return fuelType;
+    }
+
+    public void setFuelType(Car.fuelType fuelType) {
+        this.fuelType = fuelType;
     }
 }

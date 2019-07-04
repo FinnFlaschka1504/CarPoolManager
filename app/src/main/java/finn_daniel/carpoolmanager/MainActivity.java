@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 listeLaden();
                 return;
             }
-            // ToDo: was passiert wenn gelöscht?
+            // ToDo: was passiert wenn gelöscht? eventuell per cloud function?
             Group foundGroup = dataSnapshot.getValue(Group.class);
             if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {
                 hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
@@ -737,6 +737,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
                 if (wizzardManuellAktiviert) {
                     wizzardManuellAktiviert = false;

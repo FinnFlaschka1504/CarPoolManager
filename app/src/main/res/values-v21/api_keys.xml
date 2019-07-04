@@ -29,5 +29,6 @@
   -->
 
 <resources>
-  <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyA_G5o9xK0fZ24NXQUMnxGR_HGJzvcEw9M</string>
+  <string name="google_api_key" templateMergeStrategy="preserve" translatable="false">AIzaSyA_G5o9xK0fZ24NXQUMnxGR_HGJzvcEw9M</string>
+  <string name="tankerkoenig_api_key" templateMergeStrategy="preserve" translatable="false">f9852054-1931-01c3-76b0-03d00aefcd7b</string>
 </resources>
