@@ -61,7 +61,7 @@ public class GroupActivity extends FragmentActivity {
 //            User user = gson.fromJson(entry.getValue().toString(), User.class);
 //            groupPassengerMap.put(user.getUser_id(), user);
 //        }
-        Map<String, User> groupPassengerMap = new Gson().fromJson(
+        Map<String, User> groupPassengerMap = gson.fromJson(
                 getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
         );
 //        for (Map.Entry<String, LinkedTreeMap> entry : groupPassengerMap_raw.entrySet()) {
@@ -275,7 +275,6 @@ class ViewPager_GroupOverview extends Fragment {
 //
 ////            int[] test = new int[2];
 ////            userList.getLocationOnScreen(test);
-//            // ToDo: im preDrawListener höhe beschränken
 //
 //            ViewGroup.LayoutParams params = userList.getLayoutParams();
 //            params.height = totalHeight + (userList.getDividerHeight() * (listadp.getCount() - 1));

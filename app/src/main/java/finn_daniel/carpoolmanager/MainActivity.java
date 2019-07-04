@@ -35,6 +35,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,8 +63,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     Map<String, User> createData_userMap = new HashMap<>();
     Map<String, List<String>> createData_userGroupMap = new HashMap<>();
-    Map<String, String > createData_userIdMap = new HashMap<>();
-    Map<String, String > createData_groupIdMap = new HashMap<>();
+    Map<String, String> createData_userIdMap = new HashMap<>();
+    Map<String, String> createData_groupIdMap = new HashMap<>();
 
     Gson gson = new Gson();
     DatabaseReference databaseReference;
@@ -76,11 +77,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
+    User loggedInUser;
     String loggedInUser_Name = "DeineMudda";
-    String loggedInUser_Id;
+    //    String loggedInUser_Id;
+//    Map<String, User> loggedinUser_map = new HashMap<>();
     List<String> loggedInUser_groupsIdList = new ArrayList<>(); //<---
-    Map<String , Group> loggedInUser_groupsMap = new HashMap<>(); //<---
-    Map<String , User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
+    Map<String, Group> loggedInUser_groupsMap = new HashMap<>(); //<---
+    Map<String, User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
     List<Group> sortedGroupList;
     ValueEventListener groupChangeListener = new ValueEventListener() {
         @Override
@@ -152,12 +155,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         public void onCancelled(DatabaseError databaseError) {
         }
     };
+    SharedPreferences mySPR;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mySPR = getSharedPreferences("CarPoolManager_Daten", 0);
+        String loggedInUser_string = mySPR.getString("loggedInUser", "--Leer--");
+        if (!loggedInUser_string.equals("--Leer--")) {
+            loggedInUser = gson.fromJson(loggedInUser_string, User.class);
+//            loggedInUser_Id = loggedInUser.getUser_id();
+            // ToDo: Handle nicht angemeldet
+        }
+
 
         networkStateReceiver = new NetworkStateReceiver();
         networkStateReceiver.addListener(this);
@@ -191,43 +204,55 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         listView_groupList = findViewById(R.id.listView_groupList);
 
         if (!isOnline()) {
-            SharedPreferences mySPR = getSharedPreferences("OfflineDaten",0);
-            int count = 0;
-            while (true) {
-                String loggedInUser_groupsList_string = mySPR.getString("loggedInUser_groupsList_" + count, "--Leer--");
-                if (!loggedInUser_groupsList_string.equals("--Leer--")) {
-                    Group newGroup = gson.fromJson(loggedInUser_groupsList_string, Group.class);
-                    loggedInUser_groupsMap.put(newGroup.getGroup_id(), newGroup);
-                }
-                else
-                    break;
-                count++;
+
+            String loggedInUser_groupsMap_string = mySPR.getString("loggedInUser_groupsMap", "--Leer--");
+            if (!loggedInUser_groupsMap_string.equals("--Leer--")) {
+                loggedInUser_groupsMap = gson.fromJson(
+                        loggedInUser_groupsMap_string, new TypeToken<HashMap<String, Group>>() {
+                        }.getType()
+                );
             }
-            count = 0;
-            User foundUser;
-            while (true) {
-                String loggedInUser_groupPassengerMap_string = mySPR.getString("loggedInUser_groupPassengerMap_" + count, "--Leer--");
-                if (!loggedInUser_groupPassengerMap_string.equals("--Leer--")) {
-                    foundUser = gson.fromJson(loggedInUser_groupPassengerMap_string, User.class);
-                }
-                else
-                    break;
-                count++;
-                loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+
+//            while (true) {
+//                String loggedInUser_groupsList_string = mySPR.getString("loggedInUser_groupsMap" + count, "--Leer--");
+//                if (!loggedInUser_groupsList_string.equals("--Leer--")) {
+//                    Group newGroup = gson.fromJson(loggedInUser_groupsList_string, Group.class);
+//                    loggedInUser_groupsMap.put(newGroup.getGroup_id(), newGroup);
+//                }
+//                else
+//                    break;
+//                count++;
+//            }
+
+            String loggedInUser_groupPassengerMap_string = mySPR.getString("loggedInUser_groupPassengerMap", "--Leer--");
+            if (!loggedInUser_groupPassengerMap_string.equals("--Leer--")) {
+                loggedInUser_groupPassengerMap = gson.fromJson(
+                        loggedInUser_groupPassengerMap_string, new TypeToken<HashMap<String, User>>() {
+                        }.getType()
+                );
             }
-            String loggedInUser_Id_string = mySPR.getString("loggedInUser_Id", "--Leer--");
-            if (!loggedInUser_Id_string.equals("--Leer--")) {
-                loggedInUser_Id = loggedInUser_Id_string;
-            }
+
+//            count = 0;
+//            User foundUser;
+//            while (true) {
+//                String loggedInUser_groupPassengerMap_string = mySPR.getString("loggedInUser_groupPassengerMap_" + count, "--Leer--");
+//                if (!loggedInUser_groupPassengerMap_string.equals("--Leer--")) {
+//                    foundUser = gson.fromJson(loggedInUser_groupPassengerMap_string, User.class);
+//                }
+//                else
+//                    break;
+//                count++;
+//                loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+//            }
+
+//            String loggedInUser_Id_string = mySPR.getString("loggedInUser_Id", "--Leer--");
+//            if (!loggedInUser_Id_string.equals("--Leer--")) {
+//                loggedInUser_Id = loggedInUser_Id_string;
+//            }
             listeLaden();
             listeClickListener();
             return;
         }
-
-
-
-//        getUserIdfromUserName();
-
     }
 
     private void showNoInternetSnackBar() {
@@ -266,20 +291,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-    private void getUserIdfromUserName() {
-        databaseReference.child("Users").addListenerForSingleValueEvent(new ValueEventListener() {
+    private void reloadLoggedInUser() {
+        databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getValue() == null)
                     return;
 
-                for (DataSnapshot messageSnapshot: dataSnapshot.getChildren()) {
-                    User foundUser = messageSnapshot.getValue(User.class);
-                    if (foundUser.getUserName().equals(loggedInUser_Name)) {
-                        loggedInUser_Id = foundUser.getUser_id();
-                        System.out.println(loggedInUser_Id);
-                    }
-                }
+                loggedInUser = dataSnapshot.getValue(User.class);
 
                 getGroupsfromUser();
             }
@@ -291,7 +310,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void getGroupsfromUser() {
-        databaseReference.child("Users").child(loggedInUser_Id).addListenerForSingleValueEvent(new ValueEventListener() {
+        databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getValue() == null)
@@ -368,22 +387,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onStop() {
-        SharedPreferences mySPR = getSharedPreferences("OfflineDaten", 0);
+        SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Daten", 0);
         SharedPreferences.Editor editor = mySPR.edit();
         editor.clear();
 
-        int count = 0;
-        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
-            editor.putString("loggedInUser_groupsList_" + count, gson.toJson(entry.getValue()));
-            count++;
-        }
-        count = 0;
-        for (Map.Entry<String, User> entry : loggedInUser_groupPassengerMap.entrySet()) {
-            editor.putString("loggedInUser_groupPassengerMap_" + count, gson.toJson(entry.getValue()));
-            count++;
-        }
-        editor.putString("loggedInUser_Id", loggedInUser_Id);
+        editor.putString("loggedInUser_groupsMap", gson.toJson(loggedInUser_groupsMap));
+        editor.putString("loggedInUser_groupPassengerMap", gson.toJson(loggedInUser_groupPassengerMap));
 
+//        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
+//            editor.putString("loggedInUser_groupsList_" + count, gson.toJson(entry.getValue()));
+//            count++;
+//        }
+//        for (Map.Entry<String, User> entry : loggedInUser_groupPassengerMap.entrySet()) {
+//            editor.putString("loggedInUser_groupPassengerMap_" + count, gson.toJson(entry.getValue()));
+//            count++;
+//        }
+//        editor.putString("loggedInUser_Id", loggedInUser_Id);
+
+        editor.putString("loggedInUser", gson.toJson(loggedInUser));
         editor.commit();
         super.onStop();
     }
@@ -400,7 +421,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         findViewById(R.id.main_noInternet).setVisibility(View.GONE);
         findViewById(R.id.progressBar_loadData).setVisibility(View.VISIBLE);
 //        createListData();
-        getUserIdfromUserName();
+//        getGroupsfromUser();
+        reloadLoggedInUser();
     }
 
     @Override
@@ -415,7 +437,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     showActivateInternetDialog();
                 } else {
                     findViewById(R.id.main_noInternet).setVisibility(View.GONE);
-                    getUserIdfromUserName();
+//                    getGroupsfromUser();
+                    reloadLoggedInUser();
                 }
 
             }
@@ -462,8 +485,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         if (id == R.id.groups) {
             msgBox("groups");
-        }
-        else if (id == R.id.settings) {
+        } else if (id == R.id.settings) {
             Intent intent = new Intent(MainActivity.this, Settings.class);
             startActivity(intent);
         }
@@ -532,7 +554,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int count = 0;
         for (Group group : sortedGroupList) {
             listviewTitle.add(group.getName());
-            listviewisDriver.add(group.getDriverIdList().contains(loggedInUser_Id));
+            listviewisDriver.add(group.getDriverIdList().contains(loggedInUser.getUser_id()));
 
             String passengers = "";
             for (int n = 0; n < group.getUserIdList().size(); n++) {
@@ -561,10 +583,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         ArrayList<HashMap<String, java.io.Serializable>> aList = new ArrayList<HashMap<String, java.io.Serializable>>();
 
-        for(int i = 0; i < loggedInUser_groupsMap.size(); ++i) {
+        for (int i = 0; i < loggedInUser_groupsMap.size(); ++i) {
             HashMap<String, java.io.Serializable> hm = new HashMap<String, java.io.Serializable>();
             (hm).put("listview_title", listviewTitle.get(i));
-            (hm).put("listview_isDriver", listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
+            (hm).put("listview_isDriver", listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
             (hm).put("listview_discription_passengers", listviewPassengers.get(i));
             (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
             (hm).put("listview_discription_allAmount", listviewAllDrivenAmount.get(i));
@@ -609,8 +631,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         findViewById(R.id.progressBar_loadData).setVisibility(View.GONE);
     }
 
-
-    void listeClickListener(){
+    void listeClickListener() {
         listView_groupList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, final int index, long l) {
@@ -622,8 +643,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
     }
-
-
 
     public void msgBox(String nachricht) {
         Toast.makeText(this, nachricht, Toast.LENGTH_SHORT).show();
@@ -663,9 +682,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         createData_fahrer.add(new ArrayList<>(Arrays.asList("und Noch Einer", "DeineMudda")));
 
         createData_fahrten = new ArrayList<>();
-        createData_fahrten.add(new ArrayList<>(Arrays.asList(7,31)));
-        createData_fahrten.add(new ArrayList<>(Arrays.asList(0,568)));
-        createData_fahrten.add(new ArrayList<Integer>(Arrays.asList(9,10)));
+        createData_fahrten.add(new ArrayList<>(Arrays.asList(7, 31)));
+        createData_fahrten.add(new ArrayList<>(Arrays.asList(0, 568)));
+        createData_fahrten.add(new ArrayList<Integer>(Arrays.asList(9, 10)));
 
         databaseReference.child("Groups").removeValue();
         databaseReference.child("Users").removeValue();
@@ -674,9 +693,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Group newGroup = new Group();
             newGroup.setName(name);
             createData_groupIdMap.put(name, newGroup.getGroup_id());
-            databaseReference.child("Groups").child(newGroup.group_id).setValue(newGroup);
+            databaseReference.child("Groups").child(newGroup.getGroup_id()).setValue(newGroup);
         }
 
+        loggedInUser = new User();
         for (String name : createData_userNamen) {
             User newUser = new User();
 //            newUser.generateId();
@@ -686,7 +706,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 newUser.addGroup(createData_groupIdMap.get(gruppe));
             }
 
-            databaseReference.child("Users").child(newUser.user_id).setValue(newUser);
+            if (name.equals(loggedInUser_Name)) {
+                loggedInUser = newUser;
+                SharedPreferences.Editor editor = mySPR.edit();
+                editor.putString("loggedInUser", gson.toJson(loggedInUser));
+                editor.commit();
+            }
+
+            databaseReference.child("Users").child(newUser.getUser_id()).setValue(newUser);
         }
 
         databaseReference.child("Groups").addListenerForSingleValueEvent(new ValueEventListener() {
@@ -696,7 +723,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     return;
 
 
-                for (DataSnapshot messageSnapshot: dataSnapshot.getChildren()) {
+                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
                     Group foundGroup = messageSnapshot.getValue(Group.class);
                     for (String user : createData_mitfahrer.get(createData_gruppenNamen.indexOf(foundGroup.getName()))) {
                         foundGroup.addUser(createData_userIdMap.get(user));
@@ -706,7 +733,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
 
                     try {
-                        databaseReference.child("Groups").child(foundGroup.group_id).setValue(foundGroup);
+                        databaseReference.child("Groups").child(foundGroup.getGroup_id()).setValue(foundGroup);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -733,11 +760,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Runtime runtime = Runtime.getRuntime();
         try {
             Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
-            int     exitValue = ipProcess.waitFor();
+            int exitValue = ipProcess.waitFor();
             return (exitValue == 0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        catch (IOException e)          { e.printStackTrace(); }
-        catch (InterruptedException e) { e.printStackTrace(); }
 
         return false;
     }
@@ -750,7 +779,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     return;
 
 
-                for (DataSnapshot messageSnapshot: dataSnapshot.getChildren()) {
+                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
                     Group foundGroup = messageSnapshot.getValue(Group.class);
                     if (foundGroup.getName().equals(name))
                         return;

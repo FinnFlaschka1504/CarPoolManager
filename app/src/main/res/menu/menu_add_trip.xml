@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_bookmark"
+        android:icon="@drawable/ic_bookmark"
+        android:iconTint="#FFFFFF"
+        android:orderInCategory="100"
+        android:title="Lesezeichen"
+        app:showAsAction="ifRoom" />
+</menu>

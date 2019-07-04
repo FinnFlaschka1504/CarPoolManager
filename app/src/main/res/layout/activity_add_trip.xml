@@ -132,7 +132,15 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Auswählen"
-                android:textAlignment="textStart" />
+                android:textAlignment="textStart"
+                android:textAllCaps="false" />
+
+            <CheckBox
+                android:id="@+id/addTrip_twoWays"
+                style="@style/Widget.AppCompat.CompoundButton.CheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hin und Zurück" />
 
         </LinearLayout>
         <View
@@ -156,71 +164,105 @@
             android:textColor="#009688"
             android:textStyle="bold" />
 
-        <LinearLayout
+        <TableLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="match_parent">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp"
-                android:text="Verbrauch:"
-                android:textStyle="bold" />
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/addTrip_consumption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="7.8 l/100km" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Auswählen:"
+                    android:textStyle="bold" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+                <Spinner
+                    android:id="@+id/addTrip_selectCar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:visibility="gone" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp"
-                android:text="Verschleiß:"
-                android:textStyle="bold" />
+                <Button
+                    android:id="@+id/addTrip_addCar"
+                    style="@style/Widget.AppCompat.Button.Small"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#F9F9F9"
+                    android:text="+"
+                    android:textColor="#E91E63" />
+            </TableRow>
 
-            <TextView
-                android:id="@+id/addTrip_wear"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="5 €" />
-        </LinearLayout>
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Verbrauch:"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp"
-                android:text="Kosten:"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/addTrip_consumption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
 
-            <TextView
-                android:id="@+id/addTrip_cost"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="7.8 €" />
-        </LinearLayout>
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Verschleiß:"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addTrip_wear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Kosten:"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addTrip_cost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="18sp" />
+            </TableRow>
+        </TableLayout>
+
     </LinearLayout>
 
     <LinearLayout
@@ -230,11 +272,11 @@
         tools:layout_weight="1">
 
         <Button
-            android:id="@+id/dialogSelectRoute_addBookmark"
+            android:id="@+id/addTrip_addBookmark"
             style="@style/Widget.AppCompat.Button.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:backgroundTint="#E91E63"
+            android:backgroundTint="#D6D6D6"
             android:drawableRight="@drawable/ic_bookmark"
             android:drawableTint="#FFFFFF"
             android:enabled="false"
@@ -254,17 +296,18 @@
             <!--android:textColor="#E91E63" />-->
 
         <Button
-            android:id="@+id/dialogSelectRoute_cancel"
+            android:id="@+id/addTrip_cancel"
             style="@style/Widget.AppCompat.Button.Borderless.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Abbrechen" />
 
         <Button
-            android:id="@+id/dialogSelectRoute_continue"
+            android:id="@+id/addTrip_save"
             style="@style/Widget.AppCompat.Button.Borderless.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:enabled="false"
             android:text="Speichern" />
     </LinearLayout>
 

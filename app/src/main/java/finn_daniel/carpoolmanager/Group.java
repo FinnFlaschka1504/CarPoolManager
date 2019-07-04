@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 public class Group {
-    String group_id;
-    String name;
-    List<String> userIdList = new ArrayList<>();
-    List<String> tripIdList = new ArrayList<>();
-    List<String> driverIdList = new ArrayList<>();
+    private String group_id;
+    private String name;
+    private List<String> userIdList = new ArrayList<>();
+    private List<String> tripIdList = new ArrayList<>();
+    private List<String> driverIdList = new ArrayList<>();
     public enum priceCalculationType
     {
         KIKOMETERALLOWANCE, BUDGET
@@ -20,7 +20,7 @@ public class Group {
     }
 
     List<List<String>> getChangedUserLists(Group oldVersion) {
-        List<String> newList = new ArrayList<>(userIdList);
+        List<String> newList = new ArrayList<>(userIdList) ;
         List<String> oldList = oldVersion.getUserIdList();
         List<String> newList_clone = new ArrayList<>(newList);
         for (String userId : newList_clone ) {

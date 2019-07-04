@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -12,12 +13,17 @@ import android.location.Geocoder;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,7 +37,6 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -40,6 +45,11 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.maps.android.PolyUtil;
 
@@ -60,26 +70,48 @@ import java.util.Map;
 import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
 
-public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback{
+public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     Button dialogSelectRoute_save;
     Button addTrip_from;
     Button addTrip_to;
     Button addTrip_distance;
+    Button addTrip_selectDate;
+    Button addTrip_addBookmark;
+    Button addTrip_cancel;
+    Button addTrip_save;
+    Button addTrip_addCar;
+    Button dialogAddCar_cancel;
+    Button dialogAddCar_save;
+    TextView addTrip_consumption;
+    TextView addTrip_wear;
+    TextView addTrip_cost;
     TextView dialogSelectRoute_from;
     TextView dialogSelectRoute_to;
     TextView dialogSelectRoute_distance;
     LinearLayout dialogSelectRoute_distanceLayout;
     TextView dialogRenamePoints_from;
     TextView dialogRenamePoints_to;
+    TextView dialogAddCar_name;
+    TextView dialogAddCar_consumption;
+    TextView dialogAddCar_wear;
+    Spinner addTrip_selectCar;
 
+    Map<String, Car> carIdMap = new HashMap<>();
+    Map<String, String> carNameToIdMap = new HashMap<>();
+    List<Car> carList = new ArrayList<>();
+//    Map<String, User> loggedinUser_map = new HashMap<>();
+
+
+    User loggedInUser;
+    SharedPreferences mySPR;
     Marker markerFrom;
     Marker markerTo;
     GoogleMap googleMap;
-    MapView mMapView;
     Group thisGroup;
-    Dialog dialog;
+    Dialog dialog_selectRoute;
     Dialog dialog_renamePoints;
+    Dialog dialog_addCar;
     Gson gson = new Gson();
     private String EXTRA_GROUP = "EXTRA_GROUP";
     private static final String TAG = "AddTripActivity";
@@ -88,6 +120,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String from;
     String to;
     Marker neuerMarker;
+    Car newCar;
+    DatabaseReference databaseReference;
     Map<String, Double> fuelCostMap = new HashMap<>();
 
 
@@ -96,18 +130,16 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         @Override
         public void onFocusChange(View view, boolean focus) {
             if (!dialogSelectRoute_from.isFocused() && !dialogSelectRoute_to.isFocused()) {
-                dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+                dialog_selectRoute.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
                 InputMethodManager imm = (InputMethodManager) AddTripActivity.this.getSystemService(Activity.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
             }
             if (dialogSelectRoute_from.isFocused() || dialogSelectRoute_to.isFocused())
-                dialog.findViewById(R.id.dialogSelectRoute_fromToLayout).setAlpha(1f);
+                dialog_selectRoute.findViewById(R.id.dialogSelectRoute_fromToLayout).setAlpha(1f);
             else
-                dialog.findViewById(R.id.dialogSelectRoute_fromToLayout).setAlpha(0.7f);
-
+                dialog_selectRoute.findViewById(R.id.dialogSelectRoute_fromToLayout).setAlpha(0.7f);
         }
     };
-
 
 
     @Override
@@ -115,22 +147,38 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_trip);
 
+        mySPR = getSharedPreferences("CarPoolManager_Daten",0);
+        String loggedinUser_map_string = mySPR.getString("loggedInUser", "--Leer--");
+        if (!loggedinUser_map_string.equals("--Leer--")) {
+            loggedInUser = gson.fromJson(loggedinUser_map_string, User.class);
+        }
+
+
         thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
+        databaseReference = FirebaseDatabase.getInstance().getReference();
 
-        int i = 0;
-
-        dialog = new Dialog(AddTripActivity.this);
-//        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_select_route);
+        dialog_selectRoute = new Dialog(AddTripActivity.this);
+        dialog_selectRoute.setContentView(R.layout.dialog_select_route);
 
         addTrip_from = findViewById(R.id.addTrip_from);
         addTrip_to = findViewById(R.id.addTrip_to);
         addTrip_distance = findViewById(R.id.addTrip_distance);
-//        dialogSelectRoute_from = dialog.findViewById(R.id.dialogSelectRoute_from);
-        dialogSelectRoute_from = dialog.findViewById(R.id.dialogSelectRoute_from);
-        dialogSelectRoute_to = dialog.findViewById(R.id.dialogSelectRoute_to);
-        dialogSelectRoute_distance = dialog.findViewById(R.id.dialogSelectRoute_distance);
-        dialogSelectRoute_distanceLayout = dialog.findViewById(R.id.dialogSelectRoute_distanceLayout);
+        dialogSelectRoute_from = dialog_selectRoute.findViewById(R.id.dialogSelectRoute_from);
+        dialogSelectRoute_to = dialog_selectRoute.findViewById(R.id.dialogSelectRoute_to);
+        dialogSelectRoute_distance = dialog_selectRoute.findViewById(R.id.dialogSelectRoute_distance);
+        dialogSelectRoute_distanceLayout = dialog_selectRoute.findViewById(R.id.dialogSelectRoute_distanceLayout);
+        addTrip_selectDate = findViewById(R.id.addTrip_selectDate);
+        addTrip_addBookmark = findViewById(R.id.addTrip_addBookmark);
+        addTrip_save = findViewById(R.id.addTrip_save);
+        addTrip_cancel = findViewById(R.id.addTrip_cancel);
+        addTrip_consumption = findViewById(R.id.addTrip_consumption);
+        addTrip_wear = findViewById(R.id.addTrip_wear);
+        addTrip_cost = findViewById(R.id.addTrip_cost);
+        addTrip_addCar = findViewById(R.id.addTrip_addCar);
+        addTrip_selectCar = findViewById(R.id.addTrip_selectCar);
+
+        loadCarSpinner(false);
+
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -139,13 +187,12 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogSelectRoute_from.setOnFocusChangeListener(onFocusChangeListener);
         dialogSelectRoute_to.setOnFocusChangeListener(onFocusChangeListener);
 
-
         addTrip_from.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startMapDialog();
                 dialogSelectRoute_from.requestFocus();
-                dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                dialog_selectRoute.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
             }
         });
         addTrip_to.setOnClickListener(new View.OnClickListener() {
@@ -153,38 +200,177 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             public void onClick(View view) {
                 startMapDialog();
                 dialogSelectRoute_to.requestFocus();
-                dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                dialog_selectRoute.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }
+        });
+
+        Date heute = new Date();
+        String pattern = "dd.MM.yyyy E";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        String buttonText = simpleDateFormat.format(heute.getTime()).replace(" ", " (") + ")";
+        addTrip_selectDate.setText(buttonText);
+        date[0] = heute;
+
+        addTrip_selectCar.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long arg3) {
+//                String city = "The city is " + parent.getItemAtPosition(position).toString();
+//                Toast.makeText(parent.getContext(), city, Toast.LENGTH_LONG).show();
+                Car selectedCar = carList.get(position);
+                addTrip_consumption.setText(selectedCar.getConsumption().toString().replace(".",",") + " €/100km");
+                addTrip_wear.setText(selectedCar.getWear().toString().replace(".",",") + " €/100km");
+                if (addTrip_distance.getText().toString().contains("km")) {
+                    calculateCost();
+                }
+            }
+
+            public void onNothingSelected(AdapterView<?> arg0) {
+            }
+        });
+
+        addTrip_addCar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showAddCarDialog();
             }
         });
 
     }
 
-    // ToDo: Curser hinzufügen auf mittlere Maustaste
-    void startMapDialog() {
-        dialog.show();
+    void calculateCost() {
+        double distance = Double.valueOf(addTrip_distance.getText().toString().split(" ")[0].replace(",","."));
+        DecimalFormat df = new DecimalFormat("#.00");
+        Car selectedCar = carList.get(addTrip_selectCar.getSelectedItemPosition());
+        Double costs = distance * (selectedCar.getConsumption() + selectedCar.getWear()) / 100;
+        addTrip_cost.setText( df.format(costs)+ " €");
+        // ToDo: wenn kosten stehen kann gespeicert werden
+        addTrip_save.setEnabled(true);
+        addTrip_addBookmark.setBackgroundTintList(this.getResources().getColorStateList(R.color.add_bookmar_color));
+        addTrip_addBookmark.setEnabled(true);
+    }
+
+    private void showAddCarDialog() {
+        dialog_addCar = new Dialog(AddTripActivity.this);
+        dialog_addCar.setContentView(R.layout.dialog_add_car);
+
+        dialogAddCar_name = dialog_addCar.findViewById(R.id.dialogAddCar_name);
+        dialogAddCar_consumption = dialog_addCar.findViewById(R.id.dialogAddCar_consumption);
+        dialogAddCar_wear = dialog_addCar.findViewById(R.id.dialogAddCar_wear);
+        dialogAddCar_cancel = dialog_addCar.findViewById(R.id.dialogAddCar_cancel);
+        dialogAddCar_save = dialog_addCar.findViewById(R.id.dialogAddCar_save);
+
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog.getWindow().getAttributes());
+        lp.copyFrom(dialog_addCar.getWindow().getAttributes());
         lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog.show();
-        dialog.getWindow().setAttributes(lp);
+        dialog_addCar.show();
+        dialog_addCar.getWindow().setAttributes(lp);
 
+        dialog_addCar.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        dialogAddCar_name.requestFocus();
 
-
-        dialog.findViewById(R.id.dialogSelectRoute_cancel).setOnClickListener(new View.OnClickListener() {
+        dialogAddCar_cancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                dialog.dismiss();
+                dialog_addCar.dismiss();
             }
         });
 
-        dialogSelectRoute_save = dialog.findViewById(R.id.dialogSelectRoute_continue);
+        dialogAddCar_save.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (dialogAddCar_name.getText().toString().trim().equals("") || dialogAddCar_consumption.getText().toString().equals("") || dialogAddCar_wear.getText().toString().equals("")) {
+                    Toast.makeText(AddTripActivity.this, "Alle Felder müssen gefüllt sein", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (carNameToIdMap.containsKey(dialogAddCar_name.getText().toString().trim())) {
+                    Toast.makeText(AddTripActivity.this, "Auto mit dem Namen existiert bereits", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                newCar = new Car();
+                newCar.setName(dialogAddCar_name.getText().toString().trim());
+                newCar.setConsumption(Double.valueOf(dialogAddCar_consumption.getText().toString()));
+                newCar.setWear(Double.valueOf(dialogAddCar_wear.getText().toString()));
+                databaseReference.child("Cars").child(newCar.getCar_id()).setValue(newCar);
+                dialog_addCar.dismiss();
+
+                databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.getValue() == null)
+                            return;
+                        User foundUser = dataSnapshot.getValue(User.class);
+                        foundUser.addCar(newCar.getCar_id());
+                        databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
+                        loggedInUser = foundUser;
+                        loadCarSpinner(true);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                    }
+                });
+            }
+        });
+    }
+
+    void loadCarSpinner(boolean newCar) {
+        carIdMap.clear();
+        carNameToIdMap.clear();
+        for (String carId : loggedInUser.getCarIdList()) {
+            databaseReference.child("Cars").child(carId).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.getValue() == null)
+                        return;
+                    Car foundCar = dataSnapshot.getValue(Car.class);
+                    carIdMap.put(foundCar.getCar_id(), foundCar);
+                    carNameToIdMap.put(foundCar.getName(), foundCar.getCar_id());
+                    if (carIdMap.size() >= loggedInUser.getCarIdList().size()) {
+                        ArrayList<String> arrayList = new ArrayList<>();
+                        for (String carId : loggedInUser.getCarIdList()) {
+                            arrayList.add(carIdMap.get(carId).getName());
+                            carList.add(carIdMap.get(carId));
+                        }
+                        ArrayAdapter<String> adp = new ArrayAdapter<>(AddTripActivity.this, android.R.layout.simple_spinner_dropdown_item, arrayList);
+                        addTrip_selectCar.setAdapter(adp);
+                        // ToDo: wenn neues auto dann das automatisch auswählen
+
+                        //        addTrip_selectCar.setVisibility(View.VISIBLE);
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                }
+            });
+        }
+    }
+
+    void startMapDialog() {
+        dialog_selectRoute.show();
+
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog_selectRoute.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog_selectRoute.show();
+        dialog_selectRoute.getWindow().setAttributes(lp);
+
+
+        dialog_selectRoute.findViewById(R.id.dialogSelectRoute_cancel).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialog_selectRoute.dismiss();
+            }
+        });
+
+        dialogSelectRoute_save = dialog_selectRoute.findViewById(R.id.dialogSelectRoute_continue);
         dialogSelectRoute_save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 //                Toast.makeText(AddTripActivity.this, markerFrom.getPosition().toString() + "\n" + markerTo.getPosition().toString(), Toast.LENGTH_SHORT).show();
-                    showRenamePointsDialog();
+                showRenamePointsDialog();
             }
         });
     }
@@ -199,10 +385,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogRenamePoints_from.setText(dialogSelectRoute_from.getText());
         dialogRenamePoints_to.setText(dialogSelectRoute_to.getText());
 
-        TextView dialogRenamePoints_fromText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_fromText);;
+        TextView dialogRenamePoints_fromText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_fromText);
+        ;
         TextView dialogRenamePoints_toText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_toText);
-
-
 
 
         if (dialogRenamePoints_to.getText().toString().matches("Breite: .*; Länge: .*")) {
@@ -225,7 +410,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogRenamePoints_to.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER){
+                if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER) {
                     dialog_renamePoints.findViewById(R.id.dialogRenamePoints_save).callOnClick();
                 }
                 return true;
@@ -246,7 +431,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 addTrip_to.setText(dialogRenamePoints_to.getText());
                 addTrip_distance.setText(dialogSelectRoute_distance.getText());
                 dialog_renamePoints.dismiss();
-                dialog.dismiss();
+                dialog_selectRoute.dismiss();
+                if (addTrip_selectCar.getAdapter() != null)
+                    calculateCost();
             }
         });
 
@@ -258,6 +445,28 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         return true;
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_add_trip, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.menu_bookmark) {
+            Toast.makeText(this, "Lesezeichen", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 
     public void addTrip_chooseDate(View view) {
         new SlyCalendarDialog()
@@ -295,9 +504,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 dateString[1] = null;
 
             String buttonText = dateString[0];
-            if (dateString[1]  != null)
+            if (dateString[1] != null)
                 buttonText = buttonText.concat("  -  " + dateString[1]);
-            Button addTrip_selectDate = findViewById(R.id.addTrip_selectDate);
             addTrip_selectDate.setText(buttonText);
 
         }
@@ -308,18 +516,20 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
         googleMap = pGoogleMap;
 
-        googleMap.setPadding(0,300, 0, 150); // ToDo: Padding
+        googleMap.setPadding(0, 300, 0, 150);
 
         dialogSelectRoute_from.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER){
-                   if (!dialogSelectRoute_from.getText().toString().equals("") && dialogSelectRoute_to.getText().toString().equals("")) {
-                       LatLng foundLocation = geoLocate(dialogSelectRoute_from);
-                       googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(foundLocation, 14f));
-                       googleMap.addMarker(new MarkerOptions().position(foundLocation).title("Von"));
-                   } else
-                       routing();
+                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER) {
+                    if (!dialogSelectRoute_from.getText().toString().equals("") && dialogSelectRoute_to.getText().toString().equals("")) {
+                        LatLng foundLocation = geoLocate(dialogSelectRoute_from);
+                        if (foundLocation == null)
+                            return true;
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(foundLocation, 14f));
+                        googleMap.addMarker(new MarkerOptions().position(foundLocation).title("Von"));
+                    } else
+                        routing();
                 }
                 return true;
             }
@@ -327,10 +537,12 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogSelectRoute_to.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER){
+                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER) {
                     if (dialogSelectRoute_from.getText().toString().equals("") && !dialogSelectRoute_to.getText().toString().equals("")) {
                         LatLng foundLocation = geoLocate(dialogSelectRoute_to);
-                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(foundLocation,14f));
+                        if (foundLocation == null)
+                            return true;
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(foundLocation, 14f));
                         googleMap.addMarker(new MarkerOptions().position(foundLocation).title("Nach"));
                     } else
                         routing();
@@ -340,7 +552,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             }
         });
 
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng( 50.857150, 10.266292),5f));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(50.857150, 10.266292), 5f));
         googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
@@ -429,6 +641,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         if (dialogSelectRoute_from.getText().toString().equals("") || dialogSelectRoute_to.toString().toString().equals(""))
             return;
 
+        // ToDo: api key aus Git entfernen und nur lokal speichern
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         from = dialogSelectRoute_from.getText().toString();
         to = dialogSelectRoute_to.getText().toString();
@@ -445,7 +658,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                     @Override
                     public void onResponse(JSONObject response) {
                         try {
-                            if (response.get("status").equals("ZERO_RESULTS")){
+                            if (response.get("status").equals("ZERO_RESULTS")) {
                                 Toast.makeText(AddTripActivity.this, "Keine Verbindung gefunden", Toast.LENGTH_SHORT).show();
                                 return;
                             }
@@ -492,12 +705,12 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
                         markerFrom = googleMap.addMarker(new MarkerOptions()
                                 .title(dialogSelectRoute_from.getText().toString())
-                                .snippet("Breite: " + String.valueOf(fromTo.get(0).latitude).substring(0,6) + "\n" + "Länge: " + String.valueOf(fromTo.get(0).longitude).substring(0,6))
-                                .position(fromTo.get(0)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("von",119,100))));
+                                .snippet("Breite: " + String.valueOf(fromTo.get(0).latitude).substring(0, 6) + "\n" + "Länge: " + String.valueOf(fromTo.get(0).longitude).substring(0, 6))
+                                .position(fromTo.get(0)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("von", 119, 100))));
                         markerTo = googleMap.addMarker(new MarkerOptions()
                                 .title(dialogSelectRoute_to.getText().toString())
-                                .snippet("Breite: " + String.valueOf(fromTo.get(1).latitude).substring(0,6) + "\nLänge: " + String.valueOf(fromTo.get(1).longitude).substring(0,6))
-                                .position(fromTo.get(1)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("nach",137,100))));
+                                .snippet("Breite: " + String.valueOf(fromTo.get(1).latitude).substring(0, 6) + "\nLänge: " + String.valueOf(fromTo.get(1).longitude).substring(0, 6))
+                                .position(fromTo.get(1)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("nach", 137, 100))));
 
                         int padding = 75; // offset from edges of the map in pixels
                         googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding));
@@ -572,9 +785,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
                     }
                 },
-                new Response.ErrorListener(){
+                new Response.ErrorListener() {
                     @Override
-                    public void onErrorResponse(VolleyError error){
+                    public void onErrorResponse(VolleyError error) {
                         // Do something when error occurred
 //                        Snackbar.make(this,
 //                                "Error.",
@@ -590,12 +803,12 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     String getCoordsFromString(String coords) {
-        return custSubString(coords.split(";")[0], 8).replace(",",".") + "," +
-                custSubString(coords.split(";")[1], 8).replace(",",".");
+        return custSubString(coords.split(";")[0], 8).replace(",", ".") + "," +
+                custSubString(coords.split(";")[1], 8).replace(",", ".");
     }
 
-    public Bitmap resizeMapIcons(String iconName,int width, int height){
-        Bitmap imageBitmap = BitmapFactory.decodeResource(getResources(),getResources().getIdentifier(iconName, "drawable", getPackageName()));
+    public Bitmap resizeMapIcons(String iconName, int width, int height) {
+        Bitmap imageBitmap = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(iconName, "drawable", getPackageName()));
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, width, height, false);
         return resizedBitmap;
     }
@@ -603,39 +816,43 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
     private LatLng geoLocate(TextView view) {
         Log.d(TAG, "geoLocate: geolocating");
+
         String searchString = view.getText().toString();
+        if (searchString.matches("Breite: .*; Länge: .*")) {
+            return new LatLng(Double.valueOf(searchString.split(";")[0].substring(8).replace(",", ".")),
+                    Double.valueOf(searchString.split(";")[1].substring(8).replace(",", ".")));
+        }
 
         Geocoder geocoder = new Geocoder(AddTripActivity.this);
         List<Address> list = new ArrayList<>();
         try {
             list = geocoder.getFromLocationName(searchString, 1);
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             Log.d(TAG, "geoLocate: IOExeption: " + e.getMessage());
         }
 
         LatLng foundPosition = null;
-        if (!list.isEmpty()){
+        if (!list.isEmpty()) {
             Address address = list.get(0);
             Log.d(TAG, "geoLocate: found a Location: " + address.toString());
 //            msgBox(address.toString());
             foundPosition = new LatLng(address.getLatitude(), address.getLongitude());
 
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(foundPosition, 15));
-        }
-        else
+        } else
             Toast.makeText(this, searchString + " nicht gefunden", Toast.LENGTH_SHORT).show();
         return foundPosition;
     }
 
-    String custSubString(String string, int start, int end){
+    String custSubString(String string, int start, int end) {
         if (start < 0)
-            start = string.length()+start;
+            start = string.length() + start;
         if (end < 0)
-            end = string.length()+end;
-        return string.substring(start,end);
+            end = string.length() + end;
+        return string.substring(start, end);
     }
-    String custSubString(String string, int start){
+
+    String custSubString(String string, int start) {
         return custSubString(string, start, string.length());
     }
 
