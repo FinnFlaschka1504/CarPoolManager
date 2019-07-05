@@ -10,6 +10,7 @@ public class Group {
     private List<String> userIdList = new ArrayList<>();
     private List<String> tripIdList = new ArrayList<>();
     private List<String> driverIdList = new ArrayList<>();
+    private List<String> bookmarkIdList = new ArrayList<>();
     public enum priceCalculationType
     {
         KIKOMETERALLOWANCE, BUDGET
@@ -89,5 +90,13 @@ public class Group {
 
     public void setDriverIdList(List<String> driverIdList) {
         this.driverIdList = driverIdList;
+    }
+
+    public List<String> getBookmarkIdList() {
+        return bookmarkIdList;
+    }
+
+    public void setBookmarkIdList(List<String> bookmarkIdList) {
+        this.bookmarkIdList = bookmarkIdList;
     }
 }

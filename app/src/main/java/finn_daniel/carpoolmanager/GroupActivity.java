@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
@@ -17,9 +18,11 @@ import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
+import com.applikeysolutions.cosmocalendar.dialog.CalendarDialog;
+import com.applikeysolutions.cosmocalendar.dialog.OnDaysSelectionListener;
+import com.applikeysolutions.cosmocalendar.model.Day;
 import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
-import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.Serializable;
@@ -29,24 +32,28 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class GroupActivity extends FragmentActivity {
-    private static final int NUM_PAGES = 2;
-    private ViewPager mPager;
-    private PagerAdapter pagerAdapter;
+    static final int NUM_PAGES = 2;
+    ViewPager mPager;
+    PagerAdapter pagerAdapter;
     String standardView;
     Gson gson = new Gson();
     Group thisGroup;
+    String EXTRA_USER = "EXTRA_USER";
+    String EXTRA_GROUP = "EXTRA_GROUP";
+    String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
+    String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
+    User loggedInUser;
+
+    // ToDo: gruppe und Trips aus Firebase
 
     ViewPager_GroupOverview thisGroupOverview = new ViewPager_GroupOverview();
     ViewPager_GroupCalender thisGroupCalender = new ViewPager_GroupCalender();
 
-    private String EXTRA_GROUP = "EXTRA_GROUP";
-    private String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
 
-    Map<String , LinkedTreeMap> groupPassengerMap_raw = new HashMap<>();
-    Map<String , User> groupPassengerMap = new HashMap<>();
+    Map<String, User> groupPassengerMap = new HashMap<>();
+    Map<String, Trip> groupTripsMap = new HashMap<>();
 
 
 
@@ -55,63 +62,41 @@ public class GroupActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group);
 
+        loggedInUser = gson.fromJson(getIntent().getStringExtra(EXTRA_USER), User.class);
         thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
-//        groupPassengerMap_raw = gson.fromJson(getIntent().getStringExtra(EXTRA_PASSENGERMAP), Map.class);
-//        for (Map.Entry<String, LinkedTreeMap> entry : groupPassengerMap_raw.entrySet()) {
-//            User user = gson.fromJson(entry.getValue().toString(), User.class);
-//            groupPassengerMap.put(user.getUser_id(), user);
-//        }
-        Map<String, User> groupPassengerMap = gson.fromJson(
+        groupPassengerMap = gson.fromJson(
                 getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
         );
-//        for (Map.Entry<String, LinkedTreeMap> entry : groupPassengerMap_raw.entrySet()) {
-//            User user = new User();
-//            user.setUser_id((String) entry.getValue().get("user_id"));
-//            user.setUserName((String) entry.getValue().get("userName"));
-//            user.setGroupIdList((List<String>) entry.getValue().get("groupIdList"));
-//            groupPassengerMap.put(user.getUser_id(), user);
-//        }
+        groupTripsMap = gson.fromJson(
+                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {}.getType()
+        );
 
-        thisGroupOverview.setData(thisGroup, groupPassengerMap);
-        // Instantiate a ViewPager and a PagerAdapter.
+        thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+        // ToDo: reload Group, PassengerMap und TripsMap methode
 
         SharedPreferences mySPR = getSharedPreferences("Settings",0);
         standardView = mySPR.getString("standardView", "Übersicht");
 
-        mPager = (ViewPager) findViewById(R.id.pager);
+        mPager = findViewById(R.id.pager);
         pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
         mPager.setAdapter(pagerAdapter);
         mPager.setCurrentItem(standardView.equals("Übersicht") ? 0 : 1);
 
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout_group);
+        TabLayout tabLayout = findViewById(R.id.tabLayout_group);
         tabLayout.setupWithViewPager(mPager);
         tabLayout.getTabAt(0).setText("Übersicht");
         tabLayout.getTabAt(1).setText("Kalender");
-
-
-//        TextView groupName = findViewById(R.id.overview_groupName);
-//        groupName.setText(thisGroup.getName());
-
     }
 
     @Override
     public void onBackPressed() {
         if ((mPager.getCurrentItem() == 0 && standardView.equals("Übersicht")) || (mPager.getCurrentItem() == 1 && standardView.equals("Kalender"))) {
-            // If the user is currently looking at the first step, allow the system to handle the
-            // Back button. This calls finish() on this activity and pops the back stack.
             super.onBackPressed();
         } else {
-            // Otherwise, select the previous step.
             mPager.setCurrentItem(mPager.getCurrentItem() == 0 ? 1 : 0);
         }
     }
 
-
-
-    /**
-     * A simple pager adapter that represents 5 ViewPager_GroupOverview objects, in
-     * sequence.
-     */
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         public ScreenSlidePagerAdapter(FragmentManager fm) {
             super(fm);
@@ -119,12 +104,10 @@ public class GroupActivity extends FragmentActivity {
 
         @Override
         public Fragment getItem(int position) {
-
             switch (position) {
                 case 0: return thisGroupOverview;
                 case 1: return thisGroupCalender;
                 default: return thisGroupOverview;
-
             }
         }
 
@@ -133,42 +116,37 @@ public class GroupActivity extends FragmentActivity {
             return NUM_PAGES;
         }
     }
-
-
-
 }
 
 class ViewPager_GroupOverview extends Fragment {
 
+    User loggedInUser;
     Group thisGroup;
-    Map<String , User> groupPassengerMap;
     View view;
     ListView userList;
     Gson gson = new Gson();
+    String EXTRA_GROUP = "EXTRA_GROUP";
 
-    private List<String> listviewTitle = new ArrayList<String>();
-    private List<Boolean> listviewisDriver = new ArrayList<>();
-    private List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
+    Button overview_showAllTrips;
+    Button overview_showMyTrips;
+    TextView overview_groupName;
+
+
+    List<String> listviewTitle = new ArrayList<String>();
+    List<Boolean> listviewisDriver = new ArrayList<>();
+    List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList;
+    Map<String , User> groupPassengerMap;
+    Map<String, Trip> groupTripsMap = new HashMap<>();
 
-    private String EXTRA_GROUP = "EXTRA_GROUP";
-
-
-    public void setData(Group pThisGroup, Map<String , User> pGroupPassengerMap) {
-        thisGroup = pThisGroup;
-        groupPassengerMap = pGroupPassengerMap;
-    }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        view = (View) inflater.inflate(
-                R.layout.group_overview, container, false);
-        TextView groupName = view.findViewById(R.id.overview_groupName);
-        groupName.setText(thisGroup.getName());
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        view = inflater.inflate(R.layout.group_overview, container, false);
+        overview_groupName = view.findViewById(R.id.overview_groupName);
         userList = view.findViewById(R.id.overview_userList);
-        listeLaden();
-
+        overview_showAllTrips = view.findViewById(R.id.overview_showAllTrips);
+        overview_showMyTrips = view.findViewById(R.id.overview_showMyTrips);
 
         view.findViewById(R.id.overview_isDriverSwitch).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -185,10 +163,50 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
+        view.findViewById(R.id.floatingActionButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                CalendarDialog test = new CalendarDialog(getActivity(), new OnDaysSelectionListener() {
+                    @Override
+                    public void onDaysSelected(List<Day> selectedDays) {
+                        String  test = null;
+                    }
+                });
+//                test.setDayTextColor(R.color.colorPrimary)
+                test.show();
+            }
+        });
+
+        reLoadContent();
+
         return view;
 
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
     }
+
+    public void setData(User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap) {
+        loggedInUser = pLoggedInUser;
+        thisGroup = pThisGroup;
+        groupPassengerMap = pGroupPassengerMap;
+        groupTripsMap = pGroupTripsMap;
+    }
+
+    private void reLoadContent() {
+        overview_groupName.setText(thisGroup.getName());
+        overview_showAllTrips.setText(String.valueOf(thisGroup.getTripIdList().size()));
+        overview_showMyTrips.setText(String.valueOf(calculateDrivenAmount(loggedInUser.getUser_id())));
+        listeLaden();
+    }
+
+    int calculateDrivenAmount(String userId) {
+        int count = 0;
+        for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            if (entry.getValue().getDriverId().equals(userId))
+                count++;
+        }
+        return count;
+    }
+
 
     private final void listeLaden() {
 
@@ -211,11 +229,10 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
-        Random rand = new Random();
         for (User user : sortedUserList) {
             listviewTitle.add(user.getUserName());
             listviewisDriver.add(thisGroup.getDriverIdList().contains(user.getUser_id()));
-            listviewOwnDrivenAmount.add(rand.nextInt(50));
+            listviewOwnDrivenAmount.add(calculateDrivenAmount(user.getUser_id()));
         }
 
         ArrayList<HashMap<String, Serializable>> aList = new ArrayList<HashMap<String, Serializable>>();
@@ -232,6 +249,8 @@ class ViewPager_GroupOverview extends Fragment {
         int[] to = new int[]{R.id.userList_name, R.id.userList_image, R.id.userList_ownAmount};
         SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.passenger_list_item, from, to);
         userList.setAdapter(simpleAdapter);
+
+        // ToDo: fahrten nach anteil farblich markieren
 
 //      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
 //            public boolean onPreDraw() {

@@ -62,7 +62,10 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -74,6 +77,7 @@ import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
 public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    // ToDo: Button in GroupOverview entfernen wenn nicht faher, oder Fahrer auswählbar machen
     LinearLayout dialogSelectRoute_distanceLayout;
     CheckBox addTrip_twoWays;
     Button dialogSelectRoute_save;
@@ -105,6 +109,10 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Map<String, Car> carIdMap = new HashMap<>();
     Map<String, String> carNameToIdMap = new HashMap<>();
     List<Car> carList = new ArrayList<>();
+    String[] searchStringArray = new String[2];
+    String[] locationNameArray = new String[2];
+    List<String> tripIdList;
+
 //    Map<String, User> loggedinUser_map = new HashMap<>();
 
     int costMultiplier = 2;
@@ -120,7 +128,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Gson gson = new Gson();
     private String EXTRA_GROUP = "EXTRA_GROUP";
     private static final String TAG = "AddTripActivity";
-    Date[] date = new Date[2];
+    LocalDate[] date = new LocalDate[2];
     String[] dateString = new String[2];
     String from;
     String to;
@@ -129,6 +137,15 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Car selectedCar;
     DatabaseReference databaseReference;
     Map<String, Double> fuelCostMap = new HashMap<>();
+    Boolean savedAsBookmark = false;
+    String distance;
+    double fuelCost;
+    Double cost;
+    String polylineString;
+
+
+
+
 
 
 
@@ -194,17 +211,17 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogSelectRoute_from.setOnFocusChangeListener(onFocusChangeListener);
         dialogSelectRoute_to.setOnFocusChangeListener(onFocusChangeListener);
 
-        Date heute = new Date();
+        LocalDate heute = LocalDate.now();
         String pattern = "dd.MM.yyyy E";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-        String buttonText = simpleDateFormat.format(heute.getTime()).replace(" ", " (") + ")";
+        String buttonText = simpleDateFormat.format(Date.from(heute.atStartOfDay(ZoneId.systemDefault()).toInstant())).replace(" ", " (") + ")";
         addTrip_selectDate.setText(buttonText);
         date[0] = heute;
 
         addTrip_from.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startMapDialog();
+                showMapDialog();
                 dialogSelectRoute_from.requestFocus();
                 dialog_selectRoute.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
             }
@@ -212,7 +229,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         addTrip_to.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startMapDialog();
+                showMapDialog();
                 dialogSelectRoute_to.requestFocus();
                 dialog_selectRoute.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
             }
@@ -255,19 +272,93 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             }
         });
 
+        addTrip_save.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                saveTrip(false);
+            }
+        });
+
+        addTrip_addBookmark.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                saveTrip(true);
+            }
+        });
+
     }
+
+    private void saveTrip(final boolean isBookmark) {
+        savedAsBookmark = isBookmark;
+        if (date[1] == null)
+            date[1] = date[0];
+        tripIdList = new ArrayList<>();
+        for (LocalDate dateCount = date[0]; dateCount.isBefore(date[1]) || dateCount.isEqual(date[1]); dateCount = dateCount.plusDays(1))
+        {
+            Trip newTrip = new Trip();
+
+            newTrip.setDate(Date.from(dateCount.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            List<List<Double>> fromToList = new ArrayList<>();
+            fromToList.add(new ArrayList<>(Arrays.asList(markerFrom.getPosition().latitude, markerFrom.getPosition().longitude)));
+            fromToList.add(new ArrayList<>(Arrays.asList(markerTo.getPosition().latitude, markerTo.getPosition().longitude)));
+            newTrip.setFromTo(fromToList);
+            newTrip.setSearchString(new ArrayList<>(Arrays.asList(searchStringArray)));
+            newTrip.setLocationName(new ArrayList<>(Arrays.asList(locationNameArray)));
+            newTrip.setDistance(distance);
+            newTrip.setTwoWay(addTrip_twoWays.isChecked());
+            newTrip.setCarId(selectedCar.getCar_id());
+            newTrip.setFuelCost(fuelCost);
+            newTrip.setCost(cost);
+            newTrip.setDriverId(loggedInUser.getUser_id());
+            newTrip.setPolylineString(polylineString);
+            newTrip.setBookmark(savedAsBookmark);
+
+            savedAsBookmark = false;
+
+            databaseReference.child("Trips").child(thisGroup.getGroup_id()).child(newTrip.getTrip_id()).setValue(newTrip);
+
+            tripIdList.add(newTrip.getTrip_id());
+        }
+
+        databaseReference.child("Groups").child(thisGroup.getGroup_id()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+
+                Group foundGroup = dataSnapshot.getValue(Group.class);
+
+//                foundGroup.setTripIdList(Stream.concat(foundGroup.stream(), listTwo.stream())
+//                        .collect(Collectors.toList()));
+
+                foundGroup.getTripIdList().addAll(tripIdList);
+                if (isBookmark) {
+                    foundGroup.getBookmarkIdList().add(tripIdList.get(0));
+                }
+
+                databaseReference.child("Groups").child(foundGroup.getGroup_id()).setValue(foundGroup);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+
+        this.finish();
+    }
+
 
     void calculateCost() {
         double distance = Double.valueOf(addTrip_distance.getText().toString().split(" ")[0].replace(",","."));
         DecimalFormat df = new DecimalFormat("#.00");
-        double fuelCost = 0;
+        fuelCost = 0;
         switch (selectedCar.getFuelType()) {
             case DIESEL: fuelCost = fuelCostMap.get("diesel"); break;
             case E5: fuelCost = fuelCostMap.get("e5"); break;
             case E10: fuelCost = fuelCostMap.get("e10"); break;
         }
-        Double costs = (distance * (((selectedCar.getConsumption() * fuelCost)+ selectedCar.getWear()) / 100)) * costMultiplier;
-        addTrip_cost.setText( df.format(costs)+ " €");
+        cost = (distance * (((selectedCar.getConsumption() * fuelCost)+ selectedCar.getWear()) / 100)) * costMultiplier;
+        addTrip_cost.setText( df.format(cost)+ " €");
         // ToDo: wenn kosten stehen kann gespeicert werden
         addTrip_save.setEnabled(true);
         addTrip_addBookmark.setBackgroundTintList(this.getResources().getColorStateList(R.color.add_bookmar_color));
@@ -323,7 +414,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                     case "Diesel" : newCar.setFuelType(Car.fuelType.DIESEL); break;
                 }
                 newCar.setWear(Double.valueOf(dialogAddCar_wear.getText().toString()));
-                databaseReference.child("Cars").child(newCar.getCar_id()).setValue(newCar);
+                databaseReference.child("Cars").child(loggedInUser.getUser_id()).child(newCar.getCar_id()).setValue(newCar);
                 dialog_addCar.dismiss();
 
                 databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -353,7 +444,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         carNameToIdMap.clear();
         carList.clear();
         for (String carId : loggedInUser.getCarIdList()) {
-            databaseReference.child("Cars").child(carId).addListenerForSingleValueEvent(new ValueEventListener() {
+            databaseReference.child("Cars").child(loggedInUser.getUser_id()).child(carId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     if (dataSnapshot.getValue() == null)
@@ -383,7 +474,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         }
     }
 
-    void startMapDialog() {
+    void showMapDialog() {
         dialog_selectRoute.show();
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
@@ -418,23 +509,27 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogRenamePoints_from = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_from);
         dialogRenamePoints_to = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_to);
 
-        dialogRenamePoints_from.setText(dialogSelectRoute_from.getText());
-        dialogRenamePoints_to.setText(dialogSelectRoute_to.getText());
+        if (locationNameArray[0] == null) {
+            dialogRenamePoints_from.setText(dialogSelectRoute_from.getText());
+            dialogRenamePoints_to.setText(dialogSelectRoute_to.getText());
 
-        TextView dialogRenamePoints_fromText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_fromText);
-        ;
-        TextView dialogRenamePoints_toText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_toText);
+            TextView dialogRenamePoints_fromText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_fromText);
+            TextView dialogRenamePoints_toText = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_toText);
 
-
-        if (dialogRenamePoints_to.getText().toString().matches("Breite: .*; Länge: .*")) {
-            dialogRenamePoints_toText.setTextColor(Color.RED);
-            dialogRenamePoints_to.requestFocus();
-            dialog_renamePoints.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            if (dialogRenamePoints_to.getText().toString().matches("Breite: .*; Länge: .*")) {
+                dialogRenamePoints_toText.setTextColor(Color.RED);
+                dialogRenamePoints_to.requestFocus();
+                dialog_renamePoints.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }
+            if (dialogSelectRoute_from.getText().toString().matches("Breite: .*; Länge: .*")) {
+                dialogRenamePoints_fromText.setTextColor(Color.RED);
+                dialogRenamePoints_from.requestFocus();
+                dialog_renamePoints.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }
         }
-        if (dialogSelectRoute_from.getText().toString().matches("Breite: .*; Länge: .*")) {
-            dialogRenamePoints_fromText.setTextColor(Color.RED);
-            dialogRenamePoints_from.requestFocus();
-            dialog_renamePoints.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        else {
+            dialogRenamePoints_from.setText(locationNameArray[0]);
+            dialogRenamePoints_to.setText(locationNameArray[1]);
         }
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
@@ -463,6 +558,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialog_renamePoints.findViewById(R.id.dialogRenamePoints_save).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                locationNameArray[0] = dialogRenamePoints_from.getText().toString();
+                locationNameArray[1] = dialogRenamePoints_to.getText().toString();
                 addTrip_from.setText(dialogRenamePoints_from.getText());
                 addTrip_to.setText(dialogRenamePoints_to.getText());
                 addTrip_distance.setText(dialogSelectRoute_distance.getText());
@@ -505,14 +602,17 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     public void addTrip_chooseDate(View view) {
+        Date to = null;
+        if (date[1] != null)
+            to = Date.from(date[1].atStartOfDay(ZoneId.systemDefault()).toInstant());
         new SlyCalendarDialog()
                 .setSingle(false)
                 .setCallback(callback)
-                .setStartDate(date[0])
-                .setEndDate(date[1])
-                .setHeaderColor(Color.parseColor("#009688"))
+                .setStartDate(Date.from(date[0].atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                .setEndDate(to)
+                .setHeaderColor(getColor(R.color.colorPrimary))
                 .setSelectedTextColor(Color.parseColor("#ffffff"))
-                .setSelectedColor(Color.parseColor("#009688"))
+                .setSelectedColor(getColor(R.color.colorPrimary))
                 .show(getSupportFragmentManager(), "TAG_SLYCALENDAR");
     }
 
@@ -528,9 +628,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
             String pattern = "dd.MM.yyyy E";
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-            date[0] = firstDate.getTime();
+            date[0] = convertToLocalDate(firstDate.getTime());
             if (secondDate != null)
-                date[1] = secondDate.getTime();
+                date[1] = convertToLocalDate(secondDate.getTime());
             else
                 date[1] = null;
             dateString[0] = simpleDateFormat.format(firstDate.getTime()).replace(" ", " (") + ")";
@@ -546,6 +646,13 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
         }
     };
+
+    public LocalDate convertToLocalDate(Date dateToConvert) {
+        return dateToConvert.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+    }
+
 
     @Override
     public void onMapReady(GoogleMap pGoogleMap) {
@@ -681,6 +788,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         from = dialogSelectRoute_from.getText().toString();
         to = dialogSelectRoute_to.getText().toString();
+        searchStringArray[0] = from;
+        searchStringArray[1] = to;
         String mJSONURLString = "https://maps.googleapis.com/maps/api/directions/json?origin=" +
                 (!from.matches("Breite: .*; Länge: .*") ? from : getCoordsFromString(from)) +
                 "&destination=" +
@@ -701,7 +810,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-                        String distance = null;
+                        distance = null;
                         try {
                             distance = (String) response.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0).getJSONObject("distance").get("text");
 
@@ -726,10 +835,12 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                             }
                         }
                         googleMap.clear();
-                        googleMap.addPolyline(new PolylineOptions()
+                        PolylineOptions polylineOptions = new PolylineOptions()
                                 .addAll(latLngList)
                                 .width(12)
-                                .color(Color.BLUE));
+                                .color(Color.BLUE);
+                        googleMap.addPolyline(polylineOptions);
+                        polylineString = PolyUtil.encode(polylineOptions.getPoints());
                         List<LatLng> fromTo = new ArrayList<>();
                         fromTo.add(latLngList.get(0));
                         fromTo.add(latLngList.get(latLngList.size() - 1));
@@ -780,8 +891,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 location.latitude +
                 "&lng=" +
                 location.longitude +
-                "&rad=5&sort=dist&type=all" +
-                "&apikey=" +
+                "&rad=5&sort=dist&type=all&apikey=" +
                 getString(R.string.tankerkoenig_api_key); // TODO: Api keys nur lokal speichern
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
@@ -800,20 +910,33 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-                        JSONObject data = null;
                         try {
-                            data = response.getJSONArray("stations").getJSONObject(0);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
+                            JSONArray data = response.getJSONArray("stations");
+                            for (int i = 0; i < data.length(); i++) {
+                                JSONObject station = data.getJSONObject(i);
 
-                        try {
-                            fuelCostMap.put("diesel" , (Double) data.get("diesel"));
-                            fuelCostMap.put("e5" , (Double) data.get("e5"));
-                            fuelCostMap.put("e10" , (Double) data.get("e10"));
+                                if (fuelCostMap.get("diesel") == null) {
+                                    if (!station.get("diesel").toString().equals("null"))
+                                        fuelCostMap.put("diesel" , (Double) station.get("diesel"));
+                                }
+                                if (fuelCostMap.get("e5") == null) {
+                                    if (!station.get("e5").toString().equals("null"))
+                                        fuelCostMap.put("e5" , (Double) station.get("e5"));
+                                }
+                                if (fuelCostMap.get("e10") == null) {
+                                    if (!station.get("e10").toString().equals("null"))
+                                        fuelCostMap.put("e10" , (Double) station.get("e10"));
+                                }
+                                if (fuelCostMap.size() >= 3)
+                                    break;
+                            }
+
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
+                        if (fuelCostMap.size() < 3)
+                            return;
                         if (selectedCar != null) {
                             switch (selectedCar.getFuelType()) {
                                 case DIESEL: addTrip_fuelCost.setText(fuelCostMap.get("diesel").toString().replace(".", ",") + " €/l"); break;
