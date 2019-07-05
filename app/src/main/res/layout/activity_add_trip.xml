@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Zeitraum"
-            android:textColor="#009688"
+            android:textColor="@color/colorFont"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -61,7 +61,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Strecke"
-            android:textColor="#009688"
+            android:textColor="@color/colorFont"
             android:textStyle="bold" />
 
         <TableLayout
@@ -162,7 +162,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Auto"
-            android:textColor="#009688"
+            android:textColor="@color/colorFont"
             android:textStyle="bold" />
 
         <TableLayout

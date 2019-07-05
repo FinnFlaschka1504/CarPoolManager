@@ -28,9 +28,10 @@
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="12dp"
                 android:text="Deine Gruppen:"
-                android:textColor="#009688"
+                android:textColor="@color/colorFont"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                />
 
             <ProgressBar
                 android:id="@+id/progressBar_loadData"

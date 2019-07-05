@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:text="Neues Auto anlegen"
-        android:textColor="#009688"
+        android:textColor="@color/colorFont"
         android:textStyle="bold" />
 
     <TableLayout

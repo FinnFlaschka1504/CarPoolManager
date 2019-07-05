@@ -28,7 +28,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="Gruppen"
-                    android:textColor="#009688"
+                    android:textColor="@color/colorFont"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -87,7 +87,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="FireBase "
-                    android:textColor="#009688"
+                    android:textColor="@color/colorFont"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -148,7 +148,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Test Daten Einfügen"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:textColor="@color/colorFont"/>
 
                         <TextView
                             android:layout_width="match_parent"
@@ -206,7 +207,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Test Daten Auslesen"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:textColor="@color/colorFont"/>
 
                         <TextView
                             android:layout_width="match_parent"
