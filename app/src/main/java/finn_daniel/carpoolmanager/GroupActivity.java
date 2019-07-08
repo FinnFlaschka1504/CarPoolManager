@@ -126,6 +126,7 @@ class ViewPager_GroupOverview extends Fragment {
     ListView userList;
     Gson gson = new Gson();
     String EXTRA_GROUP = "EXTRA_GROUP";
+    String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
 
     Button overview_showAllTrips;
     Button overview_showMyTrips;
@@ -135,8 +136,8 @@ class ViewPager_GroupOverview extends Fragment {
     List<String> listviewTitle = new ArrayList<String>();
     List<Boolean> listviewisDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
-    List<User> sortedUserList;
-    Map<String , User> groupPassengerMap;
+    List<User> sortedUserList = new ArrayList<>();
+    Map<String , User> groupPassengerMap = new HashMap<>();
     Map<String, Trip> groupTripsMap = new HashMap<>();
 
 
@@ -159,6 +160,7 @@ class ViewPager_GroupOverview extends Fragment {
             public void onClick(View view) {
                 Intent intent = new Intent(getActivity(), AddTripActivity.class);
                 intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
+                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
                 startActivity(intent);
             }
         });

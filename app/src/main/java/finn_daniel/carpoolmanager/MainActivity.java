@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
     User loggedInUser;
-    String loggedInUser_Name = "DeineMudda";
+    String loggedInUser_Name = "FinnF";
     List<String> loggedInUser_groupsIdList = new ArrayList<>(); //<---
     Map<String, Group> loggedInUser_groupsMap = new HashMap<>(); //<---
     Map<String, User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
@@ -124,8 +124,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
             int i = 0;
             // ToDo: Trips count Aktuallisieren
+
+//            Findet heraus, ob ein Nutzer eingetreten, oder ausgetreten ist
             foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList());
 
+//            Findet heraus, ob sich bei den Trips was verändert hat --> loggedInUser_groupTripMap muss aktuallisiert werden
+            foundGroup.getTripIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList());
 
             List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
 
@@ -148,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 });
             }
 
-            loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup);
+            loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
 
             listeLaden();
 
@@ -358,7 +362,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         for (final String groupId : loggedInUser.getGroupIdList()) {
             if (loggedInUser_groupsMap.get(groupId).getTripIdList().size() == 0) {
                 loggedInUser_groupTripMap.put(groupId, new HashMap<String, Trip>());
-                if (loggedInUser_groupTripMap.size() >= 3) {
+                if (loggedInUser_groupTripMap.size() >= loggedInUser.getGroupIdList().size()) {
                     listeLaden();
                     listeClickListener();
                     return;
@@ -392,7 +396,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void addGroupChangeListener(final String groupId) {
-        databaseReference.child("Groups").child(groupId).removeEventListener(groupChangeListener);
+        databaseReference.child("Groups").child(groupId).removeEventListener( groupChangeListener);
         databaseReference.child("Groups").child(groupId).addValueEventListener(groupChangeListener);
     }
 
@@ -432,8 +436,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         findViewById(R.id.main_noInternet).setVisibility(View.GONE);
         findViewById(R.id.progressBar_loadData).setVisibility(View.VISIBLE);
 //        createListData();
-//        getGroupsfromUser();
         reloadLoggedInUser();
+//        getGroupsfromUser();
     }
 
     @Override
@@ -521,23 +525,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         main_groupInfo.setVisibility(View.GONE);
 
 //        ArrayList<java.io.Serializable> driver1 = new ArrayList<java.io.Serializable>();
-//        driver1.add("Die Bekloppten");
+//        driver1.add("Auf zur Arbeit");
 //        driver1.add(true);
-//        driver1.add("Arsch 1, Derda31, DeineMudda");
+//        driver1.add("HansP, DanielP, FinnF");
 //        driver1.add(7);
 //        driver1.add(31);
 //
 //        ArrayList<java.io.Serializable> driver2 = new ArrayList<>();
-//        driver2.add("Deine Mudda");
+//        driver2.add("FHDW-Gruppe");
 //        driver2.add(false);
-//        driver2.add("Pudding, Die Olle, Niemand");
+//        driver2.add("GünterM, HansD, JohnL");
 //        driver2.add(0);
 //        driver2.add(568);
 //
 //        ArrayList<java.io.Serializable> driver3 = new ArrayList<java.io.Serializable>();
-//        driver3.add("Mip");
+//        driver3.add("FußballTeam");
 //        driver3.add(true);
-//        driver3.add("Noch Einer, und Noch Einer, und Noch Einer");
+//        driver3.add("MarkusG, TomN, TomN");
 //        driver3.add(9);
 //        driver3.add(10);
 //
@@ -682,28 +686,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void createListData() {
-        createData_gruppenNamen = new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda", "Mip"));
-        createData_userNamen = new ArrayList<String>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda", "Pudding", "Die Olle", "Niemand", "Noch Einer", "und Noch Einer", "und Noch Noch Einer"));
+        createData_gruppenNamen = new ArrayList<String>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam"));
+        createData_userNamen = new ArrayList<String>(Arrays.asList("HansP", "DanielP", "FinnF", "GünterM", "HansD", "JohnL", "MarkusG", "TomN", "KarlF"));
 
-        createData_userGroupMap.put("Arsch 1", new ArrayList<String>(Arrays.asList("Die Bekloppten")));
-        createData_userGroupMap.put("Derda31", new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda")));
-        createData_userGroupMap.put("DeineMudda", new ArrayList<String>(Arrays.asList("Die Bekloppten", "Deine Mudda", "Mip")));
-        createData_userGroupMap.put("Pudding", new ArrayList<String>(Arrays.asList("Deine Mudda")));
-        createData_userGroupMap.put("Die Olle", new ArrayList<String>(Arrays.asList("Deine Mudda")));
-        createData_userGroupMap.put("Niemand", new ArrayList<String>(Arrays.asList("Deine Mudda")));
-        createData_userGroupMap.put("Noch Einer", new ArrayList<String>(Arrays.asList("Mip")));
-        createData_userGroupMap.put("und Noch Einer", new ArrayList<String>(Arrays.asList("Mip")));
-        createData_userGroupMap.put("und Noch Noch Einer", new ArrayList<String>(Arrays.asList("Mip")));
+        createData_userGroupMap.put("HansP", new ArrayList<String>(Arrays.asList("Auf zur Arbeit")));
+        createData_userGroupMap.put("DanielP", new ArrayList<String>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe")));
+        createData_userGroupMap.put("FinnF", new ArrayList<String>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam")));
+        createData_userGroupMap.put("GünterM", new ArrayList<String>(Arrays.asList("FHDW-Gruppe")));
+        createData_userGroupMap.put("HansD", new ArrayList<String>(Arrays.asList("FHDW-Gruppe")));
+        createData_userGroupMap.put("JohnL", new ArrayList<String>(Arrays.asList("FHDW-Gruppe")));
+        createData_userGroupMap.put("MarkusG", new ArrayList<String>(Arrays.asList("FußballTeam")));
+        createData_userGroupMap.put("TomN", new ArrayList<String>(Arrays.asList("FußballTeam")));
+        createData_userGroupMap.put("KarlF", new ArrayList<String>(Arrays.asList("FußballTeam")));
 
         createData_mitfahrer = new ArrayList<ArrayList<String>>();
-        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda")));
-        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("Pudding", "Die Olle", "Derda31", "Niemand", "DeineMudda")));
-        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("Noch Einer", "und Noch Einer", "und Noch Noch Einer", "DeineMudda")));
+        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("HansP", "DanielP", "FinnF")));
+        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("GünterM", "HansD", "DanielP", "JohnL", "FinnF")));
+        createData_mitfahrer.add(new ArrayList<>(Arrays.asList("MarkusG", "TomN", "KarlF", "FinnF")));
 
         createData_fahrer = new ArrayList<ArrayList<String>>();
-        createData_fahrer.add(new ArrayList<>(Arrays.asList("Arsch 1", "Derda31", "DeineMudda")));
-        createData_fahrer.add(new ArrayList<>(Arrays.asList("Pudding", "Die Olle", "Niemand")));
-        createData_fahrer.add(new ArrayList<>(Arrays.asList("und Noch Einer", "DeineMudda")));
+        createData_fahrer.add(new ArrayList<>(Arrays.asList("HansP", "DanielP", "FinnF")));
+        createData_fahrer.add(new ArrayList<>(Arrays.asList("GünterM", "HansD", "JohnL")));
+        createData_fahrer.add(new ArrayList<>(Arrays.asList("TomN", "FinnF")));
 
         createData_fahrten = new ArrayList<>();
         createData_fahrten.add(new ArrayList<>(Arrays.asList(7, 31)));

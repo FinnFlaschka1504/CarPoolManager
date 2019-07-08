@@ -37,7 +37,6 @@
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".AddTripActivity"
-            android:launchMode="singleTop"
             android:label="Fahrt(-en) hinufügen"
             android:parentActivityName=".GroupActivity" />
     </application>

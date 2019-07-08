@@ -22,7 +22,7 @@ public class Group {
 
     List<List<String>> getChangedUserLists(Group oldVersion) {
         List<String> newList = new ArrayList<>(userIdList) ;
-        List<String> oldList = oldVersion.getUserIdList();
+        List<String> oldList = new ArrayList<>(oldVersion.getUserIdList());
         List<String> newList_clone = new ArrayList<>(newList);
         for (String userId : newList_clone ) {
             if (oldList.contains(userId)) {

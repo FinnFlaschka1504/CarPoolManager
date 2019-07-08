@@ -53,6 +53,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
@@ -104,6 +105,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     TextView dialogAddCar_wear;
     Spinner addTrip_selectCar;
     Spinner dialogAddCar_selectFuelType;
+    Spinner addTrip_selectUser;
     TextView addTrip_fuelCost;
 
     Map<String, Car> carIdMap = new HashMap<>();
@@ -112,8 +114,10 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String[] searchStringArray = new String[2];
     String[] locationNameArray = new String[2];
     List<String> tripIdList;
+    Map<String , User> groupPassengerMap = new HashMap<>();
+    ArrayList<User> driverList = new ArrayList<>();
 
-//    Map<String, User> loggedinUser_map = new HashMap<>();
+
 
     int costMultiplier = 2;
     User loggedInUser;
@@ -126,8 +130,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Dialog dialog_renamePoints;
     Dialog dialog_addCar;
     Gson gson = new Gson();
-    private String EXTRA_GROUP = "EXTRA_GROUP";
-    private static final String TAG = "AddTripActivity";
+    String EXTRA_GROUP = "EXTRA_GROUP";
+    String TAG = "AddTripActivity";
+    String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     LocalDate[] date = new LocalDate[2];
     String[] dateString = new String[2];
     String from;
@@ -142,6 +147,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     double fuelCost;
     Double cost;
     String polylineString;
+    User selectedUser;
 
 
 
@@ -175,6 +181,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         if (!loggedinUser_string.equals("--Leer--")) {
             loggedInUser = gson.fromJson(loggedinUser_string, User.class);
         }
+        groupPassengerMap = gson.fromJson(
+                getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
+        );
 
 
         thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
@@ -201,8 +210,11 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         addTrip_selectCar = findViewById(R.id.addTrip_selectCar);
         addTrip_fuelCost = findViewById(R.id.addTrip_fuelCost);
         addTrip_twoWays = findViewById(R.id.addTrip_twoWays);
+        addTrip_selectUser = findViewById(R.id.addTrip_selectUser);
 
-        loadCarSpinner(false);
+        selectedUser = loggedInUser;
+//        loadCarSpinner(false);
+        loadDriverSpinner();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -217,6 +229,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         String buttonText = simpleDateFormat.format(Date.from(heute.atStartOfDay(ZoneId.systemDefault()).toInstant())).replace(" ", " (") + ")";
         addTrip_selectDate.setText(buttonText);
         date[0] = heute;
+
+
 
         addTrip_from.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -250,6 +264,18 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 }
             }
             public void onNothingSelected(AdapterView<?> arg0) {
+            }
+        });
+
+        addTrip_selectUser.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                selectedUser = driverList.get(i);
+                loadCarSpinner(false);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
             }
         });
 
@@ -288,6 +314,25 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
     }
 
+    private void loadDriverSpinner() {
+        driverList.clear();
+        List<String> driverList_string = new ArrayList<>();
+        for (String driverId : thisGroup.getDriverIdList()) {
+            driverList.add(groupPassengerMap.get(driverId));
+            driverList_string.add(groupPassengerMap.get(driverId).getUserName());
+        }
+
+        ArrayAdapter<String> adp = new ArrayAdapter<>(AddTripActivity.this, android.R.layout.simple_spinner_dropdown_item, driverList_string);
+        addTrip_selectUser.setAdapter(adp);
+//        addTrip_selectUser.setSelection(driverList.size() - 1);
+        for (User user : driverList) {
+            if (user.getUser_id().equals(selectedUser.getUser_id())) {
+                addTrip_selectUser.setSelection(driverList.indexOf(user));
+                break;
+            }
+        }
+    }
+
     private void saveTrip(final boolean isBookmark) {
         savedAsBookmark = isBookmark;
         if (date[1] == null)
@@ -309,7 +354,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             newTrip.setCarId(selectedCar.getCar_id());
             newTrip.setFuelCost(fuelCost);
             newTrip.setCost(cost);
-            newTrip.setDriverId(loggedInUser.getUser_id());
+            newTrip.setDriverId(selectedUser.getUser_id());
             newTrip.setPolylineString(polylineString);
             newTrip.setBookmark(savedAsBookmark);
 
@@ -319,6 +364,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
             tripIdList.add(newTrip.getTrip_id());
         }
+
 
         databaseReference.child("Groups").child(thisGroup.getGroup_id()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -331,12 +377,19 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 //                foundGroup.setTripIdList(Stream.concat(foundGroup.stream(), listTwo.stream())
 //                        .collect(Collectors.toList()));
 
+//                List<String> newList = new ArrayList<String>(foundGroup.getTripIdList());
+//                newList.addAll(tripIdList);
+//                foundGroup.setTripIdList(tripIdList);
+
                 foundGroup.getTripIdList().addAll(tripIdList);
                 if (isBookmark) {
                     foundGroup.getBookmarkIdList().add(tripIdList.get(0));
                 }
 
                 databaseReference.child("Groups").child(foundGroup.getGroup_id()).setValue(foundGroup);
+                // ToDo: fehler wird durch eventchange listener ausgelöst
+//                AddTripActivity.this.finish();
+//                AddTripActivity.this.onBackPressed();
             }
 
             @Override
@@ -344,7 +397,6 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             }
         });
 
-        this.finish();
     }
 
 
@@ -414,10 +466,10 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                     case "Diesel" : newCar.setFuelType(Car.fuelType.DIESEL); break;
                 }
                 newCar.setWear(Double.valueOf(dialogAddCar_wear.getText().toString()));
-                databaseReference.child("Cars").child(loggedInUser.getUser_id()).child(newCar.getCar_id()).setValue(newCar);
+                databaseReference.child("Cars").child(selectedUser.getUser_id()).child(newCar.getCar_id()).setValue(newCar);
                 dialog_addCar.dismiss();
 
-                databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
+                databaseReference.child("Users").child(selectedUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         if (dataSnapshot.getValue() == null)
@@ -425,10 +477,18 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                         User foundUser = dataSnapshot.getValue(User.class);
                         foundUser.addCar(newCar.getCar_id());
                         databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
-                        loggedInUser = foundUser;
-                        SharedPreferences.Editor editor = mySPR.edit();
-                        editor.putString("loggedInUser", gson.toJson(loggedInUser));
-                        editor.commit();
+                        selectedUser = foundUser;
+                        for (int i = 0; i < driverList.size(); i++) {
+                            if (driverList.get(i).getUser_id().equals(selectedUser.getUser_id())) {
+                                driverList.set(i,foundUser);
+                            }
+                        }
+
+                        if (selectedUser.equals(loggedInUser)) {
+                            SharedPreferences.Editor editor = mySPR.edit();
+                            editor.putString("loggedInUser", gson.toJson(loggedInUser));
+                            editor.commit();
+                        }
                         loadCarSpinner(true);
                     }
                     @Override
@@ -443,8 +503,16 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         carIdMap.clear();
         carNameToIdMap.clear();
         carList.clear();
-        for (String carId : loggedInUser.getCarIdList()) {
-            databaseReference.child("Cars").child(loggedInUser.getUser_id()).child(carId).addListenerForSingleValueEvent(new ValueEventListener() {
+        if (selectedUser.getCarIdList().size() == 0) {
+            addTrip_selectCar.setAdapter(null);
+            addTrip_consumption.setText("");
+            addTrip_fuelCost.setText("");
+            addTrip_wear.setText("");
+            addTrip_cost.setText("");
+            return;
+        }
+        for (String carId : selectedUser.getCarIdList()) {
+            databaseReference.child("Cars").child(selectedUser.getUser_id()).child(carId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     if (dataSnapshot.getValue() == null)
@@ -452,16 +520,15 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                     Car foundCar = dataSnapshot.getValue(Car.class);
                     carIdMap.put(foundCar.getCar_id(), foundCar);
                     carNameToIdMap.put(foundCar.getName(), foundCar.getCar_id());
-                    if (carIdMap.size() >= loggedInUser.getCarIdList().size()) {
+                    if (carIdMap.size() >= selectedUser.getCarIdList().size()) {
                         ArrayList<String> arrayList = new ArrayList<>();
-                        for (String carId : loggedInUser.getCarIdList()) {
+                        for (String carId : selectedUser.getCarIdList()) {
                             arrayList.add(carIdMap.get(carId).getName());
                             carList.add(carIdMap.get(carId));
                         }
                         ArrayAdapter<String> adp = new ArrayAdapter<>(AddTripActivity.this, android.R.layout.simple_spinner_dropdown_item, arrayList);
                         addTrip_selectCar.setAdapter(adp);
                         addTrip_selectCar.setSelection(carList.size() - 1);
-                        // ToDo: wenn neues auto dann das automatisch auswählen
 
                         //        addTrip_selectCar.setVisibility(View.VISIBLE);
                     }
