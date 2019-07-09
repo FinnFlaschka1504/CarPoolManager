@@ -388,7 +388,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
                 databaseReference.child("Groups").child(foundGroup.getGroup_id()).setValue(foundGroup);
                 // ToDo: fehler wird durch eventchange listener ausgelöst
-//                AddTripActivity.this.finish();
+                AddTripActivity.this.finish();
 //                AddTripActivity.this.onBackPressed();
             }
 

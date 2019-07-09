@@ -86,6 +86,8 @@ public class GroupActivity extends FragmentActivity {
         tabLayout.setupWithViewPager(mPager);
         tabLayout.getTabAt(0).setText("Übersicht");
         tabLayout.getTabAt(1).setText("Kalender");
+
+//        LocalBroadcastManager
     }
 
     @Override

@@ -50,11 +50,11 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NetworkStateReceiver.NetworkStateReceiverListener {
 
     // ToDo: Eventuell doch Pink Tauschen -> Orange?
-    private List<String> listviewTitle = new ArrayList<String>();
-    private List<Boolean> listviewisDriver = new ArrayList<>();
-    private List<String> listviewPassengers = new ArrayList<>();
-    private List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
-    private List<java.io.Serializable> listviewAllDrivenAmount = new ArrayList<>();
+    List<String> listviewTitle = new ArrayList<String>();
+    List<Boolean> listviewisDriver = new ArrayList<>();
+    List<String> listviewPassengers = new ArrayList<>();
+    List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
+    List<java.io.Serializable> listviewAllDrivenAmount = new ArrayList<>();
     ListView listView_groupList;
 
     List<String> createData_gruppenNamen;
@@ -72,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     DatabaseReference databaseReference;
     private NetworkStateReceiver networkStateReceiver;
     boolean wizzardManuellAktiviert = false;
+    SharedPreferences mySPR;
+
 
     String EXTRA_USER = "EXTRA_USER";
     private String EXTRA_GROUP = "EXTRA_GROUP";
@@ -118,32 +120,46 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
             // ToDo: was passiert wenn gelöscht? eventuell per cloud function?
             Group foundGroup = dataSnapshot.getValue(Group.class);
-            if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {
+            if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {  // neue Gruppe?
                 hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
                 return;
             }
-            int i = 0;
             // ToDo: Trips count Aktuallisieren
 
 //            Findet heraus, ob ein Nutzer eingetreten, oder ausgetreten ist
-            foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList());
+            if (!foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList()))
+                onChangedUsers(foundGroup);
 
 //            Findet heraus, ob sich bei den Trips was verändert hat --> loggedInUser_groupTripMap muss aktuallisiert werden
-            foundGroup.getTripIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList());
+            if (!foundGroup.getTripIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList()))
+                onChangedTrip(foundGroup);
 
-            List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
+            loggedInUser_groupsMap.replace(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
 
-            for (String user : changeList.get(1)) {
-                loggedInUser_groupPassengerMap.remove(user);
-            }
-            for (String user : changeList.get(0)) {
-                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+//            listeLaden();
+
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+        }
+
+        void onChangedTrip(final Group foundGroup) {
+//            sdf
+            final List<List<String>> changeList = foundGroup.getChangedTripsLists(loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).keySet());
+
+            for (String trip : new ArrayList<>(changeList.get(0))) {
+                databaseReference.child("Trips").child(foundGroup.getGroup_id()).child(trip).addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         if (dataSnapshot.getValue() == null)
                             return;
-                        User foundUser = dataSnapshot.getValue(User.class);
-                        loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+                        Trip foundTrip = dataSnapshot.getValue(Trip.class);
+                        changeList.get(0).remove(foundTrip.getTrip_id());
+                        loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).put(foundTrip.getTrip_id(), foundTrip);
+//                        loggedInUser_groupPassengerMap.put(foundTrip.getUser_id(), foundTrip);
+                        if (changeList.get(0).size() <= 0)
+                            listeLaden();
                     }
 
                     @Override
@@ -151,18 +167,34 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 });
             }
-
-            loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
-
-            listeLaden();
-
         }
+        void onChangedUsers(Group foundGroup) {
+            final List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
 
-        @Override
-        public void onCancelled(DatabaseError databaseError) {
+            for (String user : changeList.get(1)) {
+                loggedInUser_groupPassengerMap.remove(user);
+            }
+
+            for (String user : new ArrayList<>(changeList.get(0))) {
+                changeList.remove(user);
+                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.getValue() == null)
+                            return;
+                        User foundUser = dataSnapshot.getValue(User.class);
+                        loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+                        if (changeList.size() <= 0)
+                            listeLaden();
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                    }
+                });
+            }
         }
     };
-    SharedPreferences mySPR;
 
 
     @Override
@@ -665,7 +697,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Intent intent = new Intent(MainActivity.this, GroupActivity.class);
                 intent.putExtra(EXTRA_USER, gson.toJson(loggedInUser));
                 intent.putExtra(EXTRA_GROUP, gson.toJson(selectedGroup));
-                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(loggedInUser_groupPassengerMap));
+                Map<String, User> passengerMap = new HashMap<>();
+                for (String userId : selectedGroup.getUserIdList()) {
+                    passengerMap.put(userId, loggedInUser_groupPassengerMap.get(userId));
+                }
+                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(passengerMap));
                 intent.putExtra(EXTRA_TRIPMAP, gson.toJson(loggedInUser_groupTripMap.get(selectedGroup.getGroup_id())));
                 startActivity(intent);
             }

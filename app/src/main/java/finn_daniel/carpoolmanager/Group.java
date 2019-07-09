@@ -1,7 +1,9 @@
 package finn_daniel.carpoolmanager;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class Group {
@@ -33,6 +35,31 @@ public class Group {
         List<List<String>> returnList = new ArrayList<>();
         returnList.add(newList);
         returnList.add(oldList);
+        return returnList;
+    }
+
+    List<List<String>> getChangedTripsLists(Set<String> oldVersion) {
+//        List<String> newList = new ArrayList<>(userIdList) ;
+//        List<String> oldList = new ArrayList<>(oldVersion.getUserIdList());
+//        List<String> newList_clone = new ArrayList<>(newList);
+//        for (String userId : newList_clone ) {
+//            if (oldList.contains(userId)) {
+//                newList.remove(userId);
+//                oldList.remove(userId);
+//            }
+//        }
+        List<List<String>> returnList = new ArrayList<>();
+        Set<String> newVersion = new HashSet<>(tripIdList);
+        if (newVersion.containsAll(oldVersion)) {
+            newVersion.removeAll(oldVersion);
+            returnList.add(new ArrayList<>(newVersion));
+        } else {
+            // ToDo: wenn trip gelöscht
+        }
+
+
+//        returnList.add(newList);
+//        returnList.add(oldList);
         return returnList;
     }
 
