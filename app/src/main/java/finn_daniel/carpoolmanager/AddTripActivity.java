@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -113,7 +114,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     List<Car> carList = new ArrayList<>();
     String[] searchStringArray = new String[2];
     String[] locationNameArray = new String[2];
-    List<String> tripIdList;
+    List<String> newTripIdList;
+    List<Trip> newTripList = new ArrayList<>();
     Map<String , User> groupPassengerMap = new HashMap<>();
     ArrayList<User> driverList = new ArrayList<>();
 
@@ -133,6 +135,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String EXTRA_GROUP = "EXTRA_GROUP";
     String TAG = "AddTripActivity";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
+    public static final String EXTRA_REPLY_TRIPS = "EXTRA_REPLY_TRIPS";
     LocalDate[] date = new LocalDate[2];
     String[] dateString = new String[2];
     String from;
@@ -337,7 +340,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         savedAsBookmark = isBookmark;
         if (date[1] == null)
             date[1] = date[0];
-        tripIdList = new ArrayList<>();
+        newTripIdList = new ArrayList<>();
         for (LocalDate dateCount = date[0]; dateCount.isBefore(date[1]) || dateCount.isEqual(date[1]); dateCount = dateCount.plusDays(1))
         {
             Trip newTrip = new Trip();
@@ -362,9 +365,9 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
             databaseReference.child("Trips").child(thisGroup.getGroup_id()).child(newTrip.getTrip_id()).setValue(newTrip);
 
-            tripIdList.add(newTrip.getTrip_id());
+            newTripIdList.add(newTrip.getTrip_id());
+            newTripList.add(newTrip);
         }
-
 
         databaseReference.child("Groups").child(thisGroup.getGroup_id()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -374,22 +377,21 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
                 Group foundGroup = dataSnapshot.getValue(Group.class);
 
-//                foundGroup.setTripIdList(Stream.concat(foundGroup.stream(), listTwo.stream())
-//                        .collect(Collectors.toList()));
-
-//                List<String> newList = new ArrayList<String>(foundGroup.getTripIdList());
-//                newList.addAll(tripIdList);
-//                foundGroup.setTripIdList(tripIdList);
-
-                foundGroup.getTripIdList().addAll(tripIdList);
+                foundGroup.getTripIdList().addAll(newTripIdList);
                 if (isBookmark) {
-                    foundGroup.getBookmarkIdList().add(tripIdList.get(0));
+                    foundGroup.getBookmarkIdList().add(newTripIdList.get(0));
                 }
 
                 databaseReference.child("Groups").child(foundGroup.getGroup_id()).setValue(foundGroup);
                 // ToDo: fehler wird durch eventchange listener ausgelöst
+
+
+                Intent replyIntrent = new Intent();
+                replyIntrent.putExtra(EXTRA_REPLY_TRIPS, gson.toJson(newTripList));
+                setResult(RESULT_OK,replyIntrent);
+//                finish();
+
                 AddTripActivity.this.finish();
-//                AddTripActivity.this.onBackPressed();
             }
 
             @Override

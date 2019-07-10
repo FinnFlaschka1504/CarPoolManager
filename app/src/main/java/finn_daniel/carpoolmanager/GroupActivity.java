@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
@@ -44,7 +45,9 @@ public class GroupActivity extends FragmentActivity {
     String EXTRA_GROUP = "EXTRA_GROUP";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
+    int NEWTRIP = 001;
     User loggedInUser;
+    Button group_addTrip;
 
     // ToDo: gruppe und Trips aus Firebase
 
@@ -77,17 +80,43 @@ public class GroupActivity extends FragmentActivity {
         SharedPreferences mySPR = getSharedPreferences("Settings",0);
         standardView = mySPR.getString("standardView", "Übersicht");
 
-        mPager = findViewById(R.id.pager);
+        mPager = findViewById(R.id.group_pager);
         pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
         mPager.setAdapter(pagerAdapter);
         mPager.setCurrentItem(standardView.equals("Übersicht") ? 0 : 1);
 
-        TabLayout tabLayout = findViewById(R.id.tabLayout_group);
+        TabLayout tabLayout = findViewById(R.id.group_tabLayout);
         tabLayout.setupWithViewPager(mPager);
         tabLayout.getTabAt(0).setText("Übersicht");
         tabLayout.getTabAt(1).setText("Kalender");
 
+        findViewById(R.id.group_addTrip).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
+                intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
+                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
+                startActivityForResult(intent, NEWTRIP);
+            }
+        });
+
 //        LocalBroadcastManager
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if (requestCode == NEWTRIP && resultCode == RESULT_OK) {
+            ArrayList<Trip> newTrips = gson.fromJson(
+                    data.getStringExtra(AddTripActivity.EXTRA_REPLY_TRIPS), new TypeToken<ArrayList<Trip>>() {}.getType()
+            );
+
+            for (Trip newTrip : newTrips) {
+                groupTripsMap.put(newTrip.getTrip_id(), newTrip);
+                thisGroup.getTripIdList().add(newTrip.getTrip_id());
+            }
+            thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+            thisGroupOverview.reLoadContent();
+        }
     }
 
     @Override
@@ -130,13 +159,15 @@ class ViewPager_GroupOverview extends Fragment {
     String EXTRA_GROUP = "EXTRA_GROUP";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
 
+
     Button overview_showAllTrips;
     Button overview_showMyTrips;
     TextView overview_groupName;
+    Switch overview_isDriverSwitch;
 
 
     List<String> listviewTitle = new ArrayList<String>();
-    List<Boolean> listviewisDriver = new ArrayList<>();
+    List<Boolean> listviewIsDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList = new ArrayList<>();
     Map<String , User> groupPassengerMap = new HashMap<>();
@@ -150,22 +181,24 @@ class ViewPager_GroupOverview extends Fragment {
         userList = view.findViewById(R.id.overview_userList);
         overview_showAllTrips = view.findViewById(R.id.overview_showAllTrips);
         overview_showMyTrips = view.findViewById(R.id.overview_showMyTrips);
+        overview_isDriverSwitch = view.findViewById(R.id.overview_isDriverSwitch);
+
 
         view.findViewById(R.id.overview_isDriverSwitch).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
             }
         });
-
-        view.findViewById(R.id.overview_addTrip).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getActivity(), AddTripActivity.class);
-                intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
-                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
-                startActivity(intent);
-            }
-        });
+//        view.findViewById(R.id.overview_addTrip).setVisibility(View.GONE);
+//        view.findViewById(R.id.overview_addTrip).setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Intent intent = new Intent(getActivity(), AddTripActivity.class);
+//                intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
+//                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
+//                startActivityForResult(intent, NEWTRIP);
+//            }
+//        });
 
         view.findViewById(R.id.floatingActionButton).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -173,7 +206,6 @@ class ViewPager_GroupOverview extends Fragment {
                 CalendarDialog test = new CalendarDialog(getActivity(), new OnDaysSelectionListener() {
                     @Override
                     public void onDaysSelected(List<Day> selectedDays) {
-                        String  test = null;
                     }
                 });
 //                test.setDayTextColor(R.color.colorPrimary)
@@ -181,6 +213,7 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
+        overview_isDriverSwitch.setChecked(thisGroup.getDriverIdList().contains(loggedInUser.getUser_id()));
         reLoadContent();
 
         return view;
@@ -195,7 +228,7 @@ class ViewPager_GroupOverview extends Fragment {
         groupTripsMap = pGroupTripsMap;
     }
 
-    private void reLoadContent() {
+    public void reLoadContent() {
         overview_groupName.setText(thisGroup.getName());
         overview_showAllTrips.setText(String.valueOf(thisGroup.getTripIdList().size()));
         overview_showMyTrips.setText(String.valueOf(calculateDrivenAmount(loggedInUser.getUser_id())));
@@ -215,7 +248,7 @@ class ViewPager_GroupOverview extends Fragment {
     private final void listeLaden() {
 
         this.listviewTitle.clear();
-        this.listviewisDriver.clear();
+        this.listviewIsDriver.clear();
         this.listviewOwnDrivenAmount.clear();
 
         // ToDo: Einträge sortieren (Mapp zu List und dann sortieren)
@@ -235,7 +268,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         for (User user : sortedUserList) {
             listviewTitle.add(user.getUserName());
-            listviewisDriver.add(thisGroup.getDriverIdList().contains(user.getUser_id()));
+            listviewIsDriver.add(thisGroup.getDriverIdList().contains(user.getUser_id()));
             listviewOwnDrivenAmount.add(calculateDrivenAmount(user.getUser_id()));
         }
 
@@ -244,7 +277,7 @@ class ViewPager_GroupOverview extends Fragment {
         for(int i = 0; i < sortedUserList.size(); ++i) {
             HashMap<String, Serializable> hm = new HashMap<String, Serializable>();
             (hm).put("listview_title", listviewTitle.get(i));
-            (hm).put("listview_isDriver", listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
+            (hm).put("listview_isDriver", listviewIsDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
             (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
             aList.add(hm);
         }
@@ -305,6 +338,27 @@ class ViewPager_GroupOverview extends Fragment {
 //            userList.requestLayout();
 //        }
     }
+
+//    public void onActivityResult(int requestCode, int resultCode, Intent data){
+//        super.onActivityResult(requestCode,resultCode,data);
+//        if (requestCode == NEWTRIP && resultCode == RESULT_OK) {
+//            //if (resultCode == RESULT_OK) {
+//
+//            ArrayList<Trip> newTrips = gson.fromJson(
+//                    data.getStringExtra(AddTripActivity.EXTRA_REPLY_TRIPS), new TypeToken<ArrayList<Trip>>() {}.getType()
+//            );
+//
+//            for (Trip newTrip : newTrips) {
+//                groupTripsMap.put(newTrip.getTrip_id(), newTrip);
+//                thisGroup.getTripIdList().add(newTrip.getTrip_id());
+//            }
+//            reLoadContent();
+//
+//            String test = null;
+//
+//            //}
+//        }
+//    }
 
 
 }
