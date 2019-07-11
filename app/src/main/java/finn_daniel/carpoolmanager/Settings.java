@@ -1,8 +1,5 @@
 package finn_daniel.carpoolmanager;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatTextView;
-
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
@@ -12,6 +9,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatTextView;
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -19,13 +19,18 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
-public class Settings extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class Settings extends AppCompatActivity {
 
     DatabaseReference databaseReference;
     Boolean isReadingActivated = false;
+    SharedPreferences mySPR;
+
+
+    Spinner settings_spinnerStandardView;
+    Spinner settings_spinnerTripCount;
+
 
     ValueEventListener postListener = new ValueEventListener() {
         @Override
@@ -44,26 +49,40 @@ public class Settings extends AppCompatActivity implements AdapterView.OnItemSel
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        spinner.setOnItemSelectedListener(this);
-        SharedPreferences mySPR = getSharedPreferences("Settings",0);
+        settings_spinnerStandardView = findViewById(R.id.settings_spinnerStandardView);
+        settings_spinnerTripCount = findViewById(R.id.settings_spinnerTripCount);
+        mySPR = getSharedPreferences("CarPoolManager_Settings",0);
         mySPR.getString("standardView", "Übersicht");
-        spinner.setSelection(mySPR.getString("standardView", "Übersicht").equals("Übersicht") ? 0 : 1);
-
         databaseReference = FirebaseDatabase.getInstance().getReference();
+        setSpinners();
     }
 
-    @Override
-    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-        SharedPreferences mySPR = getSharedPreferences("Settings", 0);
-        SharedPreferences.Editor editor = mySPR.edit();
+    private void setSpinners() {
+        settings_spinnerStandardView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                SharedPreferences.Editor editor = mySPR.edit();
+                editor.putString("standardView",((AppCompatTextView) view).getText().toString());
+                editor.commit();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {}
+        });
+        settings_spinnerStandardView.setSelection(mySPR.getString("standardView", "Übersicht").equals("Übersicht") ? 0 : 1);
 
-        editor.putString("standardView",((AppCompatTextView) view).getText().toString());
-        editor.commit();
-    }
+        settings_spinnerTripCount.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                SharedPreferences.Editor editor = mySPR.edit();
+                editor.putString("tripCount",((AppCompatTextView) view).getText().toString());
+                editor.commit();
 
-    @Override
-    public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {}
+        });
+        settings_spinnerTripCount.setSelection(mySPR.getString("tripCount", "Pro Weg").equals("Pro Weg") ? 0 : 1);
+
     }
 
     public void firebaseAddText(View view) {

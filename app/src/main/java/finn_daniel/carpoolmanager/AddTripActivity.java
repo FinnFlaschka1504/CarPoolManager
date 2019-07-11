@@ -79,7 +79,7 @@ import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
 public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    // ToDo: Button in GroupOverview entfernen wenn nicht faher, oder Fahrer auswählbar machen
+    // ToDo: Button in GroupOverview entfernen, wenn niemand Fahrer; ansonsten nicht faher, oder Fahrer auswählbar machen
     LinearLayout dialogSelectRoute_distanceLayout;
     CheckBox addTrip_twoWays;
     Button dialogSelectRoute_save;
@@ -383,7 +383,6 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 }
 
                 databaseReference.child("Groups").child(foundGroup.getGroup_id()).setValue(foundGroup);
-                // ToDo: fehler wird durch eventchange listener ausgelöst
 
 
                 Intent replyIntrent = new Intent();
@@ -413,7 +412,6 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         }
         cost = (distance * (((selectedCar.getConsumption() * fuelCost)+ selectedCar.getWear()) / 100)) * costMultiplier;
         addTrip_cost.setText( df.format(cost)+ " €");
-        // ToDo: wenn kosten stehen kann gespeicert werden
         addTrip_save.setEnabled(true);
         addTrip_addBookmark.setBackgroundTintList(this.getResources().getColorStateList(R.color.add_bookmar_color));
         addTrip_addBookmark.setEnabled(true);
@@ -502,6 +500,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     void loadCarSpinner(boolean newCar) {
+        // ToDo: Autos werden erst nach neustart der App geladen
         carIdMap.clear();
         carNameToIdMap.clear();
         carList.clear();
@@ -683,6 +682,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 .setSelectedTextColor(Color.parseColor("#ffffff"))
                 .setSelectedColor(getColor(R.color.colorPrimary))
                 .show(getSupportFragmentManager(), "TAG_SLYCALENDAR");
+        // ToDo: Trips im VonBis Kalender anzeigen
     }
 
 
@@ -853,7 +853,6 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         if (dialogSelectRoute_from.getText().toString().equals("") || dialogSelectRoute_to.toString().toString().equals(""))
             return;
 
-        // ToDo: api key aus Git entfernen und nur lokal speichern
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         from = dialogSelectRoute_from.getText().toString();
         to = dialogSelectRoute_to.getText().toString();
@@ -961,7 +960,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 "&lng=" +
                 location.longitude +
                 "&rad=5&sort=dist&type=all&apikey=" +
-                getString(R.string.tankerkoenig_api_key); // TODO: Api keys nur lokal speichern
+                getString(R.string.tankerkoenig_api_key);
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(

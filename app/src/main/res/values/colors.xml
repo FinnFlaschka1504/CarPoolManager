@@ -5,4 +5,5 @@
     <color name="colorAccent">#E91E63</color>
     <color name="colorWhite">#FFFFFF</color>
     <color name="colorFont">@color/colorPrimary</color>
+    <color name="dividerColor">#D7D8DD</color>
 </resources>

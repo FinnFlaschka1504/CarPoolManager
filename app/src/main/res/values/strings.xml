@@ -14,10 +14,17 @@
     <string name="test">Test</string>
     <string name="account">Account</string>
 
+
     <string-array name="settings_groups_standardView">
         <item>Übersicht</item>
         <item>Kalender</item>
     </string-array>
+
+    <string-array name="settings_groups_tripCount">
+        <item>Pro Weg</item>
+        <item>Pro Fahrt</item>
+    </string-array>
+
     <string-array name="addTrip_dialog_selectFuelType">
         <item>E5</item>
         <item>E10</item>

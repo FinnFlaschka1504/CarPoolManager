@@ -23,7 +23,6 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/textView6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
@@ -43,14 +42,12 @@
                         android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/textView8"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Standard Ansicht"
                             android:textStyle="bold" />
 
                         <TextView
-                            android:id="@+id/textView9"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:singleLine="false"
@@ -58,17 +55,58 @@
                     </LinearLayout>
 
                     <Spinner
-                        android:id="@+id/spinner"
+                        android:id="@+id/settings_spinnerStandardView"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:entries="@array/settings_groups_standardView"
                         android:prompt="@string/test" />
                 </LinearLayout>
+
+                <View
+                    android:id="@+id/view2"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="?android:attr/listDivider" />
+
+                <LinearLayout
+
+
+
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Fahrten Anzahl"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:singleLine="false"
+                            android:text="Sollen Fahrten pro Fahrt, oder pro Weg gezählt werde?" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/settings_spinnerTripCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:entries="@array/settings_groups_tripCount"
+                        android:prompt="@string/test" />
+                </LinearLayout>
             </LinearLayout>
 
-
             <View
-                android:id="@+id/divider4"
                 android:layout_width="match_parent"
                 android:layout_height="3dp"
                 android:background="?android:attr/listDivider" />
@@ -96,48 +134,6 @@
                     android:orientation="horizontal">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:layout_marginRight="8dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Verbindung Überprüfen"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:singleLine="false"
-                            android:text="Testet die Verbindung zur FireBase Datenbank" />
-
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/button"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:enabled="false"
-                        android:text="@string/test" />
-
-
-                </LinearLayout>
-                <View
-                    android:id="@+id/divider2"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:background="?android:attr/listDivider" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal">
-
-                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:layout_marginRight="8dp"
@@ -148,8 +144,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Test Daten Einfügen"
-                            android:textStyle="bold"
-                            android:textColor="@color/colorFont"/>
+                            android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -185,7 +180,6 @@
                 </LinearLayout>
 
                 <View
-                    android:id="@+id/divider3"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="8dp"
@@ -207,8 +201,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Test Daten Auslesen"
-                            android:textStyle="bold"
-                            android:textColor="@color/colorFont"/>
+                            android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -229,7 +222,6 @@
                 </LinearLayout>
 
                 <View
-                    android:id="@+id/divider5"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="8dp"

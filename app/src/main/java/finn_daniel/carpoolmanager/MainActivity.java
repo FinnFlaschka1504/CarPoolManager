@@ -37,7 +37,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +57,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ListView listView_groupList;
 
     List<String> createData_gruppenNamen;
+    List<Group.costCalculationType> createData_gruppenCostCalcType;
+    List<Group.costCalculationMethod> createData_gruppenCostCalcMethod;
     List<String> createData_userNamen;
     ArrayList<ArrayList<String>> createData_mitfahrer;
     ArrayList<ArrayList<String>> createData_fahrer;
@@ -72,7 +73,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     DatabaseReference databaseReference;
     private NetworkStateReceiver networkStateReceiver;
     boolean wizzardManuellAktiviert = false;
-    SharedPreferences mySPR;
+    SharedPreferences mySPR_daten;
+    SharedPreferences mySPR_settings;
 
 
     String EXTRA_USER = "EXTRA_USER";
@@ -124,7 +126,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
                 return;
             }
-            // ToDo: Trips count Aktuallisieren
 
 //            Findet heraus, ob ein Nutzer eingetreten, oder ausgetreten ist
             if (!foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList()))
@@ -202,8 +203,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mySPR = getSharedPreferences("CarPoolManager_Daten", 0);
-        String loggedInUser_string = mySPR.getString("loggedInUser", "--Leer--");
+        mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
+        mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
+        String loggedInUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
         if (!loggedInUser_string.equals("--Leer--")) {
             loggedInUser = gson.fromJson(loggedInUser_string, User.class);
             // ToDo: Handle nicht angemeldet
@@ -243,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         if (!isOnline()) {
 
-            String loggedInUser_groupsMap_string = mySPR.getString("loggedInUser_groupsMap", "--Leer--");
+            String loggedInUser_groupsMap_string = mySPR_daten.getString("loggedInUser_groupsMap", "--Leer--");
             if (!loggedInUser_groupsMap_string.equals("--Leer--")) {
                 loggedInUser_groupsMap = gson.fromJson(
                         loggedInUser_groupsMap_string, new TypeToken<HashMap<String, Group>>() {
@@ -251,10 +253,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 );
             }
 
-            String loggedInUser_groupPassengerMap_string = mySPR.getString("loggedInUser_groupPassengerMap", "--Leer--");
+            String loggedInUser_groupPassengerMap_string = mySPR_daten.getString("loggedInUser_groupPassengerMap", "--Leer--");
             if (!loggedInUser_groupPassengerMap_string.equals("--Leer--")) {
                 loggedInUser_groupPassengerMap = gson.fromJson(
                         loggedInUser_groupPassengerMap_string, new TypeToken<HashMap<String, User>>() {
+                        }.getType()
+                );
+            }
+
+            String loggedInUser_groupTripMap_string = mySPR_daten.getString("loggedInUser_groupTripMap", "--Leer--");
+            if (!loggedInUser_groupTripMap_string.equals("--Leer--")) {
+                loggedInUser_groupTripMap = gson.fromJson(
+                        loggedInUser_groupTripMap_string, new TypeToken<Map<String, Map<String, Trip>>>() {
                         }.getType()
                 );
             }
@@ -440,6 +450,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         editor.putString("loggedInUser_groupsMap", gson.toJson(loggedInUser_groupsMap));
         editor.putString("loggedInUser_groupPassengerMap", gson.toJson(loggedInUser_groupPassengerMap));
+        editor.putString("loggedInUser_groupTripMap", gson.toJson(loggedInUser_groupTripMap));
 
 //        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
 //            editor.putString("loggedInUser_groupsList_" + count, gson.toJson(entry.getValue()));
@@ -542,16 +553,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }
 
-    int calculateDrivenAmount(String userId, String groupId) {
-        int count = 0;
+    String calculateDrivenAmount(String userId, String groupId) {
+        double count = 0;
         for (String tripId : loggedInUser_groupsMap.get(groupId).getTripIdList()) {
-            if (loggedInUser_groupTripMap.get(groupId).get(tripId).getDriverId().equals(userId))
+            Trip trip = loggedInUser_groupTripMap.get(groupId).get(tripId);
+            if (trip.getDriverId().equals(userId) || userId == null) {
                 count++;
+                if (trip.isTwoWay())
+                    count++;
+            }
         }
-        return count;
+        if (mySPR_settings.getString("tripCount", "Pro Weg").equals("Pro Fahrt"))
+            count /= 2;
+
+        if (count % 1 == 0)
+            return String.valueOf(count).split("\\.")[0];
+        else
+            return String.valueOf(count);
     }
 
-    private final void listeLaden() {
+    public void listeLaden() {
 
         TextView main_groupInfo = findViewById(R.id.main_groupInfo);
         main_groupInfo.setVisibility(View.GONE);
@@ -590,7 +611,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         this.listviewOwnDrivenAmount.clear();
         this.listviewAllDrivenAmount.clear();
 
-        // ToDo: Einträge sortieren (Mapp zu List und dann sortieren)
         sortedGroupList = new ArrayList<>(loggedInUser_groupsMap.values());
         Collections.sort(sortedGroupList, new Comparator() {
             public int compare(Group obj1, Group obj2) {
@@ -621,9 +641,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             listviewPassengers.add(passengers);
 //            listviewOwnDrivenAmount.add(driverTest.get(count).get(3));
-            listviewOwnDrivenAmount.add(String.valueOf(calculateDrivenAmount(loggedInUser.getUser_id(), group.getGroup_id())));
+            listviewOwnDrivenAmount.add(calculateDrivenAmount(loggedInUser.getUser_id(), group.getGroup_id()));
 //            listviewAllDrivenAmount.add(driverTest.get(count).get(4));
-            listviewAllDrivenAmount.add(String.valueOf(group.getTripIdList().size()));
+            listviewAllDrivenAmount.add(calculateDrivenAmount(null, group.getGroup_id()));
             count++;
         }
 
@@ -653,7 +673,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         String[] from = new String[]{"listview_title", "listview_isDriver", "listview_discription_passengers", "listview_discription_ownAmount", "listview_discription_allAmount"};
         int[] to = new int[]{R.id.groupList_name, R.id.listview_image, R.id.passengers, R.id.groupList_ownAmount, R.id.groupList_allAmount};
-        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getBaseContext(), aList, R.layout.group_list_item, from, to);
+        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getBaseContext(), aList, R.layout.list_item_group, from, to);
         listView_groupList.setAdapter(simpleAdapter);
 
 //      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
@@ -722,7 +742,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void createListData() {
-        createData_gruppenNamen = new ArrayList<String>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam"));
+        createData_gruppenNamen = new ArrayList<>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam"));
+        createData_gruppenCostCalcType = new ArrayList<>(Arrays.asList(Group.costCalculationType.BUDGET, Group.costCalculationType.BUDGET ,Group.costCalculationType.COST ));
+        createData_gruppenCostCalcMethod = new ArrayList<>(Arrays.asList(Group.costCalculationMethod.ACTUAL_COST, Group.costCalculationMethod.TRIP ,Group.costCalculationMethod.KIKOMETER_ALLOWANCE ));
         createData_userNamen = new ArrayList<String>(Arrays.asList("HansP", "DanielP", "FinnF", "GünterM", "HansD", "JohnL", "MarkusG", "TomN", "KarlF"));
 
         createData_userGroupMap.put("HansP", new ArrayList<String>(Arrays.asList("Auf zur Arbeit")));
@@ -752,10 +774,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         databaseReference.child("Groups").removeValue();
         databaseReference.child("Users").removeValue();
+        databaseReference.child("Cars").removeValue();
+        databaseReference.child("Trips").removeValue();
 
         for (String name : createData_gruppenNamen) {
+            int i = createData_gruppenNamen.indexOf(name);
             Group newGroup = new Group();
             newGroup.setName(name);
+            newGroup.setCalculationType(createData_gruppenCostCalcType.get(i));
+            newGroup.setCalculationMethod(createData_gruppenCostCalcMethod.get(i));
             createData_groupIdMap.put(name, newGroup.getGroup_id());
             databaseReference.child("Groups").child(newGroup.getGroup_id()).setValue(newGroup);
         }
@@ -772,7 +799,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             if (name.equals(loggedInUser_Name)) {
                 loggedInUser = newUser;
-                SharedPreferences.Editor editor = mySPR.edit();
+                SharedPreferences.Editor editor = mySPR_daten.edit();
                 editor.putString("loggedInUser", gson.toJson(loggedInUser));
                 editor.commit();
             }

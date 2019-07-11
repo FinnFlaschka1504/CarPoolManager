@@ -3,13 +3,17 @@ package finn_daniel.carpoolmanager;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RadioGroup;
 import android.widget.SimpleAdapter;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -22,6 +26,7 @@ import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
+import com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar;
 import com.applikeysolutions.cosmocalendar.dialog.CalendarDialog;
 import com.applikeysolutions.cosmocalendar.dialog.OnDaysSelectionListener;
 import com.applikeysolutions.cosmocalendar.model.Day;
@@ -54,7 +59,6 @@ public class GroupActivity extends FragmentActivity {
     User loggedInUser;
     Button group_addTrip;
 
-    // ToDo: gruppe und Trips aus Firebase
 
     ViewPager_GroupOverview thisGroupOverview = new ViewPager_GroupOverview();
     ViewPager_GroupCalender thisGroupCalender = new ViewPager_GroupCalender();
@@ -80,9 +84,8 @@ public class GroupActivity extends FragmentActivity {
         );
 
         thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
-        // ToDo: reload Group, PassengerMap und TripsMap methode
 
-        SharedPreferences mySPR = getSharedPreferences("Settings",0);
+        SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings",0);
         standardView = mySPR.getString("standardView", "Übersicht");
 
         mPager = findViewById(R.id.group_pager);
@@ -164,13 +167,21 @@ class ViewPager_GroupOverview extends Fragment {
     String EXTRA_GROUP = "EXTRA_GROUP";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     Dialog dialog_tripList;
+    SharedPreferences mySPR_settings;
 
 
     Button overview_showAllTrips;
     Button overview_showMyTrips;
+    Button overview_calculateCosts;
     TextView overview_groupName;
     Switch overview_isDriverSwitch;
     ListView dialogTripList_list;
+    TextView overview_calculationType;
+    TextView overview_calculationMethod;
+    RoundCornerProgressBar overview_progressBar;
+    TextView overview_progress;
+    TextView overview_budget;
+    Button overview_changeCostCalculation;
 
 
     List<String> listviewTitle = new ArrayList<String>();
@@ -179,33 +190,39 @@ class ViewPager_GroupOverview extends Fragment {
     List<User> sortedUserList = new ArrayList<>();
     Map<String , User> groupPassengerMap = new HashMap<>();
     Map<String, Trip> groupTripsMap = new HashMap<>();
+    List<Trip> userTripList = new ArrayList<>();
 
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, final Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.group_overview, container, false);
         overview_groupName = view.findViewById(R.id.overview_groupName);
         userList = view.findViewById(R.id.overview_userList);
         overview_showAllTrips = view.findViewById(R.id.overview_showAllTrips);
         overview_showMyTrips = view.findViewById(R.id.overview_showMyTrips);
         overview_isDriverSwitch = view.findViewById(R.id.overview_isDriverSwitch);
+        overview_calculateCosts = view.findViewById(R.id.overview_calculateCosts);
+        overview_calculationType = view.findViewById(R.id.overview_calculationType);
+        overview_calculationMethod = view.findViewById(R.id.overview_calculationMethod);
+        overview_progressBar = view.findViewById(R.id.overview_progressBar);
+        overview_progress = view.findViewById(R.id.overview_progress);
+        overview_budget = view.findViewById(R.id.overview_budget);
+        overview_changeCostCalculation =  view.findViewById(R.id.overview_changeCostCalculation);
+        overview_changeCostCalculation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showChangeCostCalculation();
+            }
+        });
 
+        mySPR_settings = getActivity().getSharedPreferences("CarPoolManager_Settings", 0);
 
         view.findViewById(R.id.overview_isDriverSwitch).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
             }
         });
-//        view.findViewById(R.id.overview_addTrip).setVisibility(View.GONE);
-//        view.findViewById(R.id.overview_addTrip).setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Intent intent = new Intent(getActivity(), AddTripActivity.class);
-//                intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
-//                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
-//                startActivityForResult(intent, NEWTRIP);
-//            }
-//        });
+
 
         view.findViewById(R.id.floatingActionButton).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -238,13 +255,147 @@ class ViewPager_GroupOverview extends Fragment {
                     Toast.makeText(getContext(), "Es gibt nix zum anzeigen", Toast.LENGTH_SHORT).show();
             }
         });
+        overview_calculateCosts.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (thisGroup.getTripIdList().size() != 0)
+                    showCostCalculation();
+                else
+                    Toast.makeText(getContext(), "Es gibt nix zum anzeigen", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         overview_isDriverSwitch.setChecked(thisGroup.getDriverIdList().contains(loggedInUser.getUser_id()));
         reLoadContent();
+        setCalculationTexts();
 
         return view;
 
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
+    }
+
+    private void setCalculationTexts() {
+        String typeText = "";
+        String methodText = "";
+        switch (thisGroup.getCalculationType()) {
+            case COST: typeText = "nach Kosten"; break;
+            case BUDGET: typeText = "nach Budget"; break;
+            default: typeText = "-- nicht festgelegt -- "; break;
+        }
+        overview_calculationType.setText(typeText);
+        switch (thisGroup.getCalculationMethod()) {
+            case ACTUAL_COST: methodText = "nach tatsächlichen Kosten"; break;
+            case KIKOMETER_ALLOWANCE: methodText = "nach Kilometerpauschale"; break;
+            case TRIP: methodText = "nach Fahrten"; break;
+            default: methodText = "-- nicht festgelegt -- "; break;
+        }
+        overview_calculationMethod.setText(methodText);
+
+        if (thisGroup.getCalculationType() == Group.costCalculationType.BUDGET) {
+            double budget = thisGroup.getBudget();
+            if (thisGroup.isBudgetPerUser()) {
+                budget *= thisGroup.getUserIdList().size();
+            }
+            overview_progressBar.setMax((float) budget);
+            double ownProgress = 0;
+            double allProgress = 0;
+            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
+                for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+                    if (entry.getValue().getDriverId().equals(loggedInUser.getUser_id()))
+                        ownProgress += entry.getValue().getCost();
+                    allProgress += entry.getValue().getCost();
+                }
+
+//                for (Trip trip : userTripList) {
+//                    ownProgress += trip.getCost();
+//                }
+                overview_progressBar.setSecondaryProgress((float) allProgress);
+
+            }
+            overview_progressBar.setProgress((float) ownProgress);
+            if (ownProgress >= budget)
+                overview_progressBar.setProgressColor(Color.RED);
+
+            overview_progress.setText(convertToEuro(ownProgress));
+            overview_budget.setText(convertToEuro(budget) + "€");
+        }
+        // ToDo: möglichkeiten je nach auswahl disablen
+
+    }
+
+    String convertToEuro(double count) {
+        DecimalFormat df = new DecimalFormat("#.00");
+        count = Double.valueOf(df.format(count).replace(",","."));
+        if (count % 1 == 0) {
+            return String.valueOf(count).split("\\.")[0];
+        }
+        else {
+            return String.valueOf(count);
+        }
+
+    }
+
+    private void showChangeCostCalculation() {
+        final Dialog dialog_changeCostCalculation = new Dialog(getContext());
+        dialog_changeCostCalculation.setContentView(R.layout.dialog_changecost_calculation);
+
+        RadioGroup dialogChangeCostCalculation_typeGroup;
+        RadioGroup dialogChangeCostCalculation_methodGroup;
+        EditText dialogChangeCostCalculation_budget;
+        CheckBox dialogChangeCostCalculation_perPerson;
+
+        dialogChangeCostCalculation_typeGroup = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_typeGroup);
+        dialogChangeCostCalculation_methodGroup = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_methodGroup);
+        dialogChangeCostCalculation_budget = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_budget);
+        dialogChangeCostCalculation_perPerson = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_perPerson);
+
+        switch (thisGroup.getCalculationType()) {
+            default:
+            case COST: dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_costRadio); break;
+            case BUDGET: dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_budgetRadio); break;
+        }
+        switch (thisGroup.getCalculationMethod()) {
+            default:
+            case ACTUAL_COST: dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_realCostRadio); break;
+            case KIKOMETER_ALLOWANCE: dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_lumbSumRadio); break;
+            case TRIP: dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_tripRadio); break;
+        }
+        dialogChangeCostCalculation_budget.setText(String.valueOf(thisGroup.getBudget()));
+        dialogChangeCostCalculation_perPerson.setChecked(thisGroup.isBudgetPerUser());
+
+//        dialogChangeCostCalculation_typeGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(RadioGroup radioGroup, int i) {
+//
+//            }
+//        });
+
+
+
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog_changeCostCalculation.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog_changeCostCalculation.show();
+        dialog_changeCostCalculation.getWindow().setAttributes(lp);
+
+        dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_cancel).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialog_changeCostCalculation.dismiss();
+            }
+        });
+    }
+
+
+    private void showCostCalculation() {
+        Dialog dialog_costCalculation = new Dialog(getContext());
+        dialog_costCalculation.setContentView(R.layout.dialog_calculate_costs);
+
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog_costCalculation.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog_costCalculation.show();
+        dialog_costCalculation.getWindow().setAttributes(lp);
     }
 
     private void showTripList(boolean showAll) {
@@ -315,10 +466,9 @@ class ViewPager_GroupOverview extends Fragment {
 
         String[] from = new String[]{"tripList_date_list", "tripList_driver_list", "tripList_fromTo_list", "tripList_distance_list", "tripList_twoWay_list", "tripList_cost_list"};
         int[] to = new int[]{R.id.tripList_date, R.id.tripList_driver, R.id.tripList_fromTo, R.id.tripList_distance, R.id.tripList_twoWay, R.id.tripList_cost};
-        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.trip_list_item, from, to);
+        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.list_item_trip, from, to);
         dialogTripList_list.setAdapter(simpleAdapter);
 
-        // ToDo: fahrten nach anteil farblich markieren
 
 //      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
 //            public boolean onPreDraw() {
@@ -369,18 +519,32 @@ class ViewPager_GroupOverview extends Fragment {
 
     public void reLoadContent() {
         overview_groupName.setText(thisGroup.getName());
-        overview_showAllTrips.setText(String.valueOf(thisGroup.getTripIdList().size()));
-        overview_showMyTrips.setText(String.valueOf(calculateDrivenAmount(loggedInUser.getUser_id())));
+        overview_showAllTrips.setText(calculateDrivenAmount(null));
+        overview_showMyTrips.setText(calculateDrivenAmount(loggedInUser.getUser_id()));
         listeLaden();
     }
 
-    int calculateDrivenAmount(String userId) {
-        int count = 0;
+    String calculateDrivenAmount(String userId) {
+        double count = 0;
+        if (loggedInUser.getUser_id().equals(userId))
+            userTripList.clear();
         for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
-            if (entry.getValue().getDriverId().equals(userId))
+            if (entry.getValue().getDriverId().equals(userId) || userId == null) {
+                if (loggedInUser.getUser_id().equals(userId))
+                    userTripList.add(entry.getValue());
                 count++;
+                if (entry.getValue().isTwoWay())
+                    count++;
+            }
         }
-        return count;
+
+        if (mySPR_settings.getString("tripCount", "Pro Weg").equals("Pro Fahrt"))
+            count /= 2;
+
+        if (count % 1 == 0)
+            return String.valueOf(count).split("\\.")[0];
+        else
+            return String.valueOf(count);
     }
 
 
@@ -390,7 +554,6 @@ class ViewPager_GroupOverview extends Fragment {
         this.listviewIsDriver.clear();
         this.listviewOwnDrivenAmount.clear();
 
-        // ToDo: Einträge sortieren (Mapp zu List und dann sortieren)
         sortedUserList = new ArrayList<>();
         for (String userId : thisGroup.getUserIdList()) {
             sortedUserList.add(groupPassengerMap.get(userId));
@@ -423,7 +586,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         String[] from = new String[]{"listview_title", "listview_isDriver", "listview_discription_ownAmount"};
         int[] to = new int[]{R.id.userList_name, R.id.userList_image, R.id.userList_ownAmount};
-        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.passenger_list_item, from, to);
+        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.list_item_passenger, from, to);
         userList.setAdapter(simpleAdapter);
 
         // ToDo: fahrten nach anteil farblich markieren

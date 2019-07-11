@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <TextView
+        android:id="@+id/textView10"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:text="Kosten Kalkulation"
+        android:textAlignment="center"
+        android:textColor="@color/colorPrimary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:layout_margin="16dp"
+        app:rcBackgroundColor="#E2E2E2"
+        app:rcBackgroundPadding="7dp"
+        app:rcMax="100"
+        app:rcProgress="25"
+        app:rcProgressColor="#4CAF50"
+        app:rcRadius="7dp"
+        app:rcReverse="false"
+        app:rcSecondaryProgress="33"
+        app:rcSecondaryProgressColor="#2196F3" />
+</LinearLayout>

@@ -9,13 +9,21 @@ import java.util.UUID;
 public class Group {
     private String group_id;
     private String name;
+    private costCalculationType calculationType;
+    private costCalculationMethod calculationMethod;
+    private double budget;
+    private boolean budgetPerUser;
     private List<String> userIdList = new ArrayList<>();
     private List<String> tripIdList = new ArrayList<>();
     private List<String> driverIdList = new ArrayList<>();
     private List<String> bookmarkIdList = new ArrayList<>();
-    public enum priceCalculationType
+    public enum costCalculationType
     {
-        KIKOMETERALLOWANCE, BUDGET
+        BUDGET, COST
+    }
+    public enum costCalculationMethod
+    {
+        ACTUAL_COST, KIKOMETER_ALLOWANCE, TRIP
     }
 
     public Group() {
@@ -125,5 +133,37 @@ public class Group {
 
     public void setBookmarkIdList(List<String> bookmarkIdList) {
         this.bookmarkIdList = bookmarkIdList;
+    }
+
+    public costCalculationType getCalculationType() {
+        return calculationType;
+    }
+
+    public void setCalculationType(costCalculationType calculationType) {
+        this.calculationType = calculationType;
+    }
+
+    public costCalculationMethod getCalculationMethod() {
+        return calculationMethod;
+    }
+
+    public void setCalculationMethod(costCalculationMethod calculationMethod) {
+        this.calculationMethod = calculationMethod;
+    }
+
+    public double getBudget() {
+        return budget;
+    }
+
+    public void setBudget(double budget) {
+        this.budget = budget;
+    }
+
+    public boolean isBudgetPerUser() {
+        return budgetPerUser;
+    }
+
+    public void setBudgetPerUser(boolean budgetPerUser) {
+        this.budgetPerUser = budgetPerUser;
     }
 }
