@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     SharedPreferences mySPR_daten;
     SharedPreferences mySPR_settings;
 
-
+    int SETTINGS_INTENT = 001;
     String EXTRA_USER = "EXTRA_USER";
     private String EXTRA_GROUP = "EXTRA_GROUP";
     private String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
@@ -128,16 +128,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
 //            Findet heraus, ob ein Nutzer eingetreten, oder ausgetreten ist
-            if (!foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList()))
+            if (!foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList())) {
                 onChangedUsers(foundGroup);
+                return;
+            }
 
 //            Findet heraus, ob sich bei den Trips was verändert hat --> loggedInUser_groupTripMap muss aktuallisiert werden
-            if (!foundGroup.getTripIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList()))
+            if (!foundGroup.getTripIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList())) {
                 onChangedTrip(foundGroup);
+                return;
+            }
 
             loggedInUser_groupsMap.replace(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
 
-//            listeLaden();
+            listeLaden();
 
         }
 
@@ -545,12 +549,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             msgBox("groups");
         } else if (id == R.id.settings) {
             Intent intent = new Intent(MainActivity.this, Settings.class);
-            startActivity(intent);
+            startActivityForResult(intent, SETTINGS_INTENT);
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if (requestCode == SETTINGS_INTENT && resultCode == RESULT_OK) {
+            listeLaden();
+        }
     }
 
     String calculateDrivenAmount(String userId, String groupId) {

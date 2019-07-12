@@ -220,10 +220,10 @@
                         android:layout_margin="3dp"
                         android:layout_weight="1"
                         app:rcBackgroundColor="#E2E2E2"
-                        app:rcProgressColor="#4CAF50"
+                        app:rcProgressColor="@color/colorPrimaryProgressBar"
                         app:rcRadius="10dp"
                         app:rcReverse="false"
-                        app:rcSecondaryProgressColor="#2196F3">
+                        app:rcSecondaryProgressColor="@color/colorPrimary">
 
                     </com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar>
 

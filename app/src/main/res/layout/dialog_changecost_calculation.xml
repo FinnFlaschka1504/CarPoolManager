@@ -51,7 +51,6 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/dialogChangeCostCalculation_budgetLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -61,7 +60,7 @@
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-            android:background="@color/dividerColor" />
+            android:background="@color/colorDdivider" />
 
         <TextView
             android:layout_width="match_parent"
@@ -77,6 +76,7 @@
             <EditText
                 android:id="@+id/dialogChangeCostCalculation_budget"
                 android:layout_width="wrap_content"
+                android:selectAllOnFocus="true"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ems="10"
@@ -94,6 +94,43 @@
 
     <LinearLayout
         android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/colorDdivider" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kilometer-Pauschale:"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/dialogChangeCostCalculation_kilometerAllowance"
+                android:layout_width="wrap_content"
+                android:selectAllOnFocus="true"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ems="10"
+                android:hint="Pauschale eingeben (€/km)"
+                android:inputType="numberDecimal" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
@@ -102,7 +139,7 @@
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-            android:background="@color/dividerColor" />
+            android:background="@color/colorDdivider" />
 
         <TextView
             android:layout_width="match_parent"
@@ -125,7 +162,7 @@
                 android:text="Kosten" />
 
             <RadioButton
-                android:id="@+id/dialogChangeCostCalculation_lumbSumRadio"
+                android:id="@+id/dialogChangeCostCalculation_kilometerAllowanceRadio"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -163,7 +200,6 @@
             style="@style/Widget.AppCompat.Button.Borderless.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:enabled="false"
             android:text="Speichern" />
     </LinearLayout>
 

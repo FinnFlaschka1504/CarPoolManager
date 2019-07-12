@@ -13,6 +13,7 @@ public class Group {
     private costCalculationMethod calculationMethod;
     private double budget;
     private boolean budgetPerUser;
+    private double kilometerAllowance = 0.3;
     private List<String> userIdList = new ArrayList<>();
     private List<String> tripIdList = new ArrayList<>();
     private List<String> driverIdList = new ArrayList<>();
@@ -165,5 +166,13 @@ public class Group {
 
     public void setBudgetPerUser(boolean budgetPerUser) {
         this.budgetPerUser = budgetPerUser;
+    }
+
+    public double getKilometerAllowance() {
+        return kilometerAllowance;
+    }
+
+    public void setKilometerAllowance(double kilometerAllowance) {
+        this.kilometerAllowance = kilometerAllowance;
     }
 }

@@ -19,6 +19,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Settings extends AppCompatActivity {
@@ -26,7 +28,9 @@ public class Settings extends AppCompatActivity {
     DatabaseReference databaseReference;
     Boolean isReadingActivated = false;
     SharedPreferences mySPR;
+    int spinnerTripCount_selected = -1;
 
+    Map<String, Boolean> hasChangedMap = new HashMap<>();
 
     Spinner settings_spinnerStandardView;
     Spinner settings_spinnerTripCount;
@@ -76,7 +80,15 @@ public class Settings extends AppCompatActivity {
                 SharedPreferences.Editor editor = mySPR.edit();
                 editor.putString("tripCount",((AppCompatTextView) view).getText().toString());
                 editor.commit();
-
+                if (spinnerTripCount_selected == -1) {
+                    spinnerTripCount_selected = i;
+                    hasChangedMap.put("spinnerTripCount", false);
+                } else {
+                    if (spinnerTripCount_selected == i)
+                        hasChangedMap.put("spinnerTripCount", false);
+                    else
+                        hasChangedMap.put("spinnerTripCount", true);
+                }
             }
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
@@ -134,4 +146,34 @@ public class Settings extends AppCompatActivity {
         System.out.println(nachrichten.toString());
         Toast.makeText(Settings.this, nachrichten.toString(), Toast.LENGTH_SHORT).show();
     }
+
+    public boolean onSupportNavigateUp() {
+        if (checkIfHasChanges(hasChangedMap))
+            setResult(RESULT_OK);
+        else
+            setResult(RESULT_CANCELED);
+        this.finish();
+        return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (checkIfHasChanges(hasChangedMap))
+            setResult(RESULT_OK);
+        else
+            setResult(RESULT_CANCELED);
+
+        setResult(RESULT_OK);
+        super.onBackPressed();
+    }
+
+    private boolean checkIfHasChanges(Map<String, Boolean> changedMap) {
+//        List<Boolean> changes = new ArrayList<>(changedMap.values());
+        Collection<Boolean> changes = changedMap.values();
+        if (changes.contains(true))
+            return true;
+        else
+            return false;
+    }
+
 }

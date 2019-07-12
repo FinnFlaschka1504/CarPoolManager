@@ -27,7 +27,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/dividerColor" />
+            android:background="@color/colorDdivider" />
 
         <ListView
             android:id="@+id/dialogTripList_list"
@@ -37,7 +37,7 @@
             android:layout_marginRight="16dp"
             android:layout_weight="1"
             android:clickable="false"
-            android:divider="@color/dividerColor"
+            android:divider="@color/colorDdivider"
             android:dividerHeight="1dp"
             android:scrollbars="none"
             android:visibility="visible">
@@ -47,7 +47,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/dividerColor" />
+            android:background="@color/colorDdivider" />
 
 
         <Button
