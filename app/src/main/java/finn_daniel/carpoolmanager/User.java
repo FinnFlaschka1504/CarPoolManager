@@ -1,7 +1,10 @@
 package finn_daniel.carpoolmanager;
 
+import android.graphics.Color;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 public class User {
@@ -9,9 +12,15 @@ public class User {
     private String userName;
     private List<String> groupIdList = new ArrayList<>();
     private List<String> carIdList = new ArrayList<>();
+    private String userColor;
 
     public User() {
         user_id = "user_" + UUID.randomUUID().toString();
+        Random random = new Random();
+
+//        userColor = "#" + Integer.toHexString(random.nextInt(0xFFFFFF)).toUpperCase();
+        userColor = "#" + Integer.toHexString(Color.argb(255, random.nextInt(256) - 100, random.nextInt(256) - 100, random.nextInt(256) - 100)).toUpperCase();
+//        userColor = "#" + Integer.toHexString(Color.argb(255, random.nextInt(156) + 100, random.nextInt(156) + 100, random.nextInt(156) + 100)).toUpperCase();
     }
 
     public void addGroup(String user_id) {
@@ -62,4 +71,11 @@ public class User {
         this.carIdList = carIdList;
     }
 
+    public String getUserColor() {
+        return userColor;
+    }
+
+    public void setUserColor(String userColor) {
+        this.userColor = userColor;
+    }
 }

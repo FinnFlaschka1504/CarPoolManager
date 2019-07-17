@@ -8,11 +8,14 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -33,6 +36,8 @@ import com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar;
 import com.applikeysolutions.cosmocalendar.dialog.CalendarDialog;
 import com.applikeysolutions.cosmocalendar.dialog.OnDaysSelectionListener;
 import com.applikeysolutions.cosmocalendar.model.Day;
+import com.github.sundeepk.compactcalendarview.CompactCalendarView;
+import com.github.sundeepk.compactcalendarview.domain.Event;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -43,8 +48,10 @@ import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +80,6 @@ public class GroupActivity extends FragmentActivity {
     Map<String, Trip> groupTripsMap = new HashMap<>();
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,15 +88,18 @@ public class GroupActivity extends FragmentActivity {
         loggedInUser = gson.fromJson(getIntent().getStringExtra(EXTRA_USER), User.class);
         thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
         groupPassengerMap = gson.fromJson(
-                getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
+                getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {
+                }.getType()
         );
         groupTripsMap = gson.fromJson(
-                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {}.getType()
+                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {
+                }.getType()
         );
 
         thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+        thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
 
-        SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings",0);
+        SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings", 0);
         standardView = mySPR.getString("standardView", "Übersicht");
 
         mPager = findViewById(R.id.group_pager);
@@ -116,11 +125,12 @@ public class GroupActivity extends FragmentActivity {
 //        LocalBroadcastManager
     }
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == NEWTRIP && resultCode == RESULT_OK) {
             ArrayList<Trip> newTrips = gson.fromJson(
-                    data.getStringExtra(AddTripActivity.EXTRA_REPLY_TRIPS), new TypeToken<ArrayList<Trip>>() {}.getType()
+                    data.getStringExtra(AddTripActivity.EXTRA_REPLY_TRIPS), new TypeToken<ArrayList<Trip>>() {
+                    }.getType()
             );
 
             for (Trip newTrip : newTrips) {
@@ -129,6 +139,8 @@ public class GroupActivity extends FragmentActivity {
             }
             thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
             thisGroupOverview.reLoadContent();
+            thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+            thisGroupCalender.reLoadContent();
         }
     }
 
@@ -149,9 +161,12 @@ public class GroupActivity extends FragmentActivity {
         @Override
         public Fragment getItem(int position) {
             switch (position) {
-                case 0: return thisGroupOverview;
-                case 1: return thisGroupCalender;
-                default: return thisGroupOverview;
+                case 0:
+                    return thisGroupOverview;
+                case 1:
+                    return thisGroupCalender;
+                default:
+                    return thisGroupOverview;
             }
         }
 
@@ -195,7 +210,7 @@ class ViewPager_GroupOverview extends Fragment {
     List<Boolean> listviewIsDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList = new ArrayList<>();
-    Map<String , User> groupPassengerMap = new HashMap<>();
+    Map<String, User> groupPassengerMap = new HashMap<>();
     Map<String, Trip> groupTripsMap = new HashMap<>();
     List<Trip> userTripList = new ArrayList<>();
     Map<String, Map<String, Trip>> userTripMap = new HashMap<>();
@@ -216,7 +231,7 @@ class ViewPager_GroupOverview extends Fragment {
         overview_progressBar = view.findViewById(R.id.overview_progressBar);
         overview_progress = view.findViewById(R.id.overview_progress);
         overview_budget = view.findViewById(R.id.overview_budget);
-        overview_changeCostCalculation =  view.findViewById(R.id.overview_changeCostCalculation);
+        overview_changeCostCalculation = view.findViewById(R.id.overview_changeCostCalculation);
         overview_changeCostCalculation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -296,7 +311,7 @@ class ViewPager_GroupOverview extends Fragment {
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
     }
 
-    public void setData(User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap) {
+    public void setData(User pLoggedInUser, Group pThisGroup, Map<String, User> pGroupPassengerMap, Map<String, Trip> pGroupTripsMap) {
         loggedInUser = pLoggedInUser;
         thisGroup = pThisGroup;
         groupPassengerMap = pGroupPassengerMap;
@@ -315,20 +330,34 @@ class ViewPager_GroupOverview extends Fragment {
         String typeText;
         String methodText;
         switch (thisGroup.getCalculationType()) {
-            case COST: typeText = "nach Kosten"; break;
-            case BUDGET: typeText = "nach Budget"; break;
-            default: typeText = "-- nicht festgelegt -- "; break;
+            case COST:
+                typeText = "nach Kosten";
+                break;
+            case BUDGET:
+                typeText = "nach Budget";
+                break;
+            default:
+                typeText = "-- nicht festgelegt -- ";
+                break;
         }
         overview_calculationType.setText(typeText);
         switch (thisGroup.getCalculationMethod()) {
-            case ACTUAL_COST: methodText = "nach tatsächlichen Kosten"; break;
-            case KIKOMETER_ALLOWANCE: methodText = "nach Kilometerpauschale"; break;
-            case TRIP: methodText = "nach Fahrten"; break;
-            default: methodText = "-- nicht festgelegt -- "; break;
+            case ACTUAL_COST:
+                methodText = "nach tatsächlichen Kosten";
+                break;
+            case KIKOMETER_ALLOWANCE:
+                methodText = "nach Kilometerpauschale";
+                break;
+            case TRIP:
+                methodText = "nach Fahrten";
+                break;
+            default:
+                methodText = "-- nicht festgelegt -- ";
+                break;
         }
         overview_calculationMethod.setText(methodText);
 
-    setProgressBar(overview_progressBar, loggedInUser);
+        setProgressBar(overview_progressBar, loggedInUser);
 
     }
 
@@ -421,7 +450,7 @@ class ViewPager_GroupOverview extends Fragment {
             if (ownProgress >= allProgress)
                 progressBar.setProgressColor(Color.RED);
             else
-                setColorBasedOnRatio(overview_progressBar ,ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
             progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
 
         }
@@ -431,11 +460,14 @@ class ViewPager_GroupOverview extends Fragment {
     private void setColorBasedOnRatio(RoundCornerProgressBar progressBar, double ownProgress, double allProgress, int size, double margin) {
         switch (isInRatio(ownProgress, allProgress, size, margin)) {
             case 0:
-                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toLittle)); break;
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toLittle));
+                break;
             case 1:
-                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar)); break;
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar));
+                break;
             case 2:
-                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch)); break;
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch));
+                break;
         }
     }
 
@@ -454,11 +486,10 @@ class ViewPager_GroupOverview extends Fragment {
 
     String convertToEuro(double count) {
         DecimalFormat df = new DecimalFormat("#.00");
-        count = Double.valueOf(df.format(count).replace(",","."));
+        count = Double.valueOf(df.format(count).replace(",", "."));
         if (count % 1 == 0) {
             return String.valueOf(count).split("\\.")[0];
-        }
-        else {
+        } else {
             return String.valueOf(count);
         }
     }
@@ -483,14 +514,24 @@ class ViewPager_GroupOverview extends Fragment {
 
         switch (thisGroup.getCalculationType()) {
             default:
-            case COST: dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_costRadio); break;
-            case BUDGET: dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_budgetRadio); break;
+            case COST:
+                dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_costRadio);
+                break;
+            case BUDGET:
+                dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_budgetRadio);
+                break;
         }
         switch (thisGroup.getCalculationMethod()) {
             default:
-            case ACTUAL_COST: dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_realCostRadio); break;
-            case KIKOMETER_ALLOWANCE: dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_kilometerAllowanceRadio); break;
-            case TRIP: dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_tripRadio); break;
+            case ACTUAL_COST:
+                dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_realCostRadio);
+                break;
+            case KIKOMETER_ALLOWANCE:
+                dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_kilometerAllowanceRadio);
+                break;
+            case TRIP:
+                dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_tripRadio);
+                break;
         }
         dialogChangeCostCalculation_budget.setText(String.valueOf(thisGroup.getBudget()));
         dialogChangeCostCalculation_perPerson.setChecked(thisGroup.isBudgetPerUser());
@@ -508,17 +549,22 @@ class ViewPager_GroupOverview extends Fragment {
             public void onClick(View view) {
                 switch (dialogChangeCostCalculation_typeGroup.getCheckedRadioButtonId()) {
                     case R.id.dialogChangeCostCalculation_budgetRadio:
-                        thisGroup.setCalculationType(Group.costCalculationType.BUDGET); break;
+                        thisGroup.setCalculationType(Group.costCalculationType.BUDGET);
+                        break;
                     case R.id.dialogChangeCostCalculation_costRadio:
-                        thisGroup.setCalculationType(Group.costCalculationType.COST); break;
+                        thisGroup.setCalculationType(Group.costCalculationType.COST);
+                        break;
                 }
                 switch (dialogChangeCostCalculation_methodGroup.getCheckedRadioButtonId()) {
                     case R.id.dialogChangeCostCalculation_realCostRadio:
-                        thisGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST); break;
+                        thisGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
+                        break;
                     case R.id.dialogChangeCostCalculation_kilometerAllowanceRadio:
-                        thisGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE); break;
+                        thisGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
+                        break;
                     case R.id.dialogChangeCostCalculation_tripRadio:
-                        thisGroup.setCalculationMethod(Group.costCalculationMethod.TRIP); break;
+                        thisGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
+                        break;
                 }
                 if (dialogChangeCostCalculation_budget.isEnabled()) {
                     if (!dialogChangeCostCalculation_budget.getText().toString().equals("")) {
@@ -591,7 +637,7 @@ class ViewPager_GroupOverview extends Fragment {
     private void showCostCalculation() {
         final Dialog dialog_costCalculation = new Dialog(getContext());
         dialog_costCalculation.setContentView(R.layout.dialog_calculate_costs);
-        final LinearLayout layout = dialog_costCalculation.findViewById(R.id.test);
+        final LinearLayout dialogCostList_list = dialog_costCalculation.findViewById(R.id.dialogCostList_list);
         final Map<String, Double> userTripMap_count = new HashMap<>();
 
         // ToDo: was passiert wenn Budget überschritten? Werden kostten verteilt, oder bleibt man dreuf sitzen?
@@ -621,17 +667,17 @@ class ViewPager_GroupOverview extends Fragment {
 
         for (User thisUser : driverList) {
 //            List<Trip> trips = new ArrayList<>(userTripMap.get(thisUser.getUser_id()).values());
-            if (layout.getChildCount() != 0) {
+            if (dialogCostList_list.getChildCount() != 0) {
                 View divider = new View(getContext());
                 divider.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().density * 1)));
                 divider.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.colorDdivider));
-                layout.addView(divider);
+                dialogCostList_list.addView(divider);
             }
 
             LayoutInflater li = LayoutInflater.from(getContext());
             View listItem = li.inflate(R.layout.list_item_cost, null);
 
-            TextView costList_name  = listItem.findViewById(R.id.costList_name);
+            TextView costList_name = listItem.findViewById(R.id.costList_name);
             costList_name.setText(thisUser.getUserName());
 
             TextView costList_tripsOrCost = listItem.findViewById(R.id.costList_tripsOrCost);
@@ -655,12 +701,11 @@ class ViewPager_GroupOverview extends Fragment {
                     setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin);
 
                     tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
-                    costList_budgetShare.setText( convertToEuro(thisCost / allCost *
+                    costList_budgetShare.setText(convertToEuro(thisCost / allCost *
                             (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
                             )) + "€");
                     // ToDo: check ob weniger als budget
-                }
-                else {
+                } else {
                     String drivenAmorunt = calculateDrivenAmount(thisUser.getUser_id());
 
                     costList_tripsOrCost.setText(String.valueOf(drivenAmorunt));
@@ -669,9 +714,9 @@ class ViewPager_GroupOverview extends Fragment {
                     double percentage = Double.valueOf(drivenAmorunt) / allTripCount * 100;
 
                     tripList_percentage.setText((int) percentage + "%");
-                    costList_budgetShare.setText( convertToEuro(Double.valueOf(drivenAmorunt) / allTripCount *
+                    costList_budgetShare.setText(convertToEuro(Double.valueOf(drivenAmorunt) / allTripCount *
                             (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
-                            ))+ "€");
+                            )) + "€");
 
                     progressBar.setMax((float) allTripCount);
                     progressBar.setProgress(Float.valueOf(drivenAmorunt));
@@ -698,14 +743,15 @@ class ViewPager_GroupOverview extends Fragment {
                     costList_costDifference.setTextColor(Color.RED);
                     costList_costDifference.setText("(" + convertToEuro(Math.abs(costDifference)) + "€)");
                 } else if (costDifference > 0) {
-                    costList_costDifference.setText("(" + convertToEuro(costDifference)+ "€)");
+                    costList_costDifference.setText("(" + convertToEuro(costDifference) + "€)");
                     costList_costDifference.setTextColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar));
                 }
+
 
                 // ToDo: (optional) Aufschlüsseln wer wem wie viel geld schuldet - Schulden durch Anzahl Schuldner
             }
 
-            layout.addView(listItem);
+            dialogCostList_list.addView(listItem);
         }
 
         dialog_costCalculation.findViewById(R.id.dialogCostList_cancel).setOnClickListener(new View.OnClickListener() {
@@ -735,12 +781,12 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
-        List<String> tripList_date_list =  new ArrayList<>();
-        List<String> tripList_driver_list =  new ArrayList<>();
-        List<String> tripList_fromTo_list =  new ArrayList<>();
-        List<String> tripList_distance_list =  new ArrayList<>();
-        List<String> tripList_twoWay_list =  new ArrayList<>();
-        List<String> tripList_cost_list =  new ArrayList<>();
+        List<String> tripList_date_list = new ArrayList<>();
+        List<String> tripList_driver_list = new ArrayList<>();
+        List<String> tripList_fromTo_list = new ArrayList<>();
+        List<String> tripList_distance_list = new ArrayList<>();
+        List<String> tripList_twoWay_list = new ArrayList<>();
+        List<String> tripList_cost_list = new ArrayList<>();
 
         List<Trip> tripList = new ArrayList<>();
         for (String tripId : thisGroup.getTripIdList()) {
@@ -764,7 +810,7 @@ class ViewPager_GroupOverview extends Fragment {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         DecimalFormat df = new DecimalFormat("#.00");
 
-        for (Trip trip: tripList) {
+        for (Trip trip : tripList) {
             tripList_date_list.add(simpleDateFormat.format(trip.getDate()).replace(" ", " (") + ")");
             tripList_driver_list.add(showAll ?
                     "- " + groupPassengerMap.get(trip.getDriverId()).getUserName() : "");
@@ -777,7 +823,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         ArrayList<HashMap<String, Serializable>> aList = new ArrayList<HashMap<String, Serializable>>();
 
-        for(int i = 0; i < tripList.size(); ++i) {
+        for (int i = 0; i < tripList.size(); ++i) {
             HashMap<String, Serializable> hm = new HashMap<String, Serializable>();
             (hm).put("tripList_date_list", tripList_date_list.get(i));
             (hm).put("tripList_driver_list", tripList_driver_list.get(i));
@@ -821,10 +867,6 @@ class ViewPager_GroupOverview extends Fragment {
 //                return true;
 //            }
 //        };
-
-
-
-
 
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
@@ -911,10 +953,10 @@ class ViewPager_GroupOverview extends Fragment {
 
         ArrayList<HashMap<String, Serializable>> aList = new ArrayList<HashMap<String, Serializable>>();
 
-        for(int i = 0; i < sortedUserList.size(); ++i) {
+        for (int i = 0; i < sortedUserList.size(); ++i) {
             HashMap<String, Serializable> hm = new HashMap<String, Serializable>();
             (hm).put("listview_title", listviewTitle.get(i));
-            (hm).put("listview_isDriver", listviewIsDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer );
+            (hm).put("listview_isDriver", listviewIsDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
             (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
             aList.add(hm);
         }
@@ -926,67 +968,175 @@ class ViewPager_GroupOverview extends Fragment {
 
         // ToDo: fahrten nach anteil farblich markieren
 
-//      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
-//            public boolean onPreDraw() {
-//                ListView var10000 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
-//                Intrinsics.checkExpressionValueIsNotNull(var10000, "listView_reminder");
-//                ListAdapter listAdapter = var10000.getAdapter();
-//                int i = 0;
-//                Intrinsics.checkExpressionValueIsNotNull(listAdapter, "listAdapter");
-//
-//                for(int var3 = listAdapter.getCount(); i < var3; ++i) {
-//                    ReminderListe var6 = ReminderListe.this;
-//                    ListView var10002 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
-//                    Intrinsics.checkExpressionValueIsNotNull(var10002, "listView_reminder");
-//                    View listItem = var6.getViewByPosition(i, var10002);
-//                    View var7 = listItem.findViewById(-1000011);
-//                    if (var7 == null) {
-//                        throw new TypeCastException("null cannot be cast to non-null type android.widget.TextView");
-//                    }
-//
-//                    TextView status_description_view = (TextView)var7;
-//                    if (Intrinsics.areEqual(status_description_view.getText(), ReminderListe.this.getDEAKTIVIERT$app_debug())) {
-//                        status_description_view.setTextColor(-65536);
-//                    }
-//                }
-//
-//                return true;
-//            }
-//        };
-//        listView_groupList = (ListView)this._$_findCachedViewById(id.listView_reminder);
-//        listView_groupList.getViewTreeObserver().addOnPreDrawListener((OnPreDrawListener)mOnPreDrawListener);
-//        this.listeClickListener();
+        ViewTreeObserver.OnPreDrawListener mOnPreDrawListener = new ViewTreeObserver.OnPreDrawListener() {
+            public boolean onPreDraw() {
+                ListAdapter listAdapter = userList.getAdapter();
 
-//        ListAdapter listadp = userList.getAdapter();
-//        if (listadp != null) {
-//            int totalHeight = 0;
-//            for (int i = 0; i < listadp.getCount(); i++) {
-//                View listItem = listadp.getView(i, null, userList);
-//                listItem.measure(0, 0);
-//                totalHeight += listItem.getMeasuredHeight();
-//            }
-//
-////            int[] test = new int[2];
-////            userList.getLocationOnScreen(test);
-//
-//            ViewGroup.LayoutParams params = userList.getLayoutParams();
-//            params.height = totalHeight + (userList.getDividerHeight() * (listadp.getCount() - 1));
-//            userList.setLayoutParams(params);
-//            userList.requestLayout();
-//        }
+                for (int i = 0; i < listAdapter.getCount(); i++) {
+                    View rowView = userList.getChildAt(i);//The item number in the List View
+                    if (rowView != null) {
+                        TextView userList_color = rowView.findViewById(R.id.userList_color);
+                        userList_color.setTextColor(Color.parseColor(sortedUserList.get(i).getUserColor()));
+                    }
+                }
+                userList.getViewTreeObserver().removeOnPreDrawListener(this);
+
+                return true;
+            }
+        };
+        userList.getViewTreeObserver().addOnPreDrawListener(mOnPreDrawListener);
     }
 
 }
 
 class ViewPager_GroupCalender extends Fragment {
 
+    View view;
+    User loggedInUser;
+    Group thisGroup;
+    CompactCalendarView calendarView;
+    TextView calender_month;
+    ImageView calender_previousMonth;
+    ImageView calender_nextMonth;
+    TextView calender_noTrips;
+    LinearLayout calender_tripList_Layout;
+
+
+
+    List<String> listviewTitle = new ArrayList<String>();
+    List<Boolean> listviewIsDriver = new ArrayList<>();
+    List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
+    List<User> sortedUserList = new ArrayList<>();
+    Map<String, User> groupPassengerMap = new HashMap<>();
+    Map<String, Trip> groupTripsMap = new HashMap<>();
+    List<Trip> userTripList = new ArrayList<>();
+    Map<String, Map<String, Trip>> userTripMap = new HashMap<>();
+
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        ViewGroup rootView = (ViewGroup) inflater.inflate(
-                R.layout.group_calender, container, false);
+        view = inflater.inflate(R.layout.group_calender, container, false);
+        calendarView = view.findViewById(R.id.calender_calendar);
+        calender_month = view.findViewById(R.id.calender_month);
+        calender_previousMonth = view.findViewById(R.id.calender_previousMonth);
+        calender_nextMonth = view.findViewById(R.id.calender_nextMonth);
+        calender_noTrips = view.findViewById(R.id.calender_noTrips);
+        calender_tripList_Layout = view.findViewById(R.id.calender_tripList_Layout);
 
-        return rootView;
+        calender_previousMonth.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                calendarView.scrollLeft();
+            }
+        });
+        calender_nextMonth.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                calendarView.scrollRight();
+            }
+        });
+
+//        ViewGroup rootView = (ViewGroup) inflater.inflate(
+//                R.layout.group_calender, container, false);
+        reLoadContent();
+
+        return view;
+    }
+
+    public void setData(User pLoggedInUser, Group pThisGroup, Map<String, User> pGroupPassengerMap, Map<String, Trip> pGroupTripsMap) {
+        loggedInUser = pLoggedInUser;
+        thisGroup = pThisGroup;
+        groupPassengerMap = pGroupPassengerMap;
+        groupTripsMap = pGroupTripsMap;
+    }
+
+    public void reLoadContent() {
+        loadCalender();
+    }
+
+
+    private void loadCalender() {
+        // Set first day of week to Monday, defaults to Monday so calling setFirstDayOfWeek is not necessary
+        // Use constants provided by Java Calendar class
+        calendarView.setFirstDayOfWeek(Calendar.MONDAY);
+        calendarView.shouldSelectFirstDayOfMonthOnScroll(false);
+//        calendarView.displayOtherMonthDays(true);
+
+        for (String tripId : thisGroup.getTripIdList()) {
+            Trip trip = groupTripsMap.get(tripId);
+            Event ev1 = new Event(Color.parseColor(groupPassengerMap.get(trip.getDriverId()).getUserColor())
+                    , trip.getDate().getTime(), tripId);
+            calendarView.addEvent(ev1);
+
+        }
+        calendarView.setListener(new CompactCalendarView.CompactCalendarViewListener() {
+            @Override
+            public void onDayClick(Date dateClicked) {
+                loadTripList(calendarView.getEvents(dateClicked));
+//                Log.d(TAG, "Day was clicked: " + dateClicked + " with events " + events);
+            }
+
+            @Override
+            public void onMonthScroll(Date firstDayOfNewMonth) {
+//                Log.d(TAG, "Month was scrolled to: " + firstDayOfNewMonth);
+                SimpleDateFormat sdfmt = new SimpleDateFormat();
+                sdfmt.applyPattern( "MMMM yyyy" );
+                calender_month.setText(sdfmt.format(firstDayOfNewMonth));
+            }
+        });
+
+        loadTripList(calendarView.getEvents(new Date()));
+
+    }
+
+    void loadTripList(List<Event> eventList){
+//        String pattern = "dd.MM.yyyy E";
+//        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+
+        if (eventList.isEmpty())
+            calender_noTrips.setVisibility(View.VISIBLE);
+        else
+            calender_noTrips.setVisibility(View.GONE);
+
+        calender_tripList_Layout.removeAllViews();
+        for (Event event : eventList) {
+            Trip trip = groupTripsMap.get(event.getData().toString());
+            User user = groupPassengerMap.get(trip.getDriverId());
+            if (calender_tripList_Layout.getChildCount() != 0) {
+                View divider = new View(getContext());
+                divider.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().density * 1)));
+                divider.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.colorDdivider));
+                calender_tripList_Layout.addView(divider);
+            }
+
+            LayoutInflater li = LayoutInflater.from(getContext());
+            View listItem = li.inflate(R.layout.list_item_trip, null);
+
+            TextView tripList_date = listItem.findViewById(R.id.tripList_date);
+            tripList_date.setText("");
+
+            TextView tripList_driver = listItem.findViewById(R.id.tripList_driver);
+            tripList_driver.setText(user.getUserName());
+            tripList_driver.setTextColor(Color.parseColor(user.getUserColor()));
+
+            TextView tripList_fromTo = listItem.findViewById(R.id.tripList_fromTo);
+            tripList_fromTo.setText(trip.getLocationName().get(0) +
+                    (trip.isTwoWay() ? " ⇔ " : " ⇒ ") + trip.getLocationName().get(1));
+
+            TextView tripList_distance = listItem.findViewById(R.id.tripList_distance);
+            tripList_distance.setText(trip.getDistance());
+
+            TextView tripList_twoWay = listItem.findViewById(R.id.tripList_twoWay);
+            tripList_twoWay.setText(trip.isTwoWay() ? "x2" : "");
+
+            DecimalFormat df = new DecimalFormat("#.00");
+            TextView tripList_cost = listItem.findViewById(R.id.tripList_cost);
+            tripList_cost.setText(df.format(trip.getCost()) + "€");
+
+
+            calender_tripList_Layout.addView(listItem);
+        }
 
     }
 }

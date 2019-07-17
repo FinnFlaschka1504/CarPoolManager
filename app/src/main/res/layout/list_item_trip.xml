@@ -37,6 +37,7 @@
                         android:id="@+id/tripList_date"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginRight="4dp"
                         android:text="10.07.2019 (Mi.)"
                         android:textColor="@color/colorFont"
                         android:textSize="15sp"
@@ -46,7 +47,6 @@
                         android:id="@+id/tripList_driver"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginLeft="4dp"
                         android:textSize="15sp"
                         android:textStyle="bold|italic" />
                 </LinearLayout>

@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.view.Menu;
@@ -37,6 +38,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +47,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NetworkStateReceiver.NetworkStateReceiverListener {
 
@@ -803,6 +806,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             User newUser = new User();
 //            newUser.generateId();
             newUser.setUserName(name);
+            Random random = new Random();
+            newUser.setUserColor("#" + Integer.toHexString(Color.argb(255, random.nextInt(256), random.nextInt(256), random.nextInt(256))).toUpperCase());
             createData_userIdMap.put(name, newUser.getUser_id());
             for (String gruppe : createData_userGroupMap.get(name)) {
                 newUser.addGroup(createData_groupIdMap.get(gruppe));

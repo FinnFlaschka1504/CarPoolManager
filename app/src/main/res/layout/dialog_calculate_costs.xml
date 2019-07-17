@@ -55,7 +55,7 @@
         android:layout_weight="1">
 
         <LinearLayout
-            android:id="@+id/test"
+            android:id="@+id/dialogCostList_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
