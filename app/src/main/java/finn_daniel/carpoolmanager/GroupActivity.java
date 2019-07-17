@@ -312,8 +312,8 @@ class ViewPager_GroupOverview extends Fragment {
     }
 
     private void setCalculationTexts() {
-        String typeText = "";
-        String methodText = "";
+        String typeText;
+        String methodText;
         switch (thisGroup.getCalculationType()) {
             case COST: typeText = "nach Kosten"; break;
             case BUDGET: typeText = "nach Budget"; break;
@@ -589,13 +589,10 @@ class ViewPager_GroupOverview extends Fragment {
 
 
     private void showCostCalculation() {
-
         final Dialog dialog_costCalculation = new Dialog(getContext());
         dialog_costCalculation.setContentView(R.layout.dialog_calculate_costs);
         final LinearLayout layout = dialog_costCalculation.findViewById(R.id.test);
         final Map<String, Double> userTripMap_count = new HashMap<>();
-
-
 
         // ToDo: was passiert wenn Budget überschritten? Werden kostten verteilt, oder bleibt man dreuf sitzen?
 
@@ -621,6 +618,7 @@ class ViewPager_GroupOverview extends Fragment {
         }
 
         double allCost = calculateUserTripCost(null);
+
         for (User thisUser : driverList) {
 //            List<Trip> trips = new ArrayList<>(userTripMap.get(thisUser.getUser_id()).values());
             if (layout.getChildCount() != 0) {
@@ -640,6 +638,8 @@ class ViewPager_GroupOverview extends Fragment {
             TextView tripList_percentage = listItem.findViewById(R.id.tripList_percentage);
             TextView costList_budgetShare = listItem.findViewById(R.id.costList_budgetShare);
             TextView costList_methodLabel = listItem.findViewById(R.id.costList_methodLabel);
+            TextView costList_share = listItem.findViewById(R.id.costList_share);
+            TextView costList_costDifference = listItem.findViewById(R.id.costList_costDifference);
             RoundCornerProgressBar progressBar = listItem.findViewById(R.id.costList_progressBar);
 
 
@@ -657,15 +657,9 @@ class ViewPager_GroupOverview extends Fragment {
                     tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
                     costList_budgetShare.setText( convertToEuro(thisCost / allCost *
                             (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
-                            ))+ "€");
-
-                    // ToDo: check ob weniger als budget und wahrscheinlich kommt er nocht drauf klar wenn einer 0 Fahrten hat
-
+                            )) + "€");
+                    // ToDo: check ob weniger als budget
                 }
-//                if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
-//
-//                }
-//                if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.TRIP) {
                 else {
                     String drivenAmorunt = calculateDrivenAmount(thisUser.getUser_id());
 
@@ -679,11 +673,36 @@ class ViewPager_GroupOverview extends Fragment {
                             (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
                             ))+ "€");
 
-
                     progressBar.setMax((float) allTripCount);
                     progressBar.setProgress(Float.valueOf(drivenAmorunt));
                     setColorBasedOnRatio(progressBar, Double.valueOf(drivenAmorunt), allTripCount, thisGroup.getDriverIdList().size(), colorMargin);
                 }
+            } else if (thisGroup.getCalculationType() == Group.costCalculationType.COST) {
+                costList_methodLabel.setText("Kosten:");
+                costList_share.setText("Anteil an Kosten:");
+
+                double thisCost = calculateUserTripCost(thisUser.getUser_id());
+                costList_tripsOrCost.setText(convertToEuro(thisCost) + "€");
+
+                progressBar.setMax((float) allCost);
+                progressBar.setProgress((float) thisCost);
+                setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin);
+
+                tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
+
+                costList_budgetShare.setText(convertToEuro(allCost / thisGroup.getUserIdList().size()) + "€");
+
+                double costDifference = thisCost - (allCost / thisGroup.getUserIdList().size());
+
+                if (costDifference < 0) {
+                    costList_costDifference.setTextColor(Color.RED);
+                    costList_costDifference.setText("(" + convertToEuro(Math.abs(costDifference)) + "€)");
+                } else if (costDifference > 0) {
+                    costList_costDifference.setText("(" + convertToEuro(costDifference)+ "€)");
+                    costList_costDifference.setTextColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar));
+                }
+
+                // ToDo: (optional) Aufschlüsseln wer wem wie viel geld schuldet - Schulden durch Anzahl Schuldner
             }
 
             layout.addView(listItem);
