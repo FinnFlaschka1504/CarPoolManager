@@ -12,6 +12,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -197,6 +198,7 @@ class ViewPager_GroupOverview extends Fragment {
     Map<String , User> groupPassengerMap = new HashMap<>();
     Map<String, Trip> groupTripsMap = new HashMap<>();
     List<Trip> userTripList = new ArrayList<>();
+    Map<String, Map<String, Trip>> userTripMap = new HashMap<>();
 
 
     @Override
@@ -275,6 +277,20 @@ class ViewPager_GroupOverview extends Fragment {
         overview_isDriverSwitch.setChecked(thisGroup.getDriverIdList().contains(loggedInUser.getUser_id()));
         reLoadContent();
 
+        for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            Trip trip = entry.getValue();
+
+            Map<String, Trip> map = userTripMap.get(trip.getDriverId());
+            if (map == null) {
+                Map<String, Trip> newMap = new HashMap<>();
+                newMap.put(trip.getTrip_id(), trip);
+                userTripMap.put(trip.getDriverId(), newMap);
+            } else {
+                map.put(trip.getTrip_id(), trip);
+                userTripMap.replace(trip.getDriverId(), map);
+            }
+        }
+
         return view;
 
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
@@ -289,8 +305,8 @@ class ViewPager_GroupOverview extends Fragment {
 
     public void reLoadContent() {
         overview_groupName.setText(thisGroup.getName());
-        overview_showAllTrips.setText(calculateDrivenAmount(null));
-        overview_showMyTrips.setText(calculateDrivenAmount(loggedInUser.getUser_id()));
+        overview_showAllTrips.setText(String.valueOf(calculateDrivenAmount(null)));
+        overview_showMyTrips.setText(String.valueOf(calculateDrivenAmount(loggedInUser.getUser_id())));
         listeLaden();
         setCalculationTexts();
     }
@@ -312,35 +328,40 @@ class ViewPager_GroupOverview extends Fragment {
         }
         overview_calculationMethod.setText(methodText);
 
+    setProgressBar(overview_progressBar, loggedInUser);
+
+    }
+
+    private void setProgressBar(RoundCornerProgressBar progressBar, User user) {
         if (thisGroup.getCalculationType() == Group.costCalculationType.BUDGET) {
             double budget = thisGroup.getBudget();
             if (thisGroup.isBudgetPerUser()) {
                 budget *= thisGroup.getUserIdList().size();
             }
-            overview_progressBar.setMax((float) budget);
+            progressBar.setMax((float) budget);
             double ownProgress = 0;
             double allProgress = 0;
             if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
                 for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
-                    if (entry.getValue().getDriverId().equals(loggedInUser.getUser_id()))
+                    if (entry.getValue().getDriverId().equals(user.getUser_id()))
                         ownProgress += entry.getValue().getCost();
                     allProgress += entry.getValue().getCost();
                 }
-                overview_progressBar.setSecondaryProgress((float) allProgress);
+                progressBar.setSecondaryProgress((float) allProgress);
             }
             if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
                 for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
                     Trip trip = entry.getValue();
-                    if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+                    if (trip.getDriverId().equals(user.getUser_id()))
                         ownProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
                     allProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
                 }
-                overview_progressBar.setSecondaryProgress((float) allProgress);
+                progressBar.setSecondaryProgress((float) allProgress);
             }
             if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.TRIP) {
                 for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
                     Trip trip = entry.getValue();
-                    if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+                    if (trip.getDriverId().equals(user.getUser_id()))
                         ownProgress += trip.isTwoWay() ? 2 : 1;
                     allProgress += trip.isTwoWay() ? 2 : 1;
                 }
@@ -348,35 +369,29 @@ class ViewPager_GroupOverview extends Fragment {
                     allProgress = allProgress / 2;
                     ownProgress = ownProgress / 2;
                 }
-//
-//                if (count % 1 == 0)
-//                    return String.valueOf(count).split("\\.")[0];
-//                else
-//                    return String.valueOf(count);
 
-
-                overview_progressBar.setMax((float) allProgress);
-                overview_progressBar.setSecondaryProgress((float) allProgress);
+                progressBar.setMax((float) allProgress);
+                progressBar.setSecondaryProgress((float) allProgress);
             }
-            overview_progressBar.setProgress((float) ownProgress);
+            progressBar.setProgress((float) ownProgress);
 
             if (thisGroup.getCalculationMethod() != Group.costCalculationMethod.TRIP) {
                 overview_progress.setText(convertToEuro(allProgress));
                 overview_budget.setText(convertToEuro(budget) + "€");
                 if (ownProgress >= budget)
-                    overview_progressBar.setProgressColor(Color.RED);
+                    progressBar.setProgressColor(Color.RED);
                 else
-                    setColorBasedOnRatio(ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+                    setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
                 if (allProgress >= budget)
-                    overview_progressBar.setSecondaryProgressColor(Color.RED);
+                    progressBar.setSecondaryProgressColor(Color.RED);
                 else
-                    overview_progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
+                    progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
 
             } else {
                 overview_progress.setText(convertToEuro(ownProgress));
                 overview_budget.setText(convertToEuro(allProgress));
-                setColorBasedOnRatio(ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
-                overview_progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
+                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+                progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
             }
         }
         if (thisGroup.getCalculationType() == Group.costCalculationType.COST) {
@@ -384,7 +399,7 @@ class ViewPager_GroupOverview extends Fragment {
             double allProgress = 0;
             if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
                 for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
-                    if (entry.getValue().getDriverId().equals(loggedInUser.getUser_id()))
+                    if (entry.getValue().getDriverId().equals(user.getUser_id()))
                         ownProgress += entry.getValue().getCost();
                     allProgress += entry.getValue().getCost();
                 }
@@ -392,34 +407,35 @@ class ViewPager_GroupOverview extends Fragment {
             if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
                 for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
                     Trip trip = entry.getValue();
-                    if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+                    if (trip.getDriverId().equals(user.getUser_id()))
                         ownProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
                     allProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
                 }
             }
-            overview_progressBar.setMax((float) allProgress);
-            overview_progressBar.setProgress((float) ownProgress);
-            overview_progressBar.setSecondaryProgress((float) allProgress);
+            progressBar.setMax((float) allProgress);
+            progressBar.setProgress((float) ownProgress);
+            progressBar.setSecondaryProgress((float) allProgress);
 
             overview_progress.setText(convertToEuro(ownProgress));
             overview_budget.setText(convertToEuro(allProgress) + "€");
             if (ownProgress >= allProgress)
-                overview_progressBar.setProgressColor(Color.RED);
+                progressBar.setProgressColor(Color.RED);
             else
-                setColorBasedOnRatio(ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
-            overview_progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
+                setColorBasedOnRatio(overview_progressBar ,ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+            progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
 
         }
     }
 
-    private void setColorBasedOnRatio(double ownProgress, double allProgress, int size, double margin) {
+
+    private void setColorBasedOnRatio(RoundCornerProgressBar progressBar, double ownProgress, double allProgress, int size, double margin) {
         switch (isInRatio(ownProgress, allProgress, size, margin)) {
             case 0:
-                overview_progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toLittle)); break;
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toLittle)); break;
             case 1:
-                overview_progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar)); break;
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar)); break;
             case 2:
-                overview_progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch)); break;
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch)); break;
         }
     }
 
@@ -445,7 +461,6 @@ class ViewPager_GroupOverview extends Fragment {
         else {
             return String.valueOf(count);
         }
-
     }
 
     private void showChangeCostCalculation() {
@@ -574,8 +589,112 @@ class ViewPager_GroupOverview extends Fragment {
 
 
     private void showCostCalculation() {
-        Dialog dialog_costCalculation = new Dialog(getContext());
+
+        final Dialog dialog_costCalculation = new Dialog(getContext());
         dialog_costCalculation.setContentView(R.layout.dialog_calculate_costs);
+        final LinearLayout layout = dialog_costCalculation.findViewById(R.id.test);
+        final Map<String, Double> userTripMap_count = new HashMap<>();
+
+
+
+        // ToDo: was passiert wenn Budget überschritten? Werden kostten verteilt, oder bleibt man dreuf sitzen?
+
+        for (User user : sortedUserList) {
+            userTripMap_count.put(user.getUser_id(), Double.valueOf(calculateDrivenAmount(user.getUser_id())));
+        }
+
+        List<User> driverList = new ArrayList<>(sortedUserList);
+        Collections.sort(driverList, new Comparator() {
+            public int compare(User obj1, User obj2) {
+                return userTripMap_count.get(obj1.getUser_id()).compareTo(userTripMap_count.get(obj2.getUser_id()));
+            }
+
+            public int compare(Object var1, Object var2) {
+                return this.compare((User) var1, (User) var2);
+            }
+        });
+        Collections.reverse(driverList);
+
+        double allTripCount = 0;
+        for (Double value : userTripMap_count.values()) {
+            allTripCount += value;
+        }
+
+        double allCost = calculateUserTripCost(null);
+        for (User thisUser : driverList) {
+//            List<Trip> trips = new ArrayList<>(userTripMap.get(thisUser.getUser_id()).values());
+            if (layout.getChildCount() != 0) {
+                View divider = new View(getContext());
+                divider.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().density * 1)));
+                divider.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.colorDdivider));
+                layout.addView(divider);
+            }
+
+            LayoutInflater li = LayoutInflater.from(getContext());
+            View listItem = li.inflate(R.layout.list_item_cost, null);
+
+            TextView costList_name  = listItem.findViewById(R.id.costList_name);
+            costList_name.setText(thisUser.getUserName());
+
+            TextView costList_tripsOrCost = listItem.findViewById(R.id.costList_tripsOrCost);
+            TextView tripList_percentage = listItem.findViewById(R.id.tripList_percentage);
+            TextView costList_budgetShare = listItem.findViewById(R.id.costList_budgetShare);
+            TextView costList_methodLabel = listItem.findViewById(R.id.costList_methodLabel);
+            RoundCornerProgressBar progressBar = listItem.findViewById(R.id.costList_progressBar);
+
+
+            if (thisGroup.getCalculationType() == Group.costCalculationType.BUDGET) {
+                if (thisGroup.getCalculationMethod() != Group.costCalculationMethod.TRIP) {
+                    costList_methodLabel.setText("Kosten:");
+
+                    double thisCost = calculateUserTripCost(thisUser.getUser_id());
+                    costList_tripsOrCost.setText(convertToEuro(thisCost) + "€");
+
+                    progressBar.setMax((float) allCost);
+                    progressBar.setProgress((float) thisCost);
+                    setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin);
+
+                    tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
+                    costList_budgetShare.setText( convertToEuro(thisCost / allCost *
+                            (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
+                            ))+ "€");
+
+                    // ToDo: check ob weniger als budget und wahrscheinlich kommt er nocht drauf klar wenn einer 0 Fahrten hat
+
+                }
+//                if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
+//
+//                }
+//                if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.TRIP) {
+                else {
+                    String drivenAmorunt = calculateDrivenAmount(thisUser.getUser_id());
+
+                    costList_tripsOrCost.setText(String.valueOf(drivenAmorunt));
+
+                    // ToDo: nur für budget - trip richtig (Abfrage welcher Typ und dann Label dementsprechend anpassen)
+                    double percentage = Double.valueOf(drivenAmorunt) / allTripCount * 100;
+
+                    tripList_percentage.setText((int) percentage + "%");
+                    costList_budgetShare.setText( convertToEuro(Double.valueOf(drivenAmorunt) / allTripCount *
+                            (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
+                            ))+ "€");
+
+
+                    progressBar.setMax((float) allTripCount);
+                    progressBar.setProgress(Float.valueOf(drivenAmorunt));
+                    setColorBasedOnRatio(progressBar, Double.valueOf(drivenAmorunt), allTripCount, thisGroup.getDriverIdList().size(), colorMargin);
+                }
+            }
+
+            layout.addView(listItem);
+        }
+
+        dialog_costCalculation.findViewById(R.id.dialogCostList_cancel).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialog_costCalculation.dismiss();
+            }
+        });
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
         lp.copyFrom(dialog_costCalculation.getWindow().getAttributes());
@@ -696,6 +815,31 @@ class ViewPager_GroupOverview extends Fragment {
         dialog_tripList.getWindow().setAttributes(lp);
     }
 
+    double calculateUserTripCost(String userId) {
+        double count = 0;
+        if (userId == null) {
+            for (Map<String, Trip> tripMap : userTripMap.values()) {
+                for (Trip trip : tripMap.values()) {
+                    if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST)
+                        count += trip.getCost();
+                    else
+                        count += Double.valueOf(trip.getDistance().split(" ")[0].replace(",", ".")) * thisGroup.getKilometerAllowance();
+                }
+            }
+            return count;
+        }
+        if (userTripMap.get(userId) == null)
+            return count;
+
+        for (Trip trip : userTripMap.get(userId).values()) {
+            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST)
+                count += trip.getCost();
+            else
+                count += Double.valueOf(trip.getDistance().split(" ")[0].replace(",", ".")) * thisGroup.getKilometerAllowance();
+        }
+        return count;
+    }
+
     String calculateDrivenAmount(String userId) {
         double count = 0;
         if (loggedInUser.getUser_id().equals(userId))
@@ -812,28 +956,6 @@ class ViewPager_GroupOverview extends Fragment {
 //            userList.requestLayout();
 //        }
     }
-
-//    public void onActivityResult(int requestCode, int resultCode, Intent data){
-//        super.onActivityResult(requestCode,resultCode,data);
-//        if (requestCode == SETTINGS_INTENT && resultCode == RESULT_OK) {
-//            //if (resultCode == RESULT_OK) {
-//
-//            ArrayList<Trip> newTrips = gson.fromJson(
-//                    data.getStringExtra(AddTripActivity.EXTRA_REPLY_TRIPS), new TypeToken<ArrayList<Trip>>() {}.getType()
-//            );
-//
-//            for (Trip newTrip : newTrips) {
-//                groupTripsMap.put(newTrip.getTrip_id(), newTrip);
-//                thisGroup.getTripIdList().add(newTrip.getTrip_id());
-//            }
-//            reLoadContent();
-//
-//            String test = null;
-//
-//            //}
-//        }
-//    }
-
 
 }
 

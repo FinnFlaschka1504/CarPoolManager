@@ -61,4 +61,5 @@ public class User {
     public void setCarIdList(List<String> carIdList) {
         this.carIdList = carIdList;
     }
+
 }

@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:gravity="right"
+    android:orientation="vertical">
+
+    <!--<LinearLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent"-->
+    <!--android:gravity="right"-->
+    <!--android:orientation="vertical">-->
 
     <TextView
-        android:id="@+id/textView10"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
@@ -16,17 +23,57 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar
+    <View
         android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:layout_margin="16dp"
-        app:rcBackgroundColor="#E2E2E2"
-        app:rcBackgroundPadding="7dp"
-        app:rcMax="100"
-        app:rcProgress="25"
-        app:rcProgressColor="#4CAF50"
-        app:rcRadius="7dp"
-        app:rcReverse="false"
-        app:rcSecondaryProgress="33"
-        app:rcSecondaryProgressColor="#2196F3" />
+        android:layout_height="1dp"
+        android:background="@color/colorDdivider" />
+
+    <!--<LinearLayout-->
+        <!--android:id="@+id/test"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:orientation="vertical"></LinearLayout>-->
+
+    <!--<ListView-->
+        <!--android:id="@+id/dialogCostListlist"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent"-->
+        <!--android:layout_marginLeft="16dp"-->
+        <!--android:layout_marginRight="16dp"-->
+        <!--android:layout_weight="1"-->
+        <!--android:clickable="false"-->
+        <!--android:divider="@color/colorDdivider"-->
+        <!--android:dividerHeight="1dp"-->
+        <!--android:scrollbars="none"-->
+        <!--android:visibility="visible">-->
+
+    <!--</ListView>-->
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/test"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/colorDdivider" />
+
+
+    <Button
+        android:id="@+id/dialogCostList_cancel"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Zurück" />
+
+    <!--</LinearLayout>-->
+
 </LinearLayout>
