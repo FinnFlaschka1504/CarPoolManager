@@ -33,9 +33,6 @@ import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 import com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar;
-import com.applikeysolutions.cosmocalendar.dialog.CalendarDialog;
-import com.applikeysolutions.cosmocalendar.dialog.OnDaysSelectionListener;
-import com.applikeysolutions.cosmocalendar.model.Day;
 import com.github.sundeepk.compactcalendarview.CompactCalendarView;
 import com.github.sundeepk.compactcalendarview.domain.Event;
 import com.google.android.material.tabs.TabLayout;
@@ -118,6 +115,7 @@ public class GroupActivity extends FragmentActivity {
                 Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
                 intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
                 intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
+                intent.putExtra(EXTRA_TRIPMAP, gson.toJson(groupTripsMap));
                 startActivityForResult(intent, NEWTRIP);
             }
         });
@@ -247,19 +245,6 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
-
-        view.findViewById(R.id.floatingActionButton).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                CalendarDialog test = new CalendarDialog(getActivity(), new OnDaysSelectionListener() {
-                    @Override
-                    public void onDaysSelected(List<Day> selectedDays) {
-                    }
-                });
-//                test.setDayTextColor(R.color.colorPrimary)
-                test.show();
-            }
-        });
 
         overview_showAllTrips.setOnClickListener(new View.OnClickListener() {
             @Override

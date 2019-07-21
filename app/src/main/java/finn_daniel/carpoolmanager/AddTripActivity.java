@@ -38,6 +38,12 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.applikeysolutions.cosmocalendar.dialog.CalendarDialog;
+import com.applikeysolutions.cosmocalendar.dialog.OnDaysSelectionListener;
+import com.applikeysolutions.cosmocalendar.model.Day;
+import com.applikeysolutions.cosmocalendar.settings.appearance.ConnectedDayIconPosition;
+import com.applikeysolutions.cosmocalendar.settings.lists.connected_days.ConnectedDays;
+import com.applikeysolutions.cosmocalendar.utils.SelectionType;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -73,6 +79,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
@@ -118,6 +126,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     List<Trip> newTripList = new ArrayList<>();
     Map<String , User> groupPassengerMap = new HashMap<>();
     ArrayList<User> driverList = new ArrayList<>();
+    Map<String, Trip> groupTripsMap = new HashMap<>();
 
 
 
@@ -133,6 +142,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Dialog dialog_addCar;
     Gson gson = new Gson();
     String EXTRA_GROUP = "EXTRA_GROUP";
+    String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
     String TAG = "AddTripActivity";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     public static final String EXTRA_REPLY_TRIPS = "EXTRA_REPLY_TRIPS";
@@ -186,6 +196,10 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         }
         groupPassengerMap = gson.fromJson(
                 getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
+        );
+        groupTripsMap = gson.fromJson(
+                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {
+                }.getType()
         );
 
 
@@ -670,18 +684,67 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     public void addTrip_chooseDate(View view) {
-        Date to = null;
-        if (date[1] != null)
-            to = Date.from(date[1].atStartOfDay(ZoneId.systemDefault()).toInstant());
-        new SlyCalendarDialog()
-                .setSingle(false)
-                .setCallback(callback)
-                .setStartDate(Date.from(date[0].atStartOfDay(ZoneId.systemDefault()).toInstant()))
-                .setEndDate(to)
-                .setHeaderColor(getColor(R.color.colorPrimary))
-                .setSelectedTextColor(Color.parseColor("#ffffff"))
-                .setSelectedColor(getColor(R.color.colorPrimary))
-                .show(getSupportFragmentManager(), "TAG_SLYCALENDAR");
+//        Date to = null;
+//        if (date[1] != null)
+//            to = Date.from(date[1].atStartOfDay(ZoneId.systemDefault()).toInstant());
+//        new SlyCalendarDialog()
+//                .setSingle(false)
+//                .setCallback(callback)
+//                .setStartDate(Date.from(date[0].atStartOfDay(ZoneId.systemDefault()).toInstant()))
+//                .setEndDate(to)
+//                .setHeaderColor(getColor(R.color.colorPrimary))
+//                .setSelectedTextColor(Color.parseColor("#ffffff"))
+//                .setSelectedColor(getColor(R.color.colorPrimary))
+//                .show(getSupportFragmentManager(), "TAG_SLYCALENDAR");
+
+        CalendarDialog selectDateDialog = new CalendarDialog(AddTripActivity.this, new OnDaysSelectionListener() {
+            @Override
+            public void onDaysSelected(List<Day> selectedDays) {
+            }
+        });
+
+        Map<Date, List<Trip>> tripDateMap = new HashMap<>();
+
+        for (Trip trip : groupTripsMap.values()) {
+            List<Trip> tripList = tripDateMap.get(trip.getDate());
+            if (tripList == null) {
+                tripList = new ArrayList<>();
+                tripList.add(trip);
+                tripDateMap.put(trip.getDate(), tripList);
+            } else {
+                tripList.add(trip);
+                tripDateMap.replace(trip.getDate(), tripList);
+            }
+        }
+
+//        selectDateDialog.setDayTextColor(R.color.colorPrimary)
+        selectDateDialog.show();
+        selectDateDialog.setSelectionType(SelectionType.RANGE);
+
+//        Calendar calendar = Calendar.getInstance();
+        Set<Long> days = new TreeSet<>();
+        days.add(1563314400000L);
+
+        int textColor = Color.parseColor("#ff0000");
+        int selectedTextColor = Color.parseColor("#ff4000");
+        int disabledTextColor = Color.parseColor("#ff8000");
+        ConnectedDays connectedDays = new ConnectedDays(days, textColor, selectedTextColor, disabledTextColor);
+
+        selectDateDialog.addConnectedDays(connectedDays);
+        selectDateDialog.setConnectedDayIconPosition(ConnectedDayIconPosition.BOTTOM);
+        selectDateDialog.setConnectedDayIconRes(R.drawable.ic_two_events);
+
+
+        days = new TreeSet<>();
+        days.add(1563228000000L);
+
+        connectedDays = new ConnectedDays(days, textColor, selectedTextColor, disabledTextColor);
+
+        selectDateDialog.addConnectedDays(connectedDays);
+        selectDateDialog.setConnectedDayIconPosition(ConnectedDayIconPosition.BOTTOM);
+        selectDateDialog.setConnectedDaySelectedIconRes(R.drawable.ic_more_than_three_events);
+
+
         // ToDo: Trips im VonBis Kalender anzeigen
     }
 
