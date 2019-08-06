@@ -31,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -41,7 +42,6 @@ import com.android.volley.toolbox.Volley;
 import com.applikeysolutions.cosmocalendar.dialog.CalendarDialog;
 import com.applikeysolutions.cosmocalendar.dialog.OnDaysSelectionListener;
 import com.applikeysolutions.cosmocalendar.model.Day;
-import com.applikeysolutions.cosmocalendar.settings.appearance.ConnectedDayIconPosition;
 import com.applikeysolutions.cosmocalendar.settings.lists.connected_days.ConnectedDays;
 import com.applikeysolutions.cosmocalendar.utils.SelectionType;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -74,15 +74,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-import ru.slybeaver.slycalendarview.SlyCalendarDialog;
 
 
 public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -146,7 +143,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String TAG = "AddTripActivity";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     public static final String EXTRA_REPLY_TRIPS = "EXTRA_REPLY_TRIPS";
-    LocalDate[] date = new LocalDate[2];
+    List<Day> selectedDays = new ArrayList<>();
     String[] dateString = new String[2];
     String from;
     String to;
@@ -245,7 +242,8 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         String buttonText = simpleDateFormat.format(Date.from(heute.atStartOfDay(ZoneId.systemDefault()).toInstant())).replace(" ", " (") + ")";
         addTrip_selectDate.setText(buttonText);
-        date[0] = heute;
+//        date[0] = heute;
+        selectedDays.add(new Day(new Date()));
 
 
 
@@ -352,14 +350,14 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
     private void saveTrip(final boolean isBookmark) {
         savedAsBookmark = isBookmark;
-        if (date[1] == null)
-            date[1] = date[0];
+
+
         newTripIdList = new ArrayList<>();
-        for (LocalDate dateCount = date[0]; dateCount.isBefore(date[1]) || dateCount.isEqual(date[1]); dateCount = dateCount.plusDays(1))
+//        for (LocalDate dateCount = date[0]; dateCount.isBefore(date[1]) || dateCount.isEqual(date[1]); dateCount = dateCount.plusDays(1))
+        for (Day day : selectedDays)
         {
             Trip newTrip = new Trip();
-
-            newTrip.setDate(Date.from(dateCount.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            newTrip.setDate(day.getCalendar().getTime());
             List<List<Double>> fromToList = new ArrayList<>();
             fromToList.add(new ArrayList<>(Arrays.asList(markerFrom.getPosition().latitude, markerFrom.getPosition().longitude)));
             fromToList.add(new ArrayList<>(Arrays.asList(markerTo.getPosition().latitude, markerTo.getPosition().longitude)));
@@ -684,22 +682,24 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     public void addTrip_chooseDate(View view) {
-//        Date to = null;
-//        if (date[1] != null)
-//            to = Date.from(date[1].atStartOfDay(ZoneId.systemDefault()).toInstant());
-//        new SlyCalendarDialog()
-//                .setSingle(false)
-//                .setCallback(callback)
-//                .setStartDate(Date.from(date[0].atStartOfDay(ZoneId.systemDefault()).toInstant()))
-//                .setEndDate(to)
-//                .setHeaderColor(getColor(R.color.colorPrimary))
-//                .setSelectedTextColor(Color.parseColor("#ffffff"))
-//                .setSelectedColor(getColor(R.color.colorPrimary))
-//                .show(getSupportFragmentManager(), "TAG_SLYCALENDAR");
 
         CalendarDialog selectDateDialog = new CalendarDialog(AddTripActivity.this, new OnDaysSelectionListener() {
             @Override
             public void onDaysSelected(List<Day> selectedDays) {
+                AddTripActivity.this.selectedDays = selectedDays;
+
+                String pattern = "dd.MM.yyyy E";
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+                dateString[0] = simpleDateFormat.format(selectedDays.get(0).getCalendar().getTime()).replace(" ", " (") + ")";
+                if (selectedDays.size() > 1)
+                    dateString[1] = simpleDateFormat.format(selectedDays.get(selectedDays.size() - 1).getCalendar().getTime()).replace(" ", " (") + ")";
+                else
+                    dateString[1] = null;
+
+                String buttonText = dateString[0];
+                if (dateString[1] != null)
+                    buttonText = buttonText.concat("  -  " + dateString[1]);
+                addTrip_selectDate.setText(buttonText);
             }
         });
 
@@ -720,10 +720,16 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 //        selectDateDialog.setDayTextColor(R.color.colorPrimary)
         selectDateDialog.show();
         selectDateDialog.setSelectionType(SelectionType.RANGE);
+        selectDateDialog.setSelectedDayBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimary));
+        selectDateDialog.setSelectedDayBackgroundStartColor(ContextCompat.getColor(this, R.color.colorPrimaryLeight));
+        selectDateDialog.setSelectedDayBackgroundEndColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
+        selectDateDialog.setCurrentDayIconRes(R.drawable.ic_current_day);
 
-//        Calendar calendar = Calendar.getInstance();
         Set<Long> days = new TreeSet<>();
-        days.add(1563314400000L);
+        for (List<Trip> tripList : tripDateMap.values()) {
+            Trip trip = tripList.get(0);
+            days.add(trip.getDate().getTime());
+        }
 
         int textColor = Color.parseColor("#ff0000");
         int selectedTextColor = Color.parseColor("#ff4000");
@@ -731,60 +737,11 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         ConnectedDays connectedDays = new ConnectedDays(days, textColor, selectedTextColor, disabledTextColor);
 
         selectDateDialog.addConnectedDays(connectedDays);
-        selectDateDialog.setConnectedDayIconPosition(ConnectedDayIconPosition.BOTTOM);
-        selectDateDialog.setConnectedDayIconRes(R.drawable.ic_two_events);
 
+        selectDateDialog.setWeekendDayTextColor(0xFF363636);
 
-        days = new TreeSet<>();
-        days.add(1563228000000L);
-
-        connectedDays = new ConnectedDays(days, textColor, selectedTextColor, disabledTextColor);
-
-        selectDateDialog.addConnectedDays(connectedDays);
-        selectDateDialog.setConnectedDayIconPosition(ConnectedDayIconPosition.BOTTOM);
-        selectDateDialog.setConnectedDaySelectedIconRes(R.drawable.ic_more_than_three_events);
-
-
-        // ToDo: Trips im VonBis Kalender anzeigen
+        // ToDo: Trips im VonBis Kalender anzeigen - je nach Anzahl die Farbe ändern
     }
-
-
-    SlyCalendarDialog.Callback callback = new SlyCalendarDialog.Callback() {
-        @Override
-        public void onCancelled() {
-
-        }
-
-        @Override
-        public void onDataSelected(Calendar firstDate, Calendar secondDate, int hours, int minutes) {
-
-            String pattern = "dd.MM.yyyy E";
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-            date[0] = convertToLocalDate(firstDate.getTime());
-            if (secondDate != null)
-                date[1] = convertToLocalDate(secondDate.getTime());
-            else
-                date[1] = null;
-            dateString[0] = simpleDateFormat.format(firstDate.getTime()).replace(" ", " (") + ")";
-            if (secondDate != null)
-                dateString[1] = simpleDateFormat.format(secondDate.getTime()).replace(" ", " (") + ")";
-            else
-                dateString[1] = null;
-
-            String buttonText = dateString[0];
-            if (dateString[1] != null)
-                buttonText = buttonText.concat("  -  " + dateString[1]);
-            addTrip_selectDate.setText(buttonText);
-
-        }
-    };
-
-    public LocalDate convertToLocalDate(Date dateToConvert) {
-        return dateToConvert.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
-    }
-
 
     @Override
     public void onMapReady(GoogleMap pGoogleMap) {
