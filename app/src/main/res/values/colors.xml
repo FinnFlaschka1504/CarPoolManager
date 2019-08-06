@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="transparent">#00000000</color>
+    <color name="colorBackground">#FAFAFA</color>
     <color name="colorPrimary">#1F8BE0</color>
     <color name="colorPrimaryLeight">#53B3FF</color>
     <color name="colorPrimaryDark">#1769A8</color>
     <color name="colorAccent">#E91E63</color>
     <color name="colorWhite">#FFFFFF</color>
+    <color name="colorGrey">#B1B1B1</color>
     <color name="colorFont">@color/colorPrimary</color>
     <color name="colorDdivider">#D7D8DD</color>
     <color name="colorPrimaryProgressBar">#6FBE11</color>
-    <color name="colorPrimaryProgressBar_toLittle">#FFB300</color>
-    <color name="colorPrimaryProgressBar_toMutch">#FB8C00</color>
+    <color name="colorPrimaryProgressBar_tooLittle">#FFB300</color>
+    <color name="colorPrimaryProgressBar_tooMutch">#FB8C00</color>
 </resources>

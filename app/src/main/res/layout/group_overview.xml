@@ -7,324 +7,337 @@
     android:layout_height="match_parent"
     android:fillViewport="true">
 
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/overview_scrollViewLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fillViewport="true">
+        android:layout_height="match_parent"
+        android:gravity="end"
+        android:orientation="vertical"
+        app:layout_constraintTop_toTopOf="parent">
+
+
+        <TextView
+            android:id="@+id/overview_groupName"
+            style="?android:textAppearanceMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="Gruppen Name"
+            android:textColor="@color/colorFont"
+            android:textStyle="bold" />
+
+        <View
+            android:id="@+id/divider6"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?android:attr/listDivider" />
 
         <LinearLayout
-            android:id="@+id/linearLayout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="end"
-            android:orientation="vertical"
-            app:layout_constraintTop_toTopOf="parent">
-
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginRight="16dp"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/overview_groupName"
-                style="?android:textAppearanceMedium"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="12dp"
-                android:text="Gruppen Name"
+                android:layout_marginBottom="5dp"
+                android:text="Fahrten"
                 android:textColor="@color/colorFont"
                 android:textStyle="bold" />
-
-            <View
-                android:id="@+id/divider6"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="?android:attr/listDivider" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="16dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginRight="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="5dp"
-                    android:text="Fahrten"
-                    android:textColor="@color/colorFont"
-                    android:textStyle="bold" />
+                android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:text="Meine Fahrten:" />
 
+                    <!--<TextView-->
+                    <!--android:id="@+id/overview_myTripsCount"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:text="5" />-->
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Meine Fahrten:" />
-
-                        <!--<TextView-->
-                        <!--android:id="@+id/overview_myTripsCount"-->
-                        <!--android:layout_width="wrap_content"-->
-                        <!--android:layout_height="wrap_content"-->
-                        <!--android:text="5" />-->
-
-                        <Button
-                            android:id="@+id/overview_showMyTrips"
-                            style="@style/Widget.AppCompat.Button.Borderless.Colored"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="-" />
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="match_parent"
-                        android:layout_margin="8dp"
-                        android:background="?android:attr/listDivider" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <Button
+                        android:id="@+id/overview_showMyTrips"
+                        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Alle Fahrten:" />
-
-                        <!--<TextView-->
-                        <!--android:id="@+id/overview_allTripsCount"-->
-                        <!--android:layout_width="wrap_content"-->
-                        <!--android:layout_height="wrap_content"-->
-                        <!--android:text="15" />-->
-
-                        <Button
-                            android:id="@+id/overview_showAllTrips"
-                            style="@style/Widget.AppCompat.Button.Borderless.Colored"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="-" />
-                    </LinearLayout>
+                        android:text="-" />
 
                 </LinearLayout>
 
                 <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:layout_margin="8dp"
                     android:background="?android:attr/listDivider" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginRight="16dp"
-                android:layout_marginBottom="8dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Kosten"
-                    android:textColor="@color/colorFont"
-                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Alle Fahrten:" />
+
+                    <!--<TextView-->
+                    <!--android:id="@+id/overview_allTripsCount"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:text="15" />-->
+
                     <Button
-                        android:id="@+id/overview_changeCostCalculation"
+                        android:id="@+id/overview_showAllTrips"
                         style="@style/Widget.AppCompat.Button.Borderless.Colored"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Berechnungs-"
-                        android:textAllCaps="false" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginRight="5dp"
-                                android:text="Typ:"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/overview_calculationType"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="nach Budget" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginRight="5dp"
-                                android:text="Methode:"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/overview_calculationMethod"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="nach tatsächlichen Kosten" />
-                        </LinearLayout>
-
-                    </LinearLayout>
+                        android:text="-" />
                 </LinearLayout>
 
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="?android:attr/listDivider" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginBottom="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Kosten"
+                android:textColor="@color/colorFont"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/overview_changeCostCalculation"
+                    style="@style/Widget.AppCompat.Button.Borderless.Colored"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Berechnungs-"
+                    android:textAllCaps="false" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar
-                        android:id="@+id/overview_progressBar"
-                        android:layout_width="wrap_content"
-                        android:layout_height="20dp"
-                        android:layout_margin="3dp"
-                        android:layout_weight="1"
-                        app:rcBackgroundColor="#E2E2E2"
-                        app:rcProgressColor="@color/colorPrimaryProgressBar"
-                        app:rcRadius="10dp"
-                        app:rcReverse="false"
-                        app:rcSecondaryProgressColor="@color/colorPrimary">
-
-                    </com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar>
-
-                    <TextView
-                        android:id="@+id/overview_progress"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="5" />
-
-                    <TextView
-                        android:id="@+id/textView8"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="/" />
-
-                    <TextView
-                        android:id="@+id/overview_budget"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginRight="3dp"
-                        android:text="15€" />
-
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/overview_calculateCosts"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Kostenverteilung berechnen" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:background="?android:attr/listDivider" />
-
-            </LinearLayout>
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-
-                <LinearLayout
-                    android:id="@+id/linearLayout2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="16dp"
-                    android:orientation="vertical"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.0">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="Mitglieder"
-                        android:textColor="@color/colorFont"
-                        android:textStyle="bold" />
-
+                    android:orientation="vertical">
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginBottom="8dp"
-                        android:gravity="center_vertical"
+                        android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:paddingRight="8dp"
-                            android:text="Ich:" />
+                            android:layout_marginRight="5dp"
+                            android:text="Typ:"
+                            android:textStyle="bold" />
 
-                        <Switch
-                            android:id="@+id/overview_isDriverSwitch"
-                            android:layout_width="wrap_content"
+                        <TextView
+                            android:id="@+id/overview_calculationType"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:switchPadding="16dp"
-                            android:text="Bin ich Fahrer" />
-
+                            android:text="nach Budget" />
                     </LinearLayout>
 
-                    <!--<View-->
-                    <!--android:id="@+id/divider9"-->
-                    <!--android:layout_width="match_parent"-->
-                    <!--android:layout_height="1dp"-->
-                    <!--android:background="?android:attr/listDivider" />-->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginRight="5dp"
+                            android:text="Methode:"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/overview_calculationMethod"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="nach tatsächlichen Kosten" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar
+                    android:id="@+id/overview_progressBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="20dp"
+                    android:layout_margin="3dp"
+                    android:layout_weight="1"
+                    app:rcBackgroundColor="#E2E2E2"
+                    app:rcProgressColor="@color/colorPrimaryProgressBar"
+                    app:rcRadius="10dp"
+                    app:rcReverse="false"
+                    app:rcSecondaryProgressColor="@color/colorPrimary">
+
+                </com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar>
+
+                <TextView
+                    android:id="@+id/overview_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="5" />
+
+                <TextView
+                    android:id="@+id/textView8"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="/" />
+
+                <TextView
+                    android:id="@+id/overview_budget"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="3dp"
+                    android:text="15€" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/overview_calculateCosts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Kostenverteilung berechnen" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="?android:attr/listDivider" />
+
+        </LinearLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:id="@+id/linearLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.0">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Mitglieder"
+                    android:textColor="@color/colorFont"
+                    android:textStyle="bold" />
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingRight="8dp"
+                        android:text="Ich:" />
+
+                    <Switch
+                        android:id="@+id/overview_isDriverSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:switchPadding="16dp"
+                        android:text="Bin ich Fahrer" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="right"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/overview_save_isDriver"
+                            style="@style/Widget.AppCompat.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Speichern"
+                            tools:visibility="invisible" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!--<View-->
+                <!--android:id="@+id/divider9"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="1dp"-->
+                <!--android:background="?android:attr/listDivider" />-->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:orientation="vertical">
+                        android:orientation="horizontal">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -332,39 +345,66 @@
                             android:paddingRight="8dp"
                             android:text="Mitfahrer:" />
 
-                        <ListView
-                            android:id="@+id/overview_userList"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:clickable="false"
-                            android:scrollbars="vertical"
-                            android:visibility="visible" />
+                        <TextView
+                            android:focusable="true"
+                            android:focusableInTouchMode="true"
+                            android:id="@+id/overview_noDriverText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="marquee"
+                            android:singleLine="true"
+                            android:fadingEdge="horizontal"
+                            android:marqueeRepeatLimit="marquee_forever"
+                            android:scrollHorizontally="true"
+                            android:text="Kein Gruppen-Mitglied ist ein Fahrer - keine neuen Fahrten können erstellt werden!"
+                            android:textStyle="italic" />
 
+                        <!--<TextView-->
+                            <!--android:id="@+id/serviceColorCode"-->
+                            <!--android:layout_width="wrap_content"-->
+                            <!--android:layout_height="wrap_content"-->
+                            <!--android:ellipsize="marquee"-->
+                            <!--android:focusable="true"-->
+                            <!--android:focusableInTouchMode="true"-->
+                            <!--android:marqueeRepeatLimit="marquee_forever"-->
+                            <!--android:scrollHorizontally="true"-->
+                            <!--android:singleLine="true"-->
+                            <!--android:text="Single-line text view that scrolls automatically if the text is too long to fit in the widget" />-->
                     </LinearLayout>
 
-                    <View
+                    <ListView
+                        android:id="@+id/overview_userList"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="?android:attr/listDivider" />
+                        android:layout_height="match_parent"
+                        android:clickable="false"
+                        android:scrollbars="vertical"
+                        android:visibility="visible" />
 
                 </LinearLayout>
 
-                <!--<com.google.android.material.floatingactionbutton.FloatingActionButton-->
-                <!--android:id="@+id/overview_addTrip"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:layout_margin="16dp"-->
-                <!--android:layout_marginEnd="16dp"-->
-                <!--android:layout_marginBottom="16dp"-->
-                <!--android:clickable="true"-->
-                <!--app:layout_constraintBottom_toBottomOf="parent"-->
-                <!--app:layout_constraintEnd_toEndOf="parent"-->
-                <!--app:srcCompat="@drawable/ic_add"-->
-                <!--tools:visibility="gone" />-->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="?android:attr/listDivider" />
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
 
-        </LinearLayout>
-    </ScrollView>
+            <!--<com.google.android.material.floatingactionbutton.FloatingActionButton-->
+            <!--android:id="@+id/overview_addTrip"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_margin="16dp"-->
+            <!--android:layout_marginEnd="16dp"-->
+            <!--android:layout_marginBottom="16dp"-->
+            <!--android:clickable="true"-->
+            <!--app:layout_constraintBottom_toBottomOf="parent"-->
+            <!--app:layout_constraintEnd_toEndOf="parent"-->
+            <!--app:srcCompat="@drawable/ic_add"-->
+            <!--tools:visibility="gone" />-->
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
 
 </ScrollView>

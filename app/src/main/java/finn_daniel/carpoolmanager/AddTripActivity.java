@@ -84,7 +84,6 @@ import java.util.TreeSet;
 
 public class AddTripActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    // ToDo: Button in GroupOverview entfernen, wenn niemand Fahrer; ansonsten nicht faher, oder Fahrer auswählbar machen
     LinearLayout dialogSelectRoute_distanceLayout;
     CheckBox addTrip_twoWays;
     Button dialogSelectRoute_save;

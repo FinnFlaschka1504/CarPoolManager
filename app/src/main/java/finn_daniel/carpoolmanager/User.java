@@ -71,6 +71,7 @@ public class User {
         this.carIdList = carIdList;
     }
 
+    // ToDo: Fahben abhängig von der Gruppe machen (userColorMap)
     public String getUserColor() {
         return userColor;
     }

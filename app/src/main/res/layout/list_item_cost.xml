@@ -2,7 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/ripple"
+    android:clickable="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -58,9 +60,9 @@
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="5dp"
                     android:layout_weight="1"
-                    app:rcProgress="0"
-                    app:rcMax="1"
                     app:rcBackgroundColor="#E2E2E2"
+                    app:rcMax="1"
+                    app:rcProgress="0"
                     app:rcProgressColor="@color/colorPrimaryProgressBar"
                     app:rcRadius="10dp"
                     app:rcReverse="false"

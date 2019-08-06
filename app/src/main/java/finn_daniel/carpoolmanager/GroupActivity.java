@@ -1,6 +1,9 @@
 package finn_daniel.carpoolmanager;
 
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -35,6 +38,8 @@ import androidx.viewpager.widget.ViewPager;
 import com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar;
 import com.github.sundeepk.compactcalendarview.CompactCalendarView;
 import com.github.sundeepk.compactcalendarview.domain.Event;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -66,7 +71,7 @@ public class GroupActivity extends FragmentActivity {
     String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
     int NEWTRIP = 001;
     User loggedInUser;
-    Button group_addTrip;
+    FloatingActionButton group_addTrip;
 
 
     ViewPager_GroupOverview thisGroupOverview = new ViewPager_GroupOverview();
@@ -81,6 +86,7 @@ public class GroupActivity extends FragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group);
+        group_addTrip = findViewById(R.id.group_addTrip);
 
         loggedInUser = gson.fromJson(getIntent().getStringExtra(EXTRA_USER), User.class);
         thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
@@ -93,7 +99,7 @@ public class GroupActivity extends FragmentActivity {
                 }.getType()
         );
 
-        thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+        thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
         thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
 
         SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings", 0);
@@ -135,7 +141,7 @@ public class GroupActivity extends FragmentActivity {
                 groupTripsMap.put(newTrip.getTrip_id(), newTrip);
                 thisGroup.getTripIdList().add(newTrip.getTrip_id());
             }
-            thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+            thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
             thisGroupOverview.reLoadContent();
             thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
             thisGroupCalender.reLoadContent();
@@ -188,7 +194,8 @@ class ViewPager_GroupOverview extends Fragment {
     SharedPreferences mySPR_settings;
     double colorMargin = 0.1;
     DatabaseReference databaseReference;
-
+    boolean isDriver;
+    Snackbar noDriverSnackbar;
 
     Button overview_showAllTrips;
     Button overview_showMyTrips;
@@ -202,7 +209,9 @@ class ViewPager_GroupOverview extends Fragment {
     TextView overview_progress;
     TextView overview_budget;
     Button overview_changeCostCalculation;
-
+    Button overview_save_isDriver;
+    FloatingActionButton group_addTrip;
+    TextView overview_noDriverText;
 
     List<String> listviewTitle = new ArrayList<String>();
     List<Boolean> listviewIsDriver = new ArrayList<>();
@@ -212,8 +221,11 @@ class ViewPager_GroupOverview extends Fragment {
     Map<String, Trip> groupTripsMap = new HashMap<>();
     List<Trip> userTripList = new ArrayList<>();
     Map<String, Map<String, Trip>> userTripMap = new HashMap<>();
+    List<Trip> tripList;
 
 
+
+    @SuppressLint("RestrictedApi")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, final Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.group_overview, container, false);
@@ -230,6 +242,10 @@ class ViewPager_GroupOverview extends Fragment {
         overview_progress = view.findViewById(R.id.overview_progress);
         overview_budget = view.findViewById(R.id.overview_budget);
         overview_changeCostCalculation = view.findViewById(R.id.overview_changeCostCalculation);
+        overview_save_isDriver = view.findViewById(R.id.overview_save_isDriver);
+        overview_noDriverText = view.findViewById(R.id.overview_noDriverText);
+
+
         overview_changeCostCalculation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -242,7 +258,29 @@ class ViewPager_GroupOverview extends Fragment {
         view.findViewById(R.id.overview_isDriverSwitch).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                overview_save_isDriver.setVisibility(overview_isDriverSwitch.isChecked() == isDriver ?
+                        View.INVISIBLE : View.VISIBLE);
             }
+        });
+
+        overview_save_isDriver.setOnClickListener(view -> {
+            if (overview_isDriverSwitch.isChecked())
+                thisGroup.getDriverIdList().add(loggedInUser.getUser_id());
+            else
+                thisGroup.getDriverIdList().remove(loggedInUser.getUser_id());
+            isDriver = overview_isDriverSwitch.isChecked();
+            overview_save_isDriver.setVisibility(View.INVISIBLE);
+            reLoadContent();
+            databaseReference.child("Groups").child(thisGroup.getGroup_id()).child("driverIdList").setValue(thisGroup.getDriverIdList());
+            if (thisGroup.getDriverIdList().size() <= 0) {
+                group_addTrip.setVisibility(View.INVISIBLE);
+                overview_noDriverText.setVisibility(View.VISIBLE);
+                overview_noDriverText.setSelected(true);
+            } else {
+                group_addTrip.setVisibility(View.VISIBLE);
+                overview_noDriverText.setVisibility(View.INVISIBLE);
+            }
+            Toast.makeText(getContext(), "Gespeichert", Toast.LENGTH_SHORT).show();
         });
 
 
@@ -274,7 +312,14 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
+        group_addTrip.setVisibility(thisGroup.getDriverIdList().size() > 0 ?
+                View.VISIBLE : View.INVISIBLE);
+        overview_noDriverText.setVisibility(thisGroup.getDriverIdList().size() <= 0 ?
+                View.VISIBLE : View.INVISIBLE);
+        overview_noDriverText.setSelected(thisGroup.getDriverIdList().size() <= 0);
         overview_isDriverSwitch.setChecked(thisGroup.getDriverIdList().contains(loggedInUser.getUser_id()));
+        isDriver = thisGroup.getDriverIdList().contains(loggedInUser.getUser_id());
+        overview_save_isDriver.setVisibility(View.INVISIBLE);
         reLoadContent();
 
         for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
@@ -296,11 +341,12 @@ class ViewPager_GroupOverview extends Fragment {
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
     }
 
-    public void setData(User pLoggedInUser, Group pThisGroup, Map<String, User> pGroupPassengerMap, Map<String, Trip> pGroupTripsMap) {
+    public void setData(User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap, FloatingActionButton pGroup_addTrip) {
         loggedInUser = pLoggedInUser;
         thisGroup = pThisGroup;
         groupPassengerMap = pGroupPassengerMap;
         groupTripsMap = pGroupTripsMap;
+        group_addTrip = pGroup_addTrip;
     }
 
     public void reLoadContent() {
@@ -395,7 +441,7 @@ class ViewPager_GroupOverview extends Fragment {
                 if (ownProgress >= budget)
                     progressBar.setProgressColor(Color.RED);
                 else
-                    setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+                    setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin, user);
                 if (allProgress >= budget)
                     progressBar.setSecondaryProgressColor(Color.RED);
                 else
@@ -404,7 +450,7 @@ class ViewPager_GroupOverview extends Fragment {
             } else {
                 overview_progress.setText(convertToEuro(ownProgress));
                 overview_budget.setText(convertToEuro(allProgress));
-                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin, user);
                 progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
             }
         }
@@ -435,23 +481,29 @@ class ViewPager_GroupOverview extends Fragment {
             if (ownProgress >= allProgress)
                 progressBar.setProgressColor(Color.RED);
             else
-                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin);
+                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin, user);
             progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
 
         }
     }
 
 
-    private void setColorBasedOnRatio(RoundCornerProgressBar progressBar, double ownProgress, double allProgress, int size, double margin) {
+    private void setColorBasedOnRatio(RoundCornerProgressBar progressBar, double ownProgress, double allProgress, int size, double margin, User user) {
+        if (!thisGroup.getDriverIdList().contains(user.getUser_id())) {
+//            progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch));
+            progressBar.setProgressColor(Color.RED);
+            return;
+        }
+
         switch (isInRatio(ownProgress, allProgress, size, margin)) {
             case 0:
-                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toLittle));
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_tooLittle));
                 break;
             case 1:
                 progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar));
                 break;
             case 2:
-                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch));
+                progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_tooMutch));
                 break;
         }
     }
@@ -618,6 +670,11 @@ class ViewPager_GroupOverview extends Fragment {
         });
     }
 
+    View.OnClickListener costCalculationClickListener = view -> {
+        String test = null;
+        // ((LinearLayout) view.getParent()).indexOfChild(view) / 2
+    };
+
 
     private void showCostCalculation() {
         final Dialog dialog_costCalculation = new Dialog(getContext());
@@ -625,7 +682,6 @@ class ViewPager_GroupOverview extends Fragment {
         final LinearLayout dialogCostList_list = dialog_costCalculation.findViewById(R.id.dialogCostList_list);
         final Map<String, Double> userTripMap_count = new HashMap<>();
 
-        // ToDo: was passiert wenn Budget überschritten? Werden kostten verteilt, oder bleibt man dreuf sitzen?
 
         for (User user : sortedUserList) {
             userTripMap_count.put(user.getUser_id(), Double.valueOf(calculateDrivenAmount(user.getUser_id())));
@@ -662,6 +718,8 @@ class ViewPager_GroupOverview extends Fragment {
             LayoutInflater li = LayoutInflater.from(getContext());
             View listItem = li.inflate(R.layout.list_item_cost, null);
 
+            listItem.setOnClickListener(costCalculationClickListener);
+
             TextView costList_name = listItem.findViewById(R.id.costList_name);
             costList_name.setText(thisUser.getUserName());
 
@@ -683,19 +741,18 @@ class ViewPager_GroupOverview extends Fragment {
 
                     progressBar.setMax((float) allCost);
                     progressBar.setProgress((float) thisCost);
-                    setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin);
+                    setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin, thisUser);
 
                     tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
                     costList_budgetShare.setText(convertToEuro(thisCost / allCost *
                             (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
                             )) + "€");
-                    // ToDo: check ob weniger als budget
+                    // ToDo: check ob weniger als budget - ???
                 } else {
                     String drivenAmorunt = calculateDrivenAmount(thisUser.getUser_id());
 
                     costList_tripsOrCost.setText(String.valueOf(drivenAmorunt));
 
-                    // ToDo: nur für budget - trip richtig (Abfrage welcher Typ und dann Label dementsprechend anpassen)
                     double percentage = Double.valueOf(drivenAmorunt) / allTripCount * 100;
 
                     tripList_percentage.setText((int) percentage + "%");
@@ -705,7 +762,7 @@ class ViewPager_GroupOverview extends Fragment {
 
                     progressBar.setMax((float) allTripCount);
                     progressBar.setProgress(Float.valueOf(drivenAmorunt));
-                    setColorBasedOnRatio(progressBar, Double.valueOf(drivenAmorunt), allTripCount, thisGroup.getDriverIdList().size(), colorMargin);
+                    setColorBasedOnRatio(progressBar, Double.valueOf(drivenAmorunt), allTripCount, thisGroup.getDriverIdList().size(), colorMargin, thisUser);
                 }
             } else if (thisGroup.getCalculationType() == Group.costCalculationType.COST) {
                 costList_methodLabel.setText("Kosten:");
@@ -716,7 +773,7 @@ class ViewPager_GroupOverview extends Fragment {
 
                 progressBar.setMax((float) allCost);
                 progressBar.setProgress((float) thisCost);
-                setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin);
+                setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin, thisUser);
 
                 tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
 
@@ -733,7 +790,7 @@ class ViewPager_GroupOverview extends Fragment {
                 }
 
 
-                // ToDo: (optional) Aufschlüsseln wer wem wie viel geld schuldet - Schulden durch Anzahl Schuldner
+                // ToDo: (optional) Aufschlüsseln wer wem wie viel geld schuldet - Schulden durch Anzahl Schuldner - ???
             }
 
             dialogCostList_list.addView(listItem);
@@ -754,10 +811,33 @@ class ViewPager_GroupOverview extends Fragment {
     }
 
     private void showTripList(boolean showAll) {
+        String pattern = "dd.MM.yyyy E";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+
+
         dialog_tripList = new Dialog(getContext());
         dialog_tripList.setContentView(R.layout.dialog_trip_list);
 
         dialogTripList_list = dialog_tripList.findViewById(R.id.dialogTripList_list);
+
+        dialogTripList_list.setOnItemClickListener((adapterView, view, i, l) -> {
+            Trip trip = tripList.get(i);
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Den Trip Löschen?")
+                    .setMessage("Trip am: " + simpleDateFormat.format(trip.getDate()).replace(" ", " (") + ")")
+                    .setPositiveButton("Ja", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            Toast.makeText(getContext(), "sad", Toast.LENGTH_SHORT).show();
+
+                        }
+                    })
+                    .setNegativeButton("Nein", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+
+                        }
+                    })
+                    .show();
+        });
 
         dialog_tripList.findViewById(R.id.dialogTripList_cancel).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -773,7 +853,7 @@ class ViewPager_GroupOverview extends Fragment {
         List<String> tripList_twoWay_list = new ArrayList<>();
         List<String> tripList_cost_list = new ArrayList<>();
 
-        List<Trip> tripList = new ArrayList<>();
+        tripList = new ArrayList<>();
         for (String tripId : thisGroup.getTripIdList()) {
             Trip trip = groupTripsMap.get(tripId);
             if (!showAll && !trip.getDriverId().equals(loggedInUser.getUser_id()))
@@ -791,8 +871,6 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
-        String pattern = "dd.MM.yyyy E";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         DecimalFormat df = new DecimalFormat("#.00");
 
         for (Trip trip : tripList) {
@@ -824,7 +902,7 @@ class ViewPager_GroupOverview extends Fragment {
         SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.list_item_trip, from, to);
         dialogTripList_list.setAdapter(simpleAdapter);
 
-
+        // ToDo: Fahrt per Klick löschen (erst abfrage per Menü, oder Dialog)
 //      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
 //            public boolean onPreDraw() {
 //                ListView var10000 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
