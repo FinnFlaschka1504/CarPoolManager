@@ -51,7 +51,6 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NetworkStateReceiver.NetworkStateReceiverListener {
 
-    // ToDo: Eventuell doch Pink Tauschen -> Orange?
     List<String> listviewTitle = new ArrayList<String>();
     List<Boolean> listviewisDriver = new ArrayList<>();
     List<String> listviewPassengers = new ArrayList<>();
@@ -95,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Map<String, User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
     List<Group> sortedGroupList;
     Map<String, Map<String, Trip>> loggedInUser_groupTripMap = new HashMap<>();
+
     ValueEventListener groupChangeListener = new ValueEventListener() {
         @Override
         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -153,27 +153,36 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         void onChangedTrip(final Group foundGroup) {
-//            sdf
             final List<List<String>> changeList = foundGroup.getChangedTripsLists(loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).keySet());
 
-            for (String trip : new ArrayList<>(changeList.get(0))) {
-                databaseReference.child("Trips").child(foundGroup.getGroup_id()).child(trip).addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.getValue() == null)
-                            return;
-                        Trip foundTrip = dataSnapshot.getValue(Trip.class);
-                        changeList.get(0).remove(foundTrip.getTrip_id());
-                        loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).put(foundTrip.getTrip_id(), foundTrip);
+            if (changeList.get(0) != null) {
+                for (String trip : new ArrayList<>(changeList.get(0))) {
+                    databaseReference.child("Trips").child(foundGroup.getGroup_id()).child(trip).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.getValue() == null)
+                                return;
+                            Trip foundTrip = dataSnapshot.getValue(Trip.class);
+                            changeList.get(0).remove(foundTrip.getTrip_id());
+                            loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).put(foundTrip.getTrip_id(), foundTrip);
+                            loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList().add(foundTrip.getTrip_id());
 //                        loggedInUser_groupPassengerMap.put(foundTrip.getUser_id(), foundTrip);
-                        if (changeList.get(0).size() <= 0)
-                            listeLaden();
-                    }
+                            if (changeList.get(0).size() <= 0)
+                                listeLaden();
+                        }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                    }
-                });
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    });
+                }
+            }
+            if (changeList.get(1) != null) {
+                for (String tripId : changeList.get(1)) {
+                    loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).remove(tripId);
+                    loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList().remove(tripId);
+                }
+                listeLaden();
             }
         }
         void onChangedUsers(Group foundGroup) {
@@ -671,7 +680,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //            Intrinsics.checkExpressionValueIsNotNull(var11, "textView_keine_reminder");
 //            var11.setVisibility(4);
 //        }
-        // ToDo: Mitfahrer farblich kennzeichnen
 
         ArrayList<HashMap<String, java.io.Serializable>> aList = new ArrayList<HashMap<String, java.io.Serializable>>();
 
