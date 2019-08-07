@@ -1,9 +1,7 @@
 package finn_daniel.carpoolmanager;
 
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -99,9 +97,8 @@ public class GroupActivity extends FragmentActivity {
                 }.getType()
         );
 
-        thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
+        thisGroupOverview.setData(thisGroupCalender, loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
         thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
-
         SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings", 0);
         standardView = mySPR.getString("standardView", "Übersicht");
 
@@ -141,7 +138,7 @@ public class GroupActivity extends FragmentActivity {
                 groupTripsMap.put(newTrip.getTrip_id(), newTrip);
                 thisGroup.getTripIdList().add(newTrip.getTrip_id());
             }
-            thisGroupOverview.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
+            thisGroupOverview.setData(thisGroupCalender, loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
             thisGroupOverview.reLoadContent();
             thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
             thisGroupCalender.reLoadContent();
@@ -212,6 +209,7 @@ class ViewPager_GroupOverview extends Fragment {
     Button overview_save_isDriver;
     FloatingActionButton group_addTrip;
     TextView overview_noDriverText;
+    ViewPager_GroupCalender thisGroupCalender;
 
     List<String> listviewTitle = new ArrayList<String>();
     List<Boolean> listviewIsDriver = new ArrayList<>();
@@ -341,12 +339,13 @@ class ViewPager_GroupOverview extends Fragment {
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
     }
 
-    public void setData(User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap, FloatingActionButton pGroup_addTrip) {
+    public void setData(ViewPager_GroupCalender thisGroupCalender, User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap, FloatingActionButton pGroup_addTrip) {
         loggedInUser = pLoggedInUser;
         thisGroup = pThisGroup;
         groupPassengerMap = pGroupPassengerMap;
         groupTripsMap = pGroupTripsMap;
         group_addTrip = pGroup_addTrip;
+        this.thisGroupCalender = thisGroupCalender;
     }
 
     public void reLoadContent() {
@@ -811,32 +810,49 @@ class ViewPager_GroupOverview extends Fragment {
     }
 
     private void showTripList(boolean showAll) {
-        String pattern = "dd.MM.yyyy E";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-
-
         dialog_tripList = new Dialog(getContext());
         dialog_tripList.setContentView(R.layout.dialog_trip_list);
 
         dialogTripList_list = dialog_tripList.findViewById(R.id.dialogTripList_list);
 
         dialogTripList_list.setOnItemClickListener((adapterView, view, i, l) -> {
-            Trip trip = tripList.get(i);
-            new AlertDialog.Builder(getContext())
-                    .setTitle("Den Trip Löschen?")
-                    .setMessage("Trip am: " + simpleDateFormat.format(trip.getDate()).replace(" ", " (") + ")")
-                    .setPositiveButton("Ja", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            Toast.makeText(getContext(), "sad", Toast.LENGTH_SHORT).show();
 
-                        }
-                    })
-                    .setNegativeButton("Nein", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
+            Dialog dialog_deleteTrip = new Dialog(getContext());
+            dialog_deleteTrip.setContentView(R.layout.dialog_delete_trip);
 
-                        }
-                    })
-                    .show();
+            LinearLayout dialogDeleteTrip_layout = dialog_deleteTrip.findViewById(R.id.dialogDeleteTrip_layout);
+            View newView = LayoutInflater.from(getContext()).inflate(R.layout.list_item_trip, null);
+            dialogDeleteTrip_layout.addView(newView);
+
+            ((TextView) newView.findViewById(R.id.tripList_date)).setText(((TextView) view.findViewById(R.id.tripList_date)).getText());
+            ((TextView) newView.findViewById(R.id.tripList_driver)).setText(((TextView) view.findViewById(R.id.tripList_driver)).getText());
+            ((TextView) newView.findViewById(R.id.tripList_fromTo)).setText(((TextView) view.findViewById(R.id.tripList_fromTo)).getText());
+            ((TextView) newView.findViewById(R.id.tripList_distance)).setText(((TextView) view.findViewById(R.id.tripList_distance)).getText());
+            ((TextView) newView.findViewById(R.id.tripList_twoWay)).setText(((TextView) view.findViewById(R.id.tripList_twoWay)).getText());
+            ((TextView) newView.findViewById(R.id.tripList_cost)).setText(((TextView) view.findViewById(R.id.tripList_cost)).getText());
+
+            setDialogLayoutParameters(dialog_deleteTrip, true, false);
+
+            dialog_deleteTrip.findViewById(R.id.dialogDeleteTrip_no).setOnClickListener(view1 -> {
+                dialog_deleteTrip.dismiss();
+            });
+
+            dialog_deleteTrip.findViewById(R.id.dialogDeleteTrip_yes).setOnClickListener(view1 -> {
+                Trip trip = tripList.get(i);
+
+                thisGroup.getTripIdList().remove(trip.getTrip_id());
+                groupTripsMap.remove(trip.getTrip_id());
+                databaseReference.child("Groups").child(thisGroup.getGroup_id()).child("tripIdList").setValue(thisGroup.getTripIdList());
+                databaseReference.child("Trips").child(thisGroup.getGroup_id()).child(trip.getTrip_id()).removeValue();
+
+                tripListLaden(showAll);
+                reLoadContent();
+                thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap,groupTripsMap);
+                thisGroupCalender.reLoadContent();
+                dialog_deleteTrip.dismiss();
+
+            });
+
         });
 
         dialog_tripList.findViewById(R.id.dialogTripList_cancel).setOnClickListener(new View.OnClickListener() {
@@ -846,6 +862,18 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
+        tripListLaden(showAll);
+
+        // ToDo: Fahrt per Klick löschen (erst abfrage per Menü, oder Dialog)
+
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog_tripList.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog_tripList.show();
+        dialog_tripList.getWindow().setAttributes(lp);
+    }
+
+    private void tripListLaden(boolean showAll) {
         List<String> tripList_date_list = new ArrayList<>();
         List<String> tripList_driver_list = new ArrayList<>();
         List<String> tripList_fromTo_list = new ArrayList<>();
@@ -871,6 +899,8 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
+        String pattern = "dd.MM.yyyy E";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         DecimalFormat df = new DecimalFormat("#.00");
 
         for (Trip trip : tripList) {
@@ -901,42 +931,17 @@ class ViewPager_GroupOverview extends Fragment {
         int[] to = new int[]{R.id.tripList_date, R.id.tripList_driver, R.id.tripList_fromTo, R.id.tripList_distance, R.id.tripList_twoWay, R.id.tripList_cost};
         SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.list_item_trip, from, to);
         dialogTripList_list.setAdapter(simpleAdapter);
+    }
 
-        // ToDo: Fahrt per Klick löschen (erst abfrage per Menü, oder Dialog)
-//      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
-//            public boolean onPreDraw() {
-//                ListView var10000 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
-//                Intrinsics.checkExpressionValueIsNotNull(var10000, "listView_reminder");
-//                ListAdapter listAdapter = var10000.getAdapter();
-//                int i = 0;
-//                Intrinsics.checkExpressionValueIsNotNull(listAdapter, "listAdapter");
-//
-//                for(int var3 = listAdapter.getCount(); i < var3; ++i) {
-//                    ReminderListe var6 = ReminderListe.this;
-//                    ListView var10002 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
-//                    Intrinsics.checkExpressionValueIsNotNull(var10002, "listView_reminder");
-//                    View listItem = var6.getViewByPosition(i, var10002);
-//                    View var7 = listItem.findViewById(-1000011);
-//                    if (var7 == null) {
-//                        throw new TypeCastException("null cannot be cast to non-null type android.widget.TextView");
-//                    }
-//
-//                    TextView status_description_view = (TextView)var7;
-//                    if (Intrinsics.areEqual(status_description_view.getText(), ReminderListe.this.getDEAKTIVIERT$app_debug())) {
-//                        status_description_view.setTextColor(-65536);
-//                    }
-//                }
-//
-//                return true;
-//            }
-//        };
-
-
+    void setDialogLayoutParameters(Dialog dialog, boolean width, boolean height) {
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog_tripList.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog_tripList.show();
-        dialog_tripList.getWindow().setAttributes(lp);
+        lp.copyFrom(dialog.getWindow().getAttributes());
+        if (width)
+            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        if (height)
+            lp.height = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog.show();
+        dialog.getWindow().setAttributes(lp);
     }
 
     double calculateUserTripCost(String userId) {
@@ -1122,6 +1127,7 @@ class ViewPager_GroupCalender extends Fragment {
     private void loadCalender() {
         // Set first day of week to Monday, defaults to Monday so calling setFirstDayOfWeek is not necessary
         // Use constants provided by Java Calendar class
+        calendarView.removeAllEvents();
         calendarView.setFirstDayOfWeek(Calendar.MONDAY);
         calendarView.shouldSelectFirstDayOfMonthOnScroll(false);
 //        calendarView.displayOtherMonthDays(true);

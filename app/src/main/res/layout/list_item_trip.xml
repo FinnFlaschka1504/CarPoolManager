@@ -5,10 +5,9 @@
     android:id="@+id/tripList_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/ripple"
     android:clickable="false"
     android:orientation="vertical">
-
+    <!--android:background="@drawable/ripple"-->
 
     <LinearLayout
         android:layout_width="match_parent"
