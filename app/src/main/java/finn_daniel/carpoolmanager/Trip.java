@@ -18,8 +18,8 @@ public class Trip {
     private double cost;
     private String driverId;
     private String polylineString;
-    private boolean isSaved = true;
-    private boolean isBookmark;
+//    private boolean isSaved = true;
+//    private boolean isBookmark;
 
     public enum type {
         TRIP, BOOKMARK
@@ -125,19 +125,32 @@ public class Trip {
         this.polylineString = polylineString;
     }
 
-    public boolean isSaved() {
-        return isSaved;
+    public static Trip createBookmark(Trip trip) {
+        Trip newTrip = new Trip();
+        newTrip.setFromTo(trip.getFromTo());
+        newTrip.setSearchString(trip.getSearchString());
+        newTrip.setLocationName(trip.getLocationName());
+        newTrip.setDistance(trip.getDistance());
+        newTrip.setTwoWay(trip.isTwoWay());
+        newTrip.setCarId(trip.getCarId());
+        newTrip.setDriverId(trip.getDriverId());
+        newTrip.setPolylineString(trip.getPolylineString());
+        return newTrip;
     }
 
-    public void setSaved(boolean saved) {
-        isSaved = saved;
-    }
-
-    public boolean isBookmark() {
-        return isBookmark;
-    }
-
-    public void setBookmark(boolean bookmark) {
-        isBookmark = bookmark;
-    }
+//    public boolean isSaved() {
+//        return isSaved;
+//    }
+//
+//    public void setSaved(boolean saved) {
+//        isSaved = saved;
+//    }
+//
+//    public boolean isBookmark() {
+//        return isBookmark;
+//    }
+//
+//    public void setBookmark(boolean bookmark) {
+//        isBookmark = bookmark;
+//    }
 }

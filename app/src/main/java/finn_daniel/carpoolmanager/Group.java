@@ -18,7 +18,7 @@ public class Group {
     private List<String> userIdList = new ArrayList<>();
     private List<String> tripIdList = new ArrayList<>();
     private List<String> driverIdList = new ArrayList<>();
-    private List<String> bookmarkIdList = new ArrayList<>();
+    private List<Trip> bookmarkList = new ArrayList<>();
     public enum costCalculationType
     {
         BUDGET, COST
@@ -59,7 +59,6 @@ public class Group {
         } else {
             oldVersion.removeAll(newVersion);
             returnList.set(1, new ArrayList<>(oldVersion));
-            // ToDo: wenn trip gelöscht
         }
 
 
@@ -124,12 +123,12 @@ public class Group {
         this.driverIdList = driverIdList;
     }
 
-    public List<String> getBookmarkIdList() {
-        return bookmarkIdList;
+    public List<Trip> getBookmarkList() {
+        return bookmarkList;
     }
 
-    public void setBookmarkIdList(List<String> bookmarkIdList) {
-        this.bookmarkIdList = bookmarkIdList;
+    public void setBookmarkList(List<Trip> bookmarkList) {
+        this.bookmarkList = bookmarkList;
     }
 
     public costCalculationType getCalculationType() {
