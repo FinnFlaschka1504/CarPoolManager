@@ -27,7 +27,6 @@
             android:textStyle="bold" />
 
         <View
-            android:id="@+id/divider6"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="?android:attr/listDivider" />
@@ -66,12 +65,6 @@
                         android:layout_height="wrap_content"
                         android:text="Meine Fahrten:" />
 
-                    <!--<TextView-->
-                    <!--android:id="@+id/overview_myTripsCount"-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:text="5" />-->
-
                     <Button
                         android:id="@+id/overview_showMyTrips"
                         style="@style/Widget.AppCompat.Button.Borderless.Colored"
@@ -98,12 +91,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Alle Fahrten:" />
-
-                    <!--<TextView-->
-                    <!--android:id="@+id/overview_allTripsCount"-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:text="15" />-->
 
                     <Button
                         android:id="@+id/overview_showAllTrips"
@@ -339,11 +326,23 @@
                         android:layout_height="match_parent"
                         android:orientation="horizontal">
 
-                        <TextView
+                        <Button
+                            android:id="@+id/overview_editPassengers"
+                            style="@style/Widget.AppCompat.Button.Borderless.Colored"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:paddingRight="8dp"
-                            android:text="Mitfahrer:" />
+                            android:minWidth="0dip"
+                            android:minHeight="0dip"
+                            android:text="Mitfahrer:"
+                            android:textAllCaps="false" />
+
+                        <!--<style android:name="Widget.Holo.Button" android:parent="Widget.Button">-->
+                            <!--<item android:name="android:background">@android:drawable/btn_default_holo_dark</item>-->
+                            <!--<item android:name="android:textAppearance">?android:attr/textAppearanceMedium</item>-->
+                            <!--<item android:name="android:textColor">@android:color/primary_text_holo_dark</item>-->
+                            <!--<item android:name="android:minHeight">48dip</item>-->
+                            <!--<item android:name="android:minWidth">64dip</item>-->
+                        <!--</style>-->
 
                         <TextView
                             android:focusable="true"

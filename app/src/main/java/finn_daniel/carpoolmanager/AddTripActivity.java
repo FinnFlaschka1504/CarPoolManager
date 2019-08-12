@@ -250,7 +250,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 //        date[0] = heute;
         selectedDays.add(new Day(new Date()));
 
-
+        addTrip_cancel.setOnClickListener(view -> this.finish());
 
         addTrip_from.setOnClickListener(new View.OnClickListener() {
             @Override

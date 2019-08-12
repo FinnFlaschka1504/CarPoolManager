@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="right"
     android:orientation="vertical">
 
-        <TextView
+    <TextView
+        android:id="@+id/dialog_custom_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:layout_marginBottom="8dp"
-        android:text="Den Trip Löschen?"
+        android:text="title"
         android:textAlignment="center"
         android:textColor="@color/colorPrimary"
         android:textSize="18sp"
@@ -22,13 +22,12 @@
         android:layout_height="1dp"
         android:background="@color/colorDdivider" />
 
-    <LinearLayout
-        android:id="@+id/dialogDeleteTrip_layout"
+    <TextView
+        android:id="@+id/dialog_custom_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp"
-        android:orientation="vertical" />
+        android:layout_margin="16dp"
+        android:text="text" />
 
     <View
         android:layout_width="match_parent"
@@ -36,24 +35,46 @@
         android:background="@color/colorDdivider" />
 
     <LinearLayout
+        android:id="@+id/dialog_custom_buttonLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end">
+        android:gravity="right"
+        android:orientation="horizontal">
 
         <Button
-            android:id="@+id/dialogDeleteTrip_no"
+            android:id="@+id/dialog_custom_Button1"
             style="@style/Widget.AppCompat.Button.Borderless.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Nein" />
+            android:text="B1" />
 
         <Button
-            android:id="@+id/dialogDeleteTrip_yes"
+            android:id="@+id/dialog_custom_Button2"
             style="@style/Widget.AppCompat.Button.Borderless.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ja" />
+            android:text="B2" />
+
+        <Button
+            android:id="@+id/dialog_custom_Button3"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="B3" />
+
+        <Button
+            android:id="@+id/dialog_custom_Button4"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="B4" />
+
+        <Button
+            android:id="@+id/dialog_custom_Button5"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="B5" />
     </LinearLayout>
 
 </LinearLayout>

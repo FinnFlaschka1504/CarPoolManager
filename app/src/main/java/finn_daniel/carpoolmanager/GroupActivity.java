@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -197,6 +198,7 @@ class ViewPager_GroupOverview extends Fragment {
     Button overview_showAllTrips;
     Button overview_showMyTrips;
     Button overview_calculateCosts;
+    Button overview_editPassengers;
     TextView overview_groupName;
     Switch overview_isDriverSwitch;
     ListView dialogTripList_list;
@@ -242,7 +244,25 @@ class ViewPager_GroupOverview extends Fragment {
         overview_changeCostCalculation = view.findViewById(R.id.overview_changeCostCalculation);
         overview_save_isDriver = view.findViewById(R.id.overview_save_isDriver);
         overview_noDriverText = view.findViewById(R.id.overview_noDriverText);
+        overview_editPassengers = view.findViewById(R.id.overview_editPassengers);
 
+        overview_editPassengers.setOnClickListener(view1 -> {
+            Dialog dialog = CustomDialog.generateCustomDialog(getContext());
+
+            List<Pair<String, View.OnClickListener>> onClickListeners = new ArrayList<>();
+            onClickListeners.add(new Pair<>("Gruppe Verlassen", view -> {
+                // ToDo: Gruppe verlassen implementieren
+                dialog.dismiss();
+            }));
+            onClickListeners.add(new Pair<>("Nutzer hinzufügen", view -> {
+                // ToDo: nutzer hinzufügen implementieren
+                dialog.dismiss();
+            }));
+
+            CustomDialog.showCustomDialog(dialog, "Mitfahrer bearbeiten",
+                    "Welche Aktion möchtest du ausführen?",
+                    CustomDialog.buttonType.CUSTOM, onClickListeners);
+        });
 
         overview_changeCostCalculation.setOnClickListener(new View.OnClickListener() {
             @Override
