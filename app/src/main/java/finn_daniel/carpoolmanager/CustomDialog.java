@@ -3,148 +3,226 @@ package finn_daniel.carpoolmanager;
 import android.app.Dialog;
 import android.content.Context;
 import android.util.Pair;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
+
+import org.apmem.tools.layouts.FlowLayout;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class CustomDialog {
-    enum buttonType {
+    public enum buttonType_Enum {
         YES_NO, BACK, CUSTOM
     }
+
+    private Context context;
+    private Dialog dialog;
+    private String title;
+    private String text;
+    private View view;
+    private buttonType_Enum buttonType = buttonType_Enum.YES_NO;
+    private Pair<Boolean, Boolean> dimensions = new Pair<>(true, false);
+
+    private List<Boolean> dismissDialogList = new ArrayList<>();
+    private List<Pair<String, Runnable>> pairList = new ArrayList<>();
+    private List<String> nameList = new ArrayList<>();
+    private List<Button> buttonList = new ArrayList<>();
 
     public static final String YES_BUTTON = "YES_BUTTON";
     public static final String NO_BUTTON = "NO_BUTTON";
     public static final String BACK_BUTTON = "BACK_BUTTON";
 
-    private static Button dialog_custom_B1;
-    private static Button dialog_custom_B2;
-    private static Button dialog_custom_B3;
-    private static Button dialog_custom_B4;
-    private static Button dialog_custom_B5;
-    private static List<Button> buttons = new ArrayList<>();
-    private static Dialog dialog;
-    private static Context context;
+    // ToDo: eventuell dialoginteraktionen auch als Executable
+    // ToDo: auswählbar machen, ob divider angezeigt werden sollen, oder nicht
+
+    public CustomDialog(Context context) {
+        this.context = context;
+    }
+
+    public static CustomDialog Builder(Context context) {
+        CustomDialog customDialog = new CustomDialog(context);
+        return customDialog;
+    }
 
 
-    public static Dialog generateCustomDialog(Context context) {
-        CustomDialog.context = context;
-        dialog = new Dialog(context);
+
+    public CustomDialog setContext(Context context) {
+        this.context = context;
+        return this;
+    }
+
+    public CustomDialog setTitle(String title) {
+        this.title = title;
+        return this;
+    }
+
+    public CustomDialog setText(String text) {
+        this.text = text;
+        return this;
+    }
+
+    public CustomDialog setView(int layoutId) {
+        LayoutInflater li = LayoutInflater.from(context);
+        this.view = li.inflate(layoutId, null);
+        return this;
+    }
+
+    public CustomDialog setView(View view) {
+        this.view = view;
+        return this;
+    }
+
+    public CustomDialog setButtonType(buttonType_Enum buttonType) {
+        this.buttonType = buttonType;
+        return this;
+    }
+
+    public CustomDialog addButton(String buttonName, Runnable runnable) {
+        Pair<String, Runnable> pair = new Pair<>(buttonName, runnable);
+        dismissDialogList.add(true);
+        pairList.add(pair);
+        nameList.add(pair.first);
+        return this;
+    }
+    public CustomDialog addButton(String buttonName, Runnable runnable, boolean dismissDialog){
+        Pair<String, Runnable> pair = new Pair<>(buttonName, runnable);
+        dismissDialogList.add(dismissDialog);
+        pairList.add(pair);
+        nameList.add(pair.first);
+        return this;
+    }
+
+    public CustomDialog setDimensions(boolean width, boolean height) {
+        this.dimensions = new Pair<>(width, height);
+        return this;
+    }
+
+    public Dialog show() {
+        dialog = new Dialog(this.context);
         dialog.setContentView(R.layout.dialog_custom);
 
+        TextView dialog_custom_title = dialog.findViewById(R.id.dialog_custom_title);
+        TextView dialog_custom_text = dialog.findViewById(R.id.dialog_custom_text);
+
+        if (title != null)
+            dialog_custom_title.setText(this.title);
+        else
+            dialog_custom_title.setVisibility(View.GONE);
+
+        if (text != null)
+            dialog_custom_text.setText(this.text);
+        else
+            dialog_custom_text.setVisibility(View.GONE);
+
+        if (view != null)
+            ((LinearLayout) dialog.findViewById(R.id.dialog_custom_layout)).addView(view);
+        
+        setDialogLayoutParameters(dialog, dimensions.first, dimensions.second);
+        setButtons();
+        setOnClickListeners();
 
         return dialog;
+
     }
 
-    public static Dialog showCustomDialog(Dialog dialog, String title, String text, buttonType buttonType,
-                                          List<Pair<String, View.OnClickListener>> onClickListenerMap) {
-
-        dialog_custom_B1 = dialog.findViewById(R.id.dialog_custom_Button1);
-        dialog_custom_B2 = dialog.findViewById(R.id.dialog_custom_Button2);
-        dialog_custom_B3 = dialog.findViewById(R.id.dialog_custom_Button3);
-        dialog_custom_B4 = dialog.findViewById(R.id.dialog_custom_Button4);
-        dialog_custom_B5 = dialog.findViewById(R.id.dialog_custom_Button5);
-
-        buttons = Arrays.asList(dialog_custom_B1, dialog_custom_B2, dialog_custom_B3, dialog_custom_B4, dialog_custom_B5);
-
-        setTexts(title, text, dialog);
-        setButtonsType(buttonType, onClickListenerMap);
-        setButtonsListener(buttonType, onClickListenerMap);
-
-        setDialogLayoutParameters(dialog,true, false);
-
-        return dialog;
-    }
-
-    private static void setTexts(String title, String text, Dialog dialog) {
-        ((TextView) dialog.findViewById(R.id.dialog_custom_title)).setText(title);
-        ((TextView) dialog.findViewById(R.id.dialog_custom_text)).setText(text);
-    }
-
-    private static void setButtonsType(buttonType buttonType, List<Pair<String, View.OnClickListener>> onClickListeners) {
+    private void setButtons() {
         switch (buttonType) {
             case YES_NO:
-                buttons.get(0).setVisibility(View.VISIBLE);
-                buttons.get(0).setText("Ja");
-                buttons.get(1).setVisibility(View.VISIBLE);
-                buttons.get(1).setText("Nein");
-                buttons.get(2).setVisibility(View.GONE);
-                buttons.get(3).setVisibility(View.GONE);
-                buttons.get(4).setVisibility(View.GONE);
+                addNewButton("Nein");
+                addNewButton("Ja");
                 break;
             case BACK:
-                buttons.get(0).setVisibility(View.VISIBLE);
-                buttons.get(0).setText("Zurück");
-                buttons.get(1).setVisibility(View.GONE);
-                buttons.get(2).setVisibility(View.GONE);
-                buttons.get(3).setVisibility(View.GONE);
-                buttons.get(4).setVisibility(View.GONE);
+                addNewButton("Zurück");
                 break;
             case CUSTOM:
-                int count = 0;
-                for (Pair<String, View.OnClickListener> listenerPair : onClickListeners) {
-                    buttons.get(count).setText(listenerPair.first);
-                    count++;
-                }
-                for (; count < 5; count++) {
-                    buttons.get(count).setVisibility(View.GONE);
-                }
+                for (Pair<String, Runnable> pair : pairList) addNewButton(pair.first);
                 break;
         }
+
     }
 
-    private static void setButtonsListener(buttonType buttonType, List<Pair<String, View.OnClickListener>> onClickListeners) {
-        Map<String, View.OnClickListener> onClickListenerMap = new HashMap<>();
-        for (Pair<String, View.OnClickListener> pair : onClickListeners) {
-            onClickListenerMap.put(pair.first, pair.second);
-        }
+    private void addNewButton(String text) {
+        Button button = new Button(context);
+        button.setBackground(dialog.findViewById(R.id.dialog_custom_Button1).getBackground().getConstantState().newDrawable());
+        button.setText(text);
+        button.setTextColor(ContextCompat.getColor(context, R.color.colorAccent));
+        ((FlowLayout) dialog.findViewById(R.id.dialog_custom_buttonLayout)).addView(button);
+        buttonList.add(button);
+    }
+
+    private void setOnClickListeners() {
+        Map<String, Runnable> stringRunnableMap = new HashMap<>();
+        for (Pair<String, Runnable> pair : pairList) stringRunnableMap.put(pair.first, pair.second);
+
         switch (buttonType) {
             case YES_NO:
-                if (onClickListenerMap.keySet().contains(YES_BUTTON)) {
-                    buttons.get(0).setOnClickListener(onClickListenerMap.get(YES_BUTTON));
+                if (stringRunnableMap.keySet().contains(NO_BUTTON)) {
+                    int index = nameList.indexOf(NO_BUTTON);
+                    buttonList.get(0).setOnClickListener(view1 -> {
+                        if (dismissDialogList.get(index))
+                            dialog.dismiss();
+                        pairList.get(index).second.run();
+                    });
                 }
                 else
-                    buttons.get(0).setOnClickListener(view -> {
+                    buttonList.get(0).setOnClickListener(view -> {
                         Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
-                if (onClickListenerMap.keySet().contains(NO_BUTTON)) {
-                    buttons.get(1).setOnClickListener(onClickListenerMap.get(NO_BUTTON));
+
+                if (stringRunnableMap.keySet().contains(YES_BUTTON)) {
+                    int index = nameList.indexOf(YES_BUTTON);
+                    buttonList.get(1).setOnClickListener(view1 -> {
+                        if (dismissDialogList.get(index))
+                            dialog.dismiss();
+                        pairList.get(index).second.run();
+                    });
                 }
                 else
-                    buttons.get(1).setOnClickListener(view -> {
+                    buttonList.get(1).setOnClickListener(view -> {
                         Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
+
                 return;
             case BACK:
-                if (onClickListenerMap.keySet().contains(BACK_BUTTON)) {
-                    buttons.get(0).setOnClickListener(onClickListenerMap.get(BACK_BUTTON));
+                if (stringRunnableMap.keySet().contains(BACK_BUTTON)) {
+                    int index = nameList.indexOf(BACK_BUTTON);
+                    buttonList.get(0).setOnClickListener(view1 -> {
+                        if (dismissDialogList.get(index))
+                            dialog.dismiss();
+                        pairList.get(index).second.run();
+                    });
                 }
                 else
-                    buttons.get(0).setOnClickListener(view -> dialog.dismiss());
+                    buttonList.get(0).setOnClickListener(view -> {
+                        dialog.dismiss();
+                    });
+
                 return;
         }
 
-        if (onClickListeners == null)
-            return;
-
         int count = 0;
-        for (Pair<String, View.OnClickListener> listenerPair : onClickListeners) {
-            buttons.get(count).setOnClickListener(listenerPair.second);
+        for (Pair<String, Runnable> pair : pairList) {
+            int finalCount = count;
+            buttonList.get(count).setOnClickListener(view1 -> {
+                if (dismissDialogList.get(finalCount))
+                    dialog.dismiss();
+                pair.second.run();
+            });
             count++;
         }
     }
-
-
-
 
     static void setDialogLayoutParameters(Dialog dialog, boolean width, boolean height) {
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
@@ -157,3 +235,4 @@ public class CustomDialog {
         dialog.getWindow().setAttributes(lp);
     }
 }
+

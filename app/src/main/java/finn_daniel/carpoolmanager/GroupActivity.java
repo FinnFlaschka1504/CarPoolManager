@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -247,23 +246,31 @@ class ViewPager_GroupOverview extends Fragment {
         overview_editPassengers = view.findViewById(R.id.overview_editPassengers);
 
         overview_editPassengers.setOnClickListener(view1 -> {
-            Dialog dialog = CustomDialog.generateCustomDialog(getContext());
-
-            List<Pair<String, View.OnClickListener>> onClickListeners = new ArrayList<>();
-            onClickListeners.add(new Pair<>("Gruppe Verlassen", view -> {
-                // ToDo: Gruppe verlassen implementieren
-                dialog.dismiss();
-            }));
-            onClickListeners.add(new Pair<>("Nutzer hinzufügen", view -> {
-                // ToDo: nutzer hinzufügen implementieren
-                dialog.dismiss();
-            }));
-
-            CustomDialog.showCustomDialog(dialog, "Mitfahrer bearbeiten",
-                    "Welche Aktion möchtest du ausführen?",
-                    CustomDialog.buttonType.CUSTOM, onClickListeners);
+            Dialog dialog = CustomDialog.Builder(getContext())
+                    .setTitle("Mitfahrer bearbeiten")
+                    .setText("Was möchtest du tun?")
+                    .setButtonType(CustomDialog.buttonType_Enum.CUSTOM)
+                    .addButton("Gruppe Verlassen", () -> {
+                        // ToDo: Gruppe verlassen implementieren
+                        Toast.makeText(getContext(), "Tschüss", Toast.LENGTH_SHORT).show();
+                    })
+                    .addButton("Mitfahrer hinzufügen", () ->
+                            // ToDo: nutzer hinzufügen implementieren
+                            CustomDialog.Builder(getContext())
+                                    .setTitle("Mitfahrer hinzufügen")
+                                    .setButtonType(CustomDialog.buttonType_Enum.BACK)
+                                    .setView(R.layout.dialog_add_passenger)
+                                    .show(),
+                            false)
+                    .addButton("Test1", () -> {}, false)
+                    .addButton("Test2", () -> {}, false)
+                    .addButton("Test3", () -> {}, false)
+                    .addButton("Test4", () -> {}, false)
+                    .addButton("Test5", () -> {}, false)
+                    .show();
         });
 
+        // ToDo: dialoge durch neuen Custom Dialog ersetzen
         overview_changeCostCalculation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -830,15 +837,38 @@ class ViewPager_GroupOverview extends Fragment {
     }
 
     private void showTripList(boolean showAll) {
-        dialog_tripList = new Dialog(getContext());
-        dialog_tripList.setContentView(R.layout.dialog_trip_list);
+
+
+        dialog_tripList = CustomDialog.Builder(getContext())
+                .setTitle("Trip Liste")
+                .setView(R.layout.dialog_trip_list)
+                .setButtonType(CustomDialog.buttonType_Enum.BACK)
+                .show();
 
         dialogTripList_list = dialog_tripList.findViewById(R.id.dialogTripList_list);
 
         dialogTripList_list.setOnItemClickListener((adapterView, view, i, l) -> {
 
-            Dialog dialog_deleteTrip = new Dialog(getContext());
-            dialog_deleteTrip.setContentView(R.layout.dialog_delete_trip);
+            Dialog dialog_deleteTrip = CustomDialog.Builder(getContext())
+                    .setTitle("Den Trip Löschen?")
+                    .setView(R.layout.dialog_delete_trip)
+                    .addButton(CustomDialog.YES_BUTTON, () -> {
+                        Trip trip = tripList.get(i);
+
+                        thisGroup.getTripIdList().remove(trip.getTrip_id());
+                        groupTripsMap.remove(trip.getTrip_id());
+                        databaseReference.child("Groups").child(thisGroup.getGroup_id()).child("tripIdList").setValue(thisGroup.getTripIdList());
+                        databaseReference.child("Trips").child(thisGroup.getGroup_id()).child(trip.getTrip_id()).removeValue();
+
+                        tripListLaden(showAll);
+                        reLoadContent();
+                        thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap,groupTripsMap);
+                        thisGroupCalender.reLoadContent();
+                    })
+                    .addButton(CustomDialog.NO_BUTTON, () -> {})
+                    .show();
+//            Dialog dialog_deleteTrip = new Dialog(getContext());
+//            dialog_deleteTrip.setContentView(R.layout.dialog_delete_trip);
 
             LinearLayout dialogDeleteTrip_layout = dialog_deleteTrip.findViewById(R.id.dialogDeleteTrip_layout);
             View newView = LayoutInflater.from(getContext()).inflate(R.layout.list_item_trip, null);
@@ -851,36 +881,8 @@ class ViewPager_GroupOverview extends Fragment {
             ((TextView) newView.findViewById(R.id.tripList_twoWay)).setText(((TextView) view.findViewById(R.id.tripList_twoWay)).getText());
             ((TextView) newView.findViewById(R.id.tripList_cost)).setText(((TextView) view.findViewById(R.id.tripList_cost)).getText());
 
-            setDialogLayoutParameters(dialog_deleteTrip, true, false);
-
-            dialog_deleteTrip.findViewById(R.id.dialogDeleteTrip_no).setOnClickListener(view1 -> {
-                dialog_deleteTrip.dismiss();
-            });
-
-            dialog_deleteTrip.findViewById(R.id.dialogDeleteTrip_yes).setOnClickListener(view1 -> {
-                Trip trip = tripList.get(i);
-
-                thisGroup.getTripIdList().remove(trip.getTrip_id());
-                groupTripsMap.remove(trip.getTrip_id());
-                databaseReference.child("Groups").child(thisGroup.getGroup_id()).child("tripIdList").setValue(thisGroup.getTripIdList());
-                databaseReference.child("Trips").child(thisGroup.getGroup_id()).child(trip.getTrip_id()).removeValue();
-
-                tripListLaden(showAll);
-                reLoadContent();
-                thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap,groupTripsMap);
-                thisGroupCalender.reLoadContent();
-                dialog_deleteTrip.dismiss();
-
-            });
-
         });
 
-        dialog_tripList.findViewById(R.id.dialogTripList_cancel).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog_tripList.dismiss();
-            }
-        });
 
         tripListLaden(showAll);
 

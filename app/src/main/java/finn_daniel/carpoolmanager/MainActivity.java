@@ -2,6 +2,7 @@ package finn_daniel.carpoolmanager;
 
 import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
@@ -15,8 +16,13 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -93,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Map<String, Group> loggedInUser_groupsMap = new HashMap<>(); //<---
     Map<String, User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
     List<Group> sortedGroupList;
-    Map<String, Map<String, Trip>> loggedInUser_groupTripMap = new HashMap<>();
+    Map<String, Map<String, Trip>> loggedInUser_groupTripMap = new HashMap<>(); //<---
 
     ValueEventListener groupChangeListener = new ValueEventListener() {
         @Override
@@ -238,13 +244,91 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Eine Neue Gruppe hinzufügen, oder erstellen", Snackbar.LENGTH_SHORT)
-                        .setAction("Aktion", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                msgBox("test");
-                            }
-                        }).show();
+                Dialog dialog_newGroup = new Dialog(MainActivity.this);
+                dialog_newGroup.setContentView(R.layout.dialog_new_group);
+
+                WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                lp.copyFrom(dialog_newGroup.getWindow().getAttributes());
+                lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+                dialog_newGroup.show();
+                dialog_newGroup.getWindow().setAttributes(lp);
+
+                setChangeRadioButtonListener(dialog_newGroup, dialog_newGroup.findViewById(R.id.dialogNewGroup_typeGroup), dialog_newGroup.findViewById(R.id.dialogNewGroup_methodGroup));
+
+                dialog_newGroup.findViewById(R.id.dialogNewGroup_save).setOnClickListener(view2 -> {
+                    Group newGroup = new Group();
+
+                    newGroup.setName(((EditText) dialog_newGroup.findViewById(R.id.dialogNewGroup_name)).getText().toString().trim());
+                    if (newGroup.getName().equals("")) {
+                        Toast.makeText(MainActivity.this, "Einen Gruppen-Namen angeben", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    switch (((RadioGroup)(dialog_newGroup.findViewById(R.id.dialogNewGroup_typeGroup))).getCheckedRadioButtonId()) {
+                        case R.id.dialogNewGroup_budgetRadio:
+                            newGroup.setCalculationType(Group.costCalculationType.BUDGET);
+                            break;
+                        case R.id.dialogNewGroup_costRadio:
+                            newGroup.setCalculationType(Group.costCalculationType.COST);
+                            break;
+                    }
+                    switch (((RadioGroup)(dialog_newGroup.findViewById(R.id.dialogNewGroup_methodGroup))).getCheckedRadioButtonId()) {
+                        case R.id.dialogNewGroup_realCostRadio:
+                            newGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
+                            break;
+                        case R.id.dialogNewGroup_kilometerAllowanceRadio:
+                            newGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
+                            break;
+                        case R.id.dialogNewGroup_tripRadio:
+                            newGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
+                            break;
+                    }
+                    EditText dialogNewGroup_budget = dialog_newGroup.findViewById(R.id.dialogNewGroup_budget);
+                    if (dialog_newGroup.findViewById(R.id.dialogNewGroup_budget).isEnabled()) {
+                        if (!dialogNewGroup_budget.getText().toString().equals("")) {
+                            newGroup.setBudget(Double.parseDouble(dialogNewGroup_budget.getText().toString()));
+                        } else {
+                            Toast.makeText(MainActivity.this, "Ein Budget angeben", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+
+                    EditText dialogNewGroup_kilometerAllowance = dialog_newGroup.findViewById(R.id.dialogNewGroup_kilometerAllowance);
+                    if (dialogNewGroup_kilometerAllowance.isEnabled()) {
+                        if (!dialogNewGroup_kilometerAllowance.getText().toString().equals("")) {
+                            newGroup.setKilometerAllowance(Double.parseDouble(dialogNewGroup_kilometerAllowance.getText().toString()));
+                        } else {
+                            Toast.makeText(MainActivity.this, "Eine Pauschale angeben", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+
+                    newGroup.setBudgetPerUser(((CheckBox) dialog_newGroup.findViewById(R.id.dialogNewGroup_perPerson)).isChecked());
+                    newGroup.getUserIdList().add(loggedInUser.getUser_id());
+                    newGroup.getDriverIdList().add(loggedInUser.getUser_id());
+
+                    databaseReference.child("Groups").child(newGroup.getGroup_id()).setValue(newGroup);
+
+                    dialog_newGroup.dismiss();
+
+                    loggedInUser.getGroupIdList().add(newGroup.getGroup_id());
+                    loggedInUser_groupsMap.put(newGroup.getGroup_id(), newGroup);
+                    loggedInUser_groupTripMap.put(newGroup.getGroup_id(), new HashMap<>());
+                    databaseReference.child("Users").child(loggedInUser.getUser_id()).child("groupIdList").setValue(loggedInUser.getGroupIdList());
+                    // ToDo: Change listener zur gruppe hinzufügen
+
+                    hasGroupChangeListener.put(newGroup.getGroup_id(), false);
+                    databaseReference.child("Groups").child(newGroup.getGroup_id()).addValueEventListener(groupChangeListener);
+
+                    listeLaden();
+                });
+                dialog_newGroup.findViewById(R.id.dialogNewGroup_cancel).setOnClickListener(view1 -> dialog_newGroup.dismiss());
+
+
+
+
+
+                // ToDo: neue Gruppe erstellen
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -290,6 +374,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return;
         }
     }
+
+    private void setChangeRadioButtonListener(final Dialog dialog_newGroup, RadioGroup dialogNewGroup_typeGroup, RadioGroup dialogNewGroup_methodGroup) {
+        dialogNewGroup_typeGroup.setOnCheckedChangeListener((radioGroup, checkedId) -> {
+            switch (checkedId) {
+                case R.id.dialogNewGroup_budgetRadio:
+                    dialog_newGroup.findViewById(R.id.dialogNewGroup_budget).setEnabled(true);
+                    dialog_newGroup.findViewById(R.id.dialogNewGroup_perPerson).setEnabled(true);
+                    dialog_newGroup.findViewById(R.id.dialogNewGroup_tripRadio).setEnabled(true);
+                    break;
+                case R.id.dialogNewGroup_costRadio:
+                    dialog_newGroup.findViewById(R.id.dialogNewGroup_budget).setEnabled(false);
+                    dialog_newGroup.findViewById(R.id.dialogNewGroup_perPerson).setEnabled(false);
+                    RadioButton radioButton = dialog_newGroup.findViewById(R.id.dialogNewGroup_tripRadio);
+                    radioButton.setEnabled(false);
+                    if (radioButton.isChecked()) {
+                        dialogNewGroup_methodGroup.clearCheck();
+                        dialog_newGroup.findViewById(R.id.dialogNewGroup_save).setEnabled(false);
+                    }
+                    break;
+            }
+            if(dialogNewGroup_methodGroup.getCheckedRadioButtonId() != -1)
+                dialog_newGroup.findViewById(R.id.dialogNewGroup_save).setEnabled(true);
+
+        });
+        dialogNewGroup_methodGroup.setOnCheckedChangeListener((radioGroup, checkedId) -> {
+            if(dialogNewGroup_typeGroup.getCheckedRadioButtonId() != -1)
+                dialog_newGroup.findViewById(R.id.dialogNewGroup_save).setEnabled(true);
+
+            dialog_newGroup.findViewById(R.id.dialogNewGroup_kilometerAllowance)
+                    .setEnabled(checkedId == R.id.dialogNewGroup_kilometerAllowanceRadio);
+        });
+    }
+
 
     private void showNoInternetSnackBar() {
         Snackbar.make(findViewById(R.id.include), "Es gibt keine verbindung zum Internet!", Snackbar.LENGTH_LONG)

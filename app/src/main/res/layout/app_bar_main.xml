@@ -39,7 +39,7 @@
         android:layout_gravity="bottom|start"
         android:layout_margin="@dimen/fab_margin"
         android:onClick="startWizzard"
-        app:srcCompat="@android:drawable/btn_star_big_on"
-        tools:visibility="visible" />
+        android:visibility="gone"
+        app:srcCompat="@android:drawable/btn_star_big_on" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

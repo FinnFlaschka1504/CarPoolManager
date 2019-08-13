@@ -12,22 +12,22 @@
         android:gravity="right"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/textView11"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="8dp"
-            android:text="Trip Liste"
-            android:textAlignment="center"
-            android:textColor="@color/colorPrimary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+        <!--<TextView-->
+            <!--android:id="@+id/textView11"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginTop="12dp"-->
+            <!--android:layout_marginBottom="8dp"-->
+            <!--android:text="Trip Liste"-->
+            <!--android:textAlignment="center"-->
+            <!--android:textColor="@color/colorPrimary"-->
+            <!--android:textSize="18sp"-->
+            <!--android:textStyle="bold" />-->
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/colorDdivider" />
+        <!--<View-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="1dp"-->
+            <!--android:background="@color/colorDdivider" />-->
 
         <ListView
             android:id="@+id/dialogTripList_list"
@@ -44,18 +44,18 @@
 
         </ListView>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/colorDdivider" />
+        <!--<View-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="1dp"-->
+            <!--android:background="@color/colorDdivider" />-->
 
 
-        <Button
-            android:id="@+id/dialogTripList_cancel"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Zurück" />
+        <!--<Button-->
+            <!--android:id="@+id/dialogTripList_cancel"-->
+            <!--style="@style/Widget.AppCompat.Button.Borderless.Colored"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:text="Zurück" />-->
 
         <!--<com.google.android.material.floatingactionbutton.FloatingActionButton-->
         <!--android:id="@+id/dialogTripList_cancel"-->
