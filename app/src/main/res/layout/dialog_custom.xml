@@ -10,39 +10,74 @@
         android:id="@+id/dialog_custom_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
         android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginRight="16dp"
         android:text="title"
         android:textAlignment="center"
         android:textColor="@color/colorPrimary"
-        android:textSize="18sp"
+        android:textSize="20sp"
         android:textStyle="bold" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/colorDdivider" />
-
     <LinearLayout
-        android:id="@+id/dialog_custom_layout"
+        android:id="@+id/dialog_custom_layout_text"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:orientation="vertical">
+
+        <View
+            android:id="@+id/dialog_custom_divider1"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/colorDdivider" />
 
         <TextView
             android:id="@+id/dialog_custom_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
             android:text="text" />
 
+        <View
+            android:id="@+id/dialog_custom_divider2"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:background="@color/colorDdivider" />
     </LinearLayout>
 
-    <View
+    <LinearLayout
+        android:id="@+id/dialog_custom_layout_view"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/colorDdivider" />
+        android:layout_height="match_parent"
+        android:paddingTop="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/dialog_custom_divider3"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorDdivider" />
+
+        <LinearLayout
+            android:id="@+id/dialog_custom_layout_view_interface"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"></LinearLayout>
+
+        <View
+            android:id="@+id/dialog_custom_divider4"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorDdivider" />
+
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/dialog_custom_Button1"
@@ -50,6 +85,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Beispiel Button"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <View
+        android:id="@+id/dialog_custom_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:background="@color/colorDdivider"
         android:visibility="gone"
         tools:visibility="visible" />
 

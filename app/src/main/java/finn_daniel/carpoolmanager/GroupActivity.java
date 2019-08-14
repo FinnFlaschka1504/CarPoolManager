@@ -246,15 +246,15 @@ class ViewPager_GroupOverview extends Fragment {
         overview_editPassengers = view.findViewById(R.id.overview_editPassengers);
 
         overview_editPassengers.setOnClickListener(view1 -> {
-            Dialog dialog = CustomDialog.Builder(getContext())
+            Dialog dialog1 = CustomDialog.Builder(getContext())
                     .setTitle("Mitfahrer bearbeiten")
                     .setText("Was möchtest du tun?")
                     .setButtonType(CustomDialog.buttonType_Enum.CUSTOM)
-                    .addButton("Gruppe Verlassen", () -> {
+                    .addButton("Gruppe Verlassen", dialog -> {
                         // ToDo: Gruppe verlassen implementieren
                         Toast.makeText(getContext(), "Tschüss", Toast.LENGTH_SHORT).show();
                     })
-                    .addButton("Mitfahrer hinzufügen", () ->
+                    .addButton("Mitfahrer hinzufügen", dialog ->
                             // ToDo: nutzer hinzufügen implementieren
                             CustomDialog.Builder(getContext())
                                     .setTitle("Mitfahrer hinzufügen")
@@ -262,11 +262,19 @@ class ViewPager_GroupOverview extends Fragment {
                                     .setView(R.layout.dialog_add_passenger)
                                     .show(),
                             false)
-                    .addButton("Test1", () -> {}, false)
-                    .addButton("Test2", () -> {}, false)
-                    .addButton("Test3", () -> {}, false)
-                    .addButton("Test4", () -> {}, false)
-                    .addButton("Test5", () -> {}, false)
+                    .addButton("Test1", dialog ->
+                            CustomDialog.Builder(getContext())
+                                    .setTitle("Nur zurück")
+                                    .setTitleTextAlignment(View.TEXT_ALIGNMENT_TEXT_START)
+                                    .setText("Das ist ein etwas längerer Text")
+                                    .setDividerVisibility(false)
+                                    .setTextBold(true)
+                                    .show(), false)
+                    .addButton("Test2", dialog ->
+                            CustomDialog.Builder(getContext())
+                                    .setTitle("Speichern und Abbrechen")
+                                    .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                                    .show(), false)
                     .show();
         });
 
@@ -558,22 +566,74 @@ class ViewPager_GroupOverview extends Fragment {
     }
 
     private void showChangeCostCalculation() {
-        final Dialog dialog_changeCostCalculation = new Dialog(getContext());
-        dialog_changeCostCalculation.setContentView(R.layout.dialog_changecost_calculation);
 
-        final RadioGroup dialogChangeCostCalculation_typeGroup;
-        final RadioGroup dialogChangeCostCalculation_methodGroup;
-        final EditText dialogChangeCostCalculation_budget;
-        final CheckBox dialogChangeCostCalculation_perPerson;
-        final EditText dialogChangeCostCalculation_kilometerAllowance;
+//         Pair<CustomDialog, Dialog> customDialogDialogPair =
+        int saveButtonId = View.generateViewId();
+        Dialog dialog_changeCostCalculation = CustomDialog.Builder(getContext())
+                .setTitle("Kostenberechnung ändern")
+//                .setText("Das ist ein Test")
+                .setView(R.layout.dialog_change_cost_calculation)
+                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
 
-        dialogChangeCostCalculation_typeGroup = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_typeGroup);
-        dialogChangeCostCalculation_methodGroup = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_methodGroup);
-        dialogChangeCostCalculation_budget = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_budget);
-        dialogChangeCostCalculation_perPerson = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_perPerson);
-        dialogChangeCostCalculation_kilometerAllowance = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_kilometerAllowance);
+                    RadioGroup dialogChangeCostCalculation_typeGroup = dialog.findViewById(R.id.dialogChangeCostCalculation_typeGroup);
+                    RadioGroup dialogChangeCostCalculation_methodGroup = dialog.findViewById(R.id.dialogChangeCostCalculation_methodGroup);
+                    EditText dialogChangeCostCalculation_budget = dialog.findViewById(R.id.dialogChangeCostCalculation_budget);
+                    CheckBox dialogChangeCostCalculation_perPerson = dialog.findViewById(R.id.dialogChangeCostCalculation_perPerson);
+                    EditText dialogChangeCostCalculation_kilometerAllowance = dialog.findViewById(R.id.dialogChangeCostCalculation_kilometerAllowance);
 
-        setChangeCostListener(dialog_changeCostCalculation, dialogChangeCostCalculation_typeGroup, dialogChangeCostCalculation_methodGroup);
+                    switch (dialogChangeCostCalculation_typeGroup.getCheckedRadioButtonId()) {
+                        case R.id.dialogChangeCostCalculation_budgetRadio:
+                            thisGroup.setCalculationType(Group.costCalculationType.BUDGET);
+                            break;
+                        case R.id.dialogChangeCostCalculation_costRadio:
+                            thisGroup.setCalculationType(Group.costCalculationType.COST);
+                            break;
+                    }
+                    switch (dialogChangeCostCalculation_methodGroup.getCheckedRadioButtonId()) {
+                        case R.id.dialogChangeCostCalculation_realCostRadio:
+                            thisGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
+                            break;
+                        case R.id.dialogChangeCostCalculation_kilometerAllowanceRadio:
+                            thisGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
+                            break;
+                        case R.id.dialogChangeCostCalculation_tripRadio:
+                            thisGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
+                            break;
+                    }
+                    if (dialogChangeCostCalculation_budget.isEnabled()) {
+                        if (!dialogChangeCostCalculation_budget.getText().toString().equals("")) {
+                            thisGroup.setBudget(Double.parseDouble(dialogChangeCostCalculation_budget.getText().toString()));
+                        } else {
+                            Toast.makeText(getContext(), "Ein Budget angeben", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+
+                    if (dialogChangeCostCalculation_kilometerAllowance.isEnabled()) {
+                        if (!dialogChangeCostCalculation_kilometerAllowance.getText().toString().equals("")) {
+                            thisGroup.setKilometerAllowance(Double.parseDouble(dialogChangeCostCalculation_kilometerAllowance.getText().toString()));
+                        } else {
+                            Toast.makeText(getContext(), "Eine Pauschale angeben", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+
+                    thisGroup.setBudgetPerUser(dialogChangeCostCalculation_perPerson.isChecked());
+                    setCalculationTexts();
+                    databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
+                    dialog.dismiss();
+
+                }, saveButtonId, false)
+                .show();
+
+        final RadioGroup dialogChangeCostCalculation_typeGroup = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_typeGroup);
+        final RadioGroup dialogChangeCostCalculation_methodGroup = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_methodGroup);
+        final EditText dialogChangeCostCalculation_budget = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_budget);
+        final CheckBox dialogChangeCostCalculation_perPerson = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_perPerson);
+        final EditText dialogChangeCostCalculation_kilometerAllowance = dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_kilometerAllowance);
+
+        setChangeCostListener(dialog_changeCostCalculation, dialogChangeCostCalculation_typeGroup, dialogChangeCostCalculation_methodGroup, saveButtonId);
 
         switch (thisGroup.getCalculationType()) {
             default:
@@ -599,70 +659,9 @@ class ViewPager_GroupOverview extends Fragment {
         dialogChangeCostCalculation_budget.setText(String.valueOf(thisGroup.getBudget()));
         dialogChangeCostCalculation_perPerson.setChecked(thisGroup.isBudgetPerUser());
         dialogChangeCostCalculation_kilometerAllowance.setText(String.valueOf(thisGroup.getKilometerAllowance()));
-
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog_changeCostCalculation.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog_changeCostCalculation.show();
-        dialog_changeCostCalculation.getWindow().setAttributes(lp);
-
-
-        dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_save).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                switch (dialogChangeCostCalculation_typeGroup.getCheckedRadioButtonId()) {
-                    case R.id.dialogChangeCostCalculation_budgetRadio:
-                        thisGroup.setCalculationType(Group.costCalculationType.BUDGET);
-                        break;
-                    case R.id.dialogChangeCostCalculation_costRadio:
-                        thisGroup.setCalculationType(Group.costCalculationType.COST);
-                        break;
-                }
-                switch (dialogChangeCostCalculation_methodGroup.getCheckedRadioButtonId()) {
-                    case R.id.dialogChangeCostCalculation_realCostRadio:
-                        thisGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
-                        break;
-                    case R.id.dialogChangeCostCalculation_kilometerAllowanceRadio:
-                        thisGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
-                        break;
-                    case R.id.dialogChangeCostCalculation_tripRadio:
-                        thisGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
-                        break;
-                }
-                if (dialogChangeCostCalculation_budget.isEnabled()) {
-                    if (!dialogChangeCostCalculation_budget.getText().toString().equals("")) {
-                        thisGroup.setBudget(Double.parseDouble(dialogChangeCostCalculation_budget.getText().toString()));
-                    } else {
-                        Toast.makeText(getContext(), "Ein Budget angeben", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                }
-
-                if (dialogChangeCostCalculation_kilometerAllowance.isEnabled()) {
-                    if (!dialogChangeCostCalculation_kilometerAllowance.getText().toString().equals("")) {
-                        thisGroup.setKilometerAllowance(Double.parseDouble(dialogChangeCostCalculation_kilometerAllowance.getText().toString()));
-                    } else {
-                        Toast.makeText(getContext(), "Eine Pauschale angeben", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                }
-
-                thisGroup.setBudgetPerUser(dialogChangeCostCalculation_perPerson.isChecked());
-                setCalculationTexts();
-                // ToDo: gruppe in Firebase aktualisieren
-                databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
-                dialog_changeCostCalculation.dismiss();
-            }
-        });
-        dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_cancel).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog_changeCostCalculation.dismiss();
-            }
-        });
     }
 
-    private void setChangeCostListener(final Dialog dialog_changeCostCalculation, RadioGroup dialogChangeCostCalculation_typeGroup, RadioGroup dialogChangeCostCalculation_methodGroup) {
+    private void setChangeCostListener(final Dialog dialog_changeCostCalculation, RadioGroup dialogChangeCostCalculation_typeGroup, RadioGroup dialogChangeCostCalculation_methodGroup, int saveButtonId) {
         dialogChangeCostCalculation_typeGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, int checkedId) {
@@ -679,7 +678,7 @@ class ViewPager_GroupOverview extends Fragment {
                         radioButton.setEnabled(false);
                         if (radioButton.isChecked()) {
                             radioButton.setChecked(false);
-                            dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_save).setEnabled(false);
+                            dialog_changeCostCalculation.findViewById(saveButtonId).setEnabled(false);
                         }
                         break;
                 }
@@ -688,7 +687,7 @@ class ViewPager_GroupOverview extends Fragment {
         dialogChangeCostCalculation_methodGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, int checkedId) {
-                dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_save).setEnabled(true);
+                dialog_changeCostCalculation.findViewById(saveButtonId).setEnabled(true);
 
                 dialog_changeCostCalculation.findViewById(R.id.dialogChangeCostCalculation_kilometerAllowance)
                         .setEnabled(checkedId == R.id.dialogChangeCostCalculation_kilometerAllowanceRadio);
@@ -841,6 +840,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         dialog_tripList = CustomDialog.Builder(getContext())
                 .setTitle("Trip Liste")
+//                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
                 .setView(R.layout.dialog_trip_list)
                 .setButtonType(CustomDialog.buttonType_Enum.BACK)
                 .show();
@@ -852,7 +852,7 @@ class ViewPager_GroupOverview extends Fragment {
             Dialog dialog_deleteTrip = CustomDialog.Builder(getContext())
                     .setTitle("Den Trip Löschen?")
                     .setView(R.layout.dialog_delete_trip)
-                    .addButton(CustomDialog.YES_BUTTON, () -> {
+                    .addButton(CustomDialog.YES_BUTTON, dialog -> {
                         Trip trip = tripList.get(i);
 
                         thisGroup.getTripIdList().remove(trip.getTrip_id());
@@ -865,7 +865,7 @@ class ViewPager_GroupOverview extends Fragment {
                         thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap,groupTripsMap);
                         thisGroupCalender.reLoadContent();
                     })
-                    .addButton(CustomDialog.NO_BUTTON, () -> {})
+                    .addButton(CustomDialog.NO_BUTTON, dialog -> {})
                     .show();
 //            Dialog dialog_deleteTrip = new Dialog(getContext());
 //            dialog_deleteTrip.setContentView(R.layout.dialog_delete_trip);

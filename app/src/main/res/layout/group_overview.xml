@@ -310,11 +310,6 @@
 
                 </LinearLayout>
 
-                <!--<View-->
-                <!--android:id="@+id/divider9"-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="1dp"-->
-                <!--android:background="?android:attr/listDivider" />-->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -336,14 +331,6 @@
                             android:text="Mitfahrer:"
                             android:textAllCaps="false" />
 
-                        <!--<style android:name="Widget.Holo.Button" android:parent="Widget.Button">-->
-                            <!--<item android:name="android:background">@android:drawable/btn_default_holo_dark</item>-->
-                            <!--<item android:name="android:textAppearance">?android:attr/textAppearanceMedium</item>-->
-                            <!--<item android:name="android:textColor">@android:color/primary_text_holo_dark</item>-->
-                            <!--<item android:name="android:minHeight">48dip</item>-->
-                            <!--<item android:name="android:minWidth">64dip</item>-->
-                        <!--</style>-->
-
                         <TextView
                             android:focusable="true"
                             android:focusableInTouchMode="true"
@@ -359,17 +346,6 @@
                             android:text="Kein Gruppen-Mitglied ist ein Fahrer - keine neuen Fahrten können erstellt werden!"
                             android:textStyle="italic" />
 
-                        <!--<TextView-->
-                            <!--android:id="@+id/serviceColorCode"-->
-                            <!--android:layout_width="wrap_content"-->
-                            <!--android:layout_height="wrap_content"-->
-                            <!--android:ellipsize="marquee"-->
-                            <!--android:focusable="true"-->
-                            <!--android:focusableInTouchMode="true"-->
-                            <!--android:marqueeRepeatLimit="marquee_forever"-->
-                            <!--android:scrollHorizontally="true"-->
-                            <!--android:singleLine="true"-->
-                            <!--android:text="Single-line text view that scrolls automatically if the text is too long to fit in the widget" />-->
                     </LinearLayout>
 
                     <ListView
@@ -378,7 +354,8 @@
                         android:layout_height="match_parent"
                         android:clickable="false"
                         android:scrollbars="vertical"
-                        android:visibility="visible" />
+                        android:visibility="visible"
+                        android:listSelector="@android:color/transparent" />
 
                 </LinearLayout>
 
@@ -388,19 +365,6 @@
                     android:background="?android:attr/listDivider" />
 
             </LinearLayout>
-
-            <!--<com.google.android.material.floatingactionbutton.FloatingActionButton-->
-            <!--android:id="@+id/overview_addTrip"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_margin="16dp"-->
-            <!--android:layout_marginEnd="16dp"-->
-            <!--android:layout_marginBottom="16dp"-->
-            <!--android:clickable="true"-->
-            <!--app:layout_constraintBottom_toBottomOf="parent"-->
-            <!--app:layout_constraintEnd_toEndOf="parent"-->
-            <!--app:srcCompat="@drawable/ic_add"-->
-            <!--tools:visibility="gone" />-->
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
