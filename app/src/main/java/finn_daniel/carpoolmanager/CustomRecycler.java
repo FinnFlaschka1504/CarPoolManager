@@ -1,6 +1,7 @@
 package finn_daniel.carpoolmanager;
 
 import android.content.Context;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,16 +15,38 @@ import java.util.List;
 import java.util.Map;
 
 public class CustomRecycler {
+    enum ORIENTATION {
+        VERTICAL, HORIZONTAL
+    }
+
+    private boolean useCustomRipple = false;
     private Context context;
     private RecyclerView recycler;
     private int itemView;
     private List<Integer> viewIdList;
     private SetCellContent setItemContent;
     private List objectList;
+    private int orientation = LinearLayoutManager.HORIZONTAL;
+    private OnLongClickListener onLongClickListener;
+    private View.OnLongClickListener longClickListener = view -> {
+        int index = ((ViewGroup) view.getParent()).indexOfChild(view);
+        onLongClickListener.runOnLongClickListener(view, objectList.get(index), index);
+        return true;
+    };
+    private OnClickListener onClickListener;
+    private View.OnClickListener clickListener = view -> {
+        int index = ((ViewGroup) view.getParent()).indexOfChild(view);
+        onClickListener.runOnClickListener(view, objectList.get(index), index);
+    };
+
+    private CustomRecycler(Context context) {
+        this.context = context;
+    }
 
     public static CustomRecycler Builder(Context context) {
         return new CustomRecycler(context);
     }
+
     public static CustomRecycler Builder(Context context, RecyclerView recycler) {
         CustomRecycler customRecycler = new CustomRecycler(context);
         customRecycler.recycler = recycler;
@@ -31,9 +54,6 @@ public class CustomRecycler {
     }
 
     // ToDo: eventuell per z.B. User.class die dataset-Liste nicht abstrakt machen
-
-    private CustomRecycler(Context context) {
-    }
 
     public CustomRecycler setItemView(int layoutId) {
         this.itemView = layoutId;
@@ -45,6 +65,8 @@ public class CustomRecycler {
         return this;
     }
 
+
+
     public interface SetViewList{
         List<Integer> runSetViewList(List<Integer> viewList);
     }
@@ -54,8 +76,21 @@ public class CustomRecycler {
         return this;
     }
 
+    public CustomRecycler setOrientation(ORIENTATION orientation) {
+        switch (orientation) {
+            case VERTICAL: this.orientation = LinearLayoutManager.VERTICAL; break;
+            case HORIZONTAL: this.orientation = LinearLayoutManager.HORIZONTAL; break;
+        }
+        return this;
+    }
+
+    public CustomRecycler setUseCustomRipple(boolean useCustomRipple) {
+        this.useCustomRipple = useCustomRipple;
+        return this;
+    }
+
     public interface SetCellContent {
-        void runSetCellContent(Map<Integer, View> integerViewMap, Object o);
+        void runSetCellContent(Map<Integer, View> integerViewMap, Object object);
     }
 
     public CustomRecycler setSetItemContent(SetCellContent setItemContent) {
@@ -63,39 +98,57 @@ public class CustomRecycler {
         return this;
     }
 
+    public interface OnClickListener {
+
+        void runOnClickListener(View view, Object object, int index);
+    }
+
+    public CustomRecycler setOnClickListener(OnClickListener onClickListener) {
+        this.onClickListener = onClickListener;
+        return this;
+    }
+
+    public interface OnLongClickListener {
+        void runOnLongClickListener(View view, Object object, int index);
+    }
+
+    public CustomRecycler setOnLongClickListener(OnLongClickListener onLongClickListener) {
+        this.onLongClickListener = onLongClickListener;
+        return this;
+    }
+
     class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
         private List dataset;
 
-        // Provide a reference to the views for each data item
-        // Complex data items may need more than one view per item, and
-        // you provide access to all the views for a data item in a view holder
-        // Provide a suitable constructor (depends on the kind of dataset)
-
         public MyAdapter(List list) {
             dataset = list;
-
-//            ((User) list.get(0))
         }
-        // Create new views (invoked by the layout manager)
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            // create a new view
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(itemView, parent, false);
+            if (onClickListener != null) {
+                v.setOnClickListener(clickListener);
+                if (!useCustomRipple) {
+                    v.setFocusable(true);
+                    v.setClickable(true);
+                    TypedValue outValue = new TypedValue();
+                    context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+                    v.setBackgroundResource(outValue.resourceId);
+                }
+            }
+
+            if (onLongClickListener != null)
+                v.setOnLongClickListener(longClickListener);
+
             return new ViewHolder(v);
         }
-        // Replace the contents of a view (invoked by the layout manager)
 
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
-            // - get element from your dataset at this position
-            // - replace the contents of the view with that element
-//            holder.textView.setText(dataset[position]);
-//            holder.viewMap.get()
             setItemContent.runSetCellContent(holder.viewMap, dataset.get(position));
         }
-        // Return the size of your dataset (invoked by the layout manager)
 
         @Override
         public int getItemCount() {
@@ -104,8 +157,6 @@ public class CustomRecycler {
 
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            // each data item is just a string in this case
-//            public TextView textView;
             Map<Integer, View> viewMap = new HashMap<>();
 
             public ViewHolder(View v) {
@@ -118,13 +169,19 @@ public class CustomRecycler {
     }
 
     public RecyclerView generate() {
-        RecyclerView recyclerView = new RecyclerView(context);
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(context);
+        RecyclerView recyclerView;
+        if (this.recycler == null)
+            recyclerView = new RecyclerView(context);
+        else
+            recyclerView = recycler;
+
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(context, orientation, false);
         recyclerView.setLayoutManager(layoutManager);
 
-        // specify an adapter (see also next example)
         RecyclerView.Adapter mAdapter = new MyAdapter(objectList);
         recyclerView.setAdapter(mAdapter);
+
+        recyclerView.setClickable(true);
 
         return recyclerView;
     }

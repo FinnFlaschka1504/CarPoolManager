@@ -249,6 +249,7 @@ class ViewPager_GroupOverview extends Fragment {
             Dialog dialog1 = CustomDialog.Builder(getContext())
                     .setTitle("Mitfahrer bearbeiten")
                     .setText("Was möchtest du tun?")
+//                    .setDividerVisibility(false)
                     .setButtonType(CustomDialog.buttonType_Enum.CUSTOM)
                     .addButton("Gruppe Verlassen", dialog -> {
                         // ToDo: Gruppe verlassen implementieren
@@ -256,12 +257,37 @@ class ViewPager_GroupOverview extends Fragment {
                     })
                     .addButton("Mitfahrer hinzufügen", dialog ->
                             // ToDo: nutzer hinzufügen implementieren
-                            CustomDialog.Builder(getContext())
-                                    .setTitle("Mitfahrer hinzufügen")
-                                    .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
-                                    .setView(R.layout.dialog_add_passenger)
-                                    .setDimensions(true, true)
-                                    .show(),
+                            {
+                                Dialog dialog_AddPassenger = CustomDialog.Builder(getContext())
+                                        .setTitle("Mitfahrer hinzufügen")
+                                        .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                                        .setView(R.layout.dialog_add_passenger)
+                                        .setDimensions(true, true)
+                                        .show();
+
+                                CustomRecycler.Builder(getContext(), dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_selectedPassengers))
+                                        .setItemView(R.layout.list_item_user_bubble)
+                                        .setObjectList(sortedUserList)
+                                        .setViewList(viewList -> {
+                                            viewList.add(R.id.userList_bubble_name);
+                                            viewList.add(R.id.userList_bubble_email);
+                                            return viewList;
+                                        })
+                                        .setSetItemContent((integerViewMap, object) -> {
+                                            User user = (User) object;
+                                            ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
+                                            ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
+                                            integerViewMap.get(R.id.userList_bubble_email).setSelected(true);
+                                        })
+                                        .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
+                                        .setOnClickListener((view, object, index) -> Toast.makeText(getContext(),
+                                                "click: " + index + "\n" + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
+                                        .setOnLongClickListener((view, object, index) -> Toast.makeText(getContext(),
+                                                "long: " + index + "\n" + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
+                                        .setUseCustomRipple(true)
+                                        .generate();
+
+                            },
                             false)
 //                    .addButton("Test1", dialog ->
 //                            CustomDialog.Builder(getContext())
@@ -281,6 +307,7 @@ class ViewPager_GroupOverview extends Fragment {
                     .addButton("Recycler", dialog ->
                             CustomDialog.Builder(getContext())
 //                                    .setText("Test")
+                                    .setDividerVisibility(false)
                                     .setView(
                                             CustomRecycler.Builder(getContext())
                                                     .setItemView(R.layout.list_item_user_bubble)
@@ -290,16 +317,22 @@ class ViewPager_GroupOverview extends Fragment {
                                                         return viewList;
                                                     })
                                                     .setObjectList(sortedUserList)
-                                                    .setSetItemContent((integerViewMap, o) -> {
-                                                        User user = (User) o;
+                                                    .setSetItemContent((integerViewMap, object) -> {
+                                                        User user = (User) object;
                                                         ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
                                                         ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
+                                                        integerViewMap.get(R.id.userList_bubble_email).setSelected(true);
                                                     })
+                                                    .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
+                                                    .setOnClickListener((view, object, index) -> Toast.makeText(getContext(),
+                                                            "click: " + index + "\n" + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
+                                                    .setUseCustomRipple(true)
                                                     .generate()
                                     )
                                     .show(),
                             false)
                     .show();
+
 
         });
 
@@ -853,7 +886,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         dialog_tripList = CustomDialog.Builder(getContext())
                 .setTitle("Trip Liste")
-//                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
+                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
                 .setView(R.layout.dialog_trip_list)
                 .setButtonType(CustomDialog.buttonType_Enum.BACK)
                 .show();

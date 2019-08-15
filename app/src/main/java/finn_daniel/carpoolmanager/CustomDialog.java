@@ -184,8 +184,8 @@ public class CustomDialog {
 
         if (text != null && view != null) {
             LinearLayout dialog_custom_layout_view = dialog.findViewById(R.id.dialog_custom_layout_view);
-            dialog_custom_layout_view.setPadding(dialog_custom_layout_view.getPaddingLeft(), 0,
-                    dialog_custom_layout_view.getPaddingRight(), dialog_custom_layout_view.getPaddingBottom());
+//            dialog_custom_layout_view.setPadding(dialog_custom_layout_view.getPaddingLeft(), 0,
+//                    dialog_custom_layout_view.getPaddingRight(), dialog_custom_layout_view.getPaddingBottom());
             dialog.findViewById(R.id.dialog_custom_divider3).setVisibility(View.GONE);
         }
 
