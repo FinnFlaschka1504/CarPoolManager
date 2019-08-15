@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ListView listView_groupList;
 
     List<String> createData_gruppenNamen;
+    List<String> createData_emailAddressen;
     List<Group.costCalculationType> createData_gruppenCostCalcType;
     List<Group.costCalculationMethod> createData_gruppenCostCalcMethod;
     List<String> createData_userNamen;
@@ -873,24 +874,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         createData_gruppenNamen = new ArrayList<>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam"));
         createData_gruppenCostCalcType = new ArrayList<>(Arrays.asList(Group.costCalculationType.BUDGET, Group.costCalculationType.BUDGET ,Group.costCalculationType.COST ));
         createData_gruppenCostCalcMethod = new ArrayList<>(Arrays.asList(Group.costCalculationMethod.ACTUAL_COST, Group.costCalculationMethod.TRIP ,Group.costCalculationMethod.KIKOMETER_ALLOWANCE ));
-        createData_userNamen = new ArrayList<String>(Arrays.asList("HansP", "DanielP", "FinnF", "GünterM", "HansD", "JohnL", "MarkusG", "TomN", "KarlF"));
+        createData_userNamen = new ArrayList<>(Arrays.asList("HansP", "DanielP", "FinnF", "GünterM", "HansD", "JohnL", "MarkusG", "TomN", "KarlF"));
+        createData_emailAddressen = new ArrayList<>(Arrays.asList("Hans.P@gmail.com", "Daniel.P@gmail.com", "Finn.Flaschka@gmail.com", "Günter.M@gmail.com", "Hans.D@gmail.com", "John.L@gmail.com", "Markus.G@gmail.com", "Tom.N@gmail.com", "Karl.F@gmail.com"));
 
-        createData_userGroupMap.put("HansP", new ArrayList<String>(Arrays.asList("Auf zur Arbeit")));
-        createData_userGroupMap.put("DanielP", new ArrayList<String>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe")));
-        createData_userGroupMap.put("FinnF", new ArrayList<String>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam")));
-        createData_userGroupMap.put("GünterM", new ArrayList<String>(Arrays.asList("FHDW-Gruppe")));
-        createData_userGroupMap.put("HansD", new ArrayList<String>(Arrays.asList("FHDW-Gruppe")));
-        createData_userGroupMap.put("JohnL", new ArrayList<String>(Arrays.asList("FHDW-Gruppe")));
-        createData_userGroupMap.put("MarkusG", new ArrayList<String>(Arrays.asList("FußballTeam")));
-        createData_userGroupMap.put("TomN", new ArrayList<String>(Arrays.asList("FußballTeam")));
-        createData_userGroupMap.put("KarlF", new ArrayList<String>(Arrays.asList("FußballTeam")));
+        createData_userGroupMap.put("HansP", new ArrayList<>(Arrays.asList("Auf zur Arbeit")));
+        createData_userGroupMap.put("DanielP", new ArrayList<>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe")));
+        createData_userGroupMap.put("FinnF", new ArrayList<>(Arrays.asList("Auf zur Arbeit", "FHDW-Gruppe", "FußballTeam")));
+        createData_userGroupMap.put("GünterM", new ArrayList<>(Arrays.asList("FHDW-Gruppe")));
+        createData_userGroupMap.put("HansD", new ArrayList<>(Arrays.asList("FHDW-Gruppe")));
+        createData_userGroupMap.put("JohnL", new ArrayList<>(Arrays.asList("FHDW-Gruppe")));
+        createData_userGroupMap.put("MarkusG", new ArrayList<>(Arrays.asList("FußballTeam")));
+        createData_userGroupMap.put("TomN", new ArrayList<>(Arrays.asList("FußballTeam")));
+        createData_userGroupMap.put("KarlF", new ArrayList<>(Arrays.asList("FußballTeam")));
 
-        createData_mitfahrer = new ArrayList<ArrayList<String>>();
+        createData_mitfahrer = new ArrayList<>();
         createData_mitfahrer.add(new ArrayList<>(Arrays.asList("HansP", "DanielP", "FinnF")));
         createData_mitfahrer.add(new ArrayList<>(Arrays.asList("GünterM", "HansD", "DanielP", "JohnL", "FinnF")));
         createData_mitfahrer.add(new ArrayList<>(Arrays.asList("MarkusG", "TomN", "KarlF", "FinnF")));
 
-        createData_fahrer = new ArrayList<ArrayList<String>>();
+        createData_fahrer = new ArrayList<>();
         createData_fahrer.add(new ArrayList<>(Arrays.asList("HansP", "DanielP", "FinnF")));
         createData_fahrer.add(new ArrayList<>(Arrays.asList("GünterM", "HansD", "JohnL")));
         createData_fahrer.add(new ArrayList<>(Arrays.asList("TomN", "FinnF")));
@@ -898,7 +900,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         createData_fahrten = new ArrayList<>();
         createData_fahrten.add(new ArrayList<>(Arrays.asList(7, 31)));
         createData_fahrten.add(new ArrayList<>(Arrays.asList(0, 568)));
-        createData_fahrten.add(new ArrayList<Integer>(Arrays.asList(9, 10)));
+        createData_fahrten.add(new ArrayList<>(Arrays.asList(9, 10)));
 
         databaseReference.child("Groups").removeValue();
         databaseReference.child("Users").removeValue();
@@ -916,10 +918,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         loggedInUser = new User();
+        int count = 0;
         for (String name : createData_userNamen) {
             User newUser = new User();
 //            newUser.generateId();
             newUser.setUserName(name);
+            newUser.setEmailAddress(createData_emailAddressen.get(count));
             Random random = new Random();
             newUser.setUserColor("#" + Integer.toHexString(Color.argb(255, random.nextInt(256), random.nextInt(256), random.nextInt(256))).toUpperCase());
             createData_userIdMap.put(name, newUser.getUser_id());
@@ -935,6 +939,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
             databaseReference.child("Users").child(newUser.getUser_id()).setValue(newUser);
+            count++;
         }
 
         databaseReference.child("Groups").addListenerForSingleValueEvent(new ValueEventListener() {

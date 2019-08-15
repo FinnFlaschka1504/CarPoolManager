@@ -13,14 +13,13 @@ public class User {
     private List<String> groupIdList = new ArrayList<>();
     private List<String> carIdList = new ArrayList<>();
     private String userColor;
+    private String emailAddress;
 
     public User() {
         user_id = "user_" + UUID.randomUUID().toString();
         Random random = new Random();
 
-//        userColor = "#" + Integer.toHexString(random.nextInt(0xFFFFFF)).toUpperCase();
         userColor = "#" + Integer.toHexString(Color.argb(255, random.nextInt(256) - 100, random.nextInt(256) - 100, random.nextInt(256) - 100)).toUpperCase();
-//        userColor = "#" + Integer.toHexString(Color.argb(255, random.nextInt(156) + 100, random.nextInt(156) + 100, random.nextInt(156) + 100)).toUpperCase();
     }
 
     public void addGroup(String user_id) {
@@ -78,5 +77,13 @@ public class User {
 
     public void setUserColor(String userColor) {
         this.userColor = userColor;
+    }
+
+    public String getEmailAddress() {
+        return emailAddress;
+    }
+
+    public void setEmailAddress(String emailAddress) {
+        this.emailAddress = emailAddress;
     }
 }

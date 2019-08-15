@@ -45,5 +45,5 @@ dependencies {
     implementation 'com.github.sundeepk:compact-calendar-view:3.0.0'
     implementation 'com.github.tizisdeepan:eventscalendar:1.5.2'
     implementation 'org.apmem.tools:layouts:1.10@aar'
-
+    implementation 'com.android.support:recyclerview-v7:28.0.0'
 }

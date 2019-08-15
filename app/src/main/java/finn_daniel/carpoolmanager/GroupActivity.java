@@ -258,32 +258,49 @@ class ViewPager_GroupOverview extends Fragment {
                             // ToDo: nutzer hinzufügen implementieren
                             CustomDialog.Builder(getContext())
                                     .setTitle("Mitfahrer hinzufügen")
-                                    .setButtonType(CustomDialog.buttonType_Enum.BACK)
-                                    .setView(R.layout.dialog_add_passenger)
-                                    .show(),
-                            false)
-                    .addButton("Test1", dialog ->
-                            CustomDialog.Builder(getContext())
-                                    .setTitle("Nur zurück")
-                                    .setTitleTextAlignment(View.TEXT_ALIGNMENT_TEXT_START)
-                                    .setText("Das ist ein etwas längerer Text")
-                                    .setDividerVisibility(false)
-                                    .setTextBold(true)
-                                    .show(),
-                            false)
-                    .addButton("Test2", dialog ->
-                            CustomDialog.Builder(getContext())
-                                    .setTitle("Speichern und Abbrechen")
                                     .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                                    .setView(R.layout.dialog_add_passenger)
+                                    .setDimensions(true, true)
                                     .show(),
                             false)
-                    .addButton("Divider", dialog ->
+//                    .addButton("Test1", dialog ->
+//                            CustomDialog.Builder(getContext())
+//                                    .setTitle("Nur zurück")
+//                                    .setTitleTextAlignment(View.TEXT_ALIGNMENT_TEXT_START)
+//                                    .setText("Das ist ein etwas längerer Text")
+//                                    .setDividerVisibility(false)
+//                                    .setTextBold(true)
+//                                    .show(),
+//                            false)
+//                    .addButton("Test2", dialog ->
+//                            CustomDialog.Builder(getContext())
+//                                    .setTitle("Speichern und Abbrechen")
+//                                    .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+//                                    .show(),
+//                            false)
+                    .addButton("Recycler", dialog ->
                             CustomDialog.Builder(getContext())
 //                                    .setText("Test")
-                                    .setView(R.layout.dialog_add_passenger)
+                                    .setView(
+                                            CustomRecycler.Builder(getContext())
+                                                    .setItemView(R.layout.list_item_user_bubble)
+                                                    .setViewList(viewList -> {
+                                                        viewList.add(R.id.userList_bubble_name);
+                                                        viewList.add(R.id.userList_bubble_email);
+                                                        return viewList;
+                                                    })
+                                                    .setObjectList(sortedUserList)
+                                                    .setSetItemContent((integerViewMap, o) -> {
+                                                        User user = (User) o;
+                                                        ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
+                                                        ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
+                                                    })
+                                                    .generate()
+                                    )
                                     .show(),
                             false)
                     .show();
+
         });
 
         // ToDo: dialoge durch neuen Custom Dialog ersetzen
