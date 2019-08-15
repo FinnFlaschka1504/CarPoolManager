@@ -269,12 +269,20 @@ class ViewPager_GroupOverview extends Fragment {
                                     .setText("Das ist ein etwas längerer Text")
                                     .setDividerVisibility(false)
                                     .setTextBold(true)
-                                    .show(), false)
+                                    .show(),
+                            false)
                     .addButton("Test2", dialog ->
                             CustomDialog.Builder(getContext())
                                     .setTitle("Speichern und Abbrechen")
                                     .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
-                                    .show(), false)
+                                    .show(),
+                            false)
+                    .addButton("Divider", dialog ->
+                            CustomDialog.Builder(getContext())
+//                                    .setText("Test")
+                                    .setView(R.layout.dialog_add_passenger)
+                                    .show(),
+                            false)
                     .show();
         });
 
@@ -567,11 +575,9 @@ class ViewPager_GroupOverview extends Fragment {
 
     private void showChangeCostCalculation() {
 
-//         Pair<CustomDialog, Dialog> customDialogDialogPair =
         int saveButtonId = View.generateViewId();
         Dialog dialog_changeCostCalculation = CustomDialog.Builder(getContext())
                 .setTitle("Kostenberechnung ändern")
-//                .setText("Das ist ein Test")
                 .setView(R.layout.dialog_change_cost_calculation)
                 .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
@@ -702,8 +708,11 @@ class ViewPager_GroupOverview extends Fragment {
 
 
     private void showCostCalculation() {
-        final Dialog dialog_costCalculation = new Dialog(getContext());
-        dialog_costCalculation.setContentView(R.layout.dialog_calculate_costs);
+        final Dialog dialog_costCalculation = CustomDialog.Builder(getContext())
+                .setTitle("KostenKalkulation")
+                .setView(R.layout.dialog_calculate_costs)
+                .show();
+
         final LinearLayout dialogCostList_list = dialog_costCalculation.findViewById(R.id.dialogCostList_list);
         final Map<String, Double> userTripMap_count = new HashMap<>();
 
@@ -821,22 +830,9 @@ class ViewPager_GroupOverview extends Fragment {
             dialogCostList_list.addView(listItem);
         }
 
-        dialog_costCalculation.findViewById(R.id.dialogCostList_cancel).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog_costCalculation.dismiss();
-            }
-        });
-
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog_costCalculation.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog_costCalculation.show();
-        dialog_costCalculation.getWindow().setAttributes(lp);
     }
 
     private void showTripList(boolean showAll) {
-
 
         dialog_tripList = CustomDialog.Builder(getContext())
                 .setTitle("Trip Liste")

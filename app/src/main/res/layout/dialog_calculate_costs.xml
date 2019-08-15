@@ -6,49 +6,6 @@
     android:gravity="right"
     android:orientation="vertical">
 
-    <!--<LinearLayout-->
-    <!--android:layout_width="match_parent"-->
-    <!--android:layout_height="match_parent"-->
-    <!--android:gravity="right"-->
-    <!--android:orientation="vertical">-->
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
-        android:text="Kosten Kalkulation"
-        android:textAlignment="center"
-        android:textColor="@color/colorPrimary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/colorDdivider" />
-
-    <!--<LinearLayout-->
-        <!--android:id="@+id/test"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:orientation="vertical"></LinearLayout>-->
-
-    <!--<ListView-->
-        <!--android:id="@+id/dialogCostListlist"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="match_parent"-->
-        <!--android:layout_marginLeft="16dp"-->
-        <!--android:layout_marginRight="16dp"-->
-        <!--android:layout_weight="1"-->
-        <!--android:clickable="false"-->
-        <!--android:divider="@color/colorDdivider"-->
-        <!--android:dividerHeight="1dp"-->
-        <!--android:scrollbars="none"-->
-        <!--android:visibility="visible">-->
-
-    <!--</ListView>-->
-
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -60,20 +17,5 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
     </ScrollView>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/colorDdivider" />
-
-
-    <Button
-        android:id="@+id/dialogCostList_cancel"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Zurück" />
-
-    <!--</LinearLayout>-->
 
 </LinearLayout>

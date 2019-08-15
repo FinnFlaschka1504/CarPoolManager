@@ -441,85 +441,71 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     private void showAddCarDialog() {
-        dialog_addCar = new Dialog(AddTripActivity.this);
-        dialog_addCar.setContentView(R.layout.dialog_add_car);
+        dialog_addCar = CustomDialog.Builder(AddTripActivity.this)
+                .setTitle("Neues Auto anlegen")
+                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .setView(R.layout.dialog_add_car)
+                .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
+                    dialogAddCar_name = dialog.findViewById(R.id.dialogAddCar_name);
+                    dialogAddCar_consumption = dialog.findViewById(R.id.dialogAddCar_consumption);
+                    dialogAddCar_selectFuelType = dialog.findViewById(R.id.dialogAddCar_selectFuelType);
 
-        dialogAddCar_name = dialog_addCar.findViewById(R.id.dialogAddCar_name);
-        dialogAddCar_consumption = dialog_addCar.findViewById(R.id.dialogAddCar_consumption);
-        dialogAddCar_selectFuelType = dialog_addCar.findViewById(R.id.dialogAddCar_selectFuelType);
+                    dialogAddCar_wear = dialog.findViewById(R.id.dialogAddCar_wear);
 
-        dialogAddCar_wear = dialog_addCar.findViewById(R.id.dialogAddCar_wear);
-        dialogAddCar_cancel = dialog_addCar.findViewById(R.id.dialogAddCar_cancel);
-        dialogAddCar_save = dialog_addCar.findViewById(R.id.dialogAddCar_save);
+                    if (dialogAddCar_name.getText().toString().trim().equals("") || dialogAddCar_consumption.getText().toString().equals("") || dialogAddCar_wear.getText().toString().equals("")) {
+                        Toast.makeText(AddTripActivity.this, "Alle Felder müssen gefüllt sein", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (carNameToIdMap.containsKey(dialogAddCar_name.getText().toString().trim())) {
+                        Toast.makeText(AddTripActivity.this, "Auto mit dem Namen existiert bereits", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog_addCar.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog_addCar.show();
-        dialog_addCar.getWindow().setAttributes(lp);
+                    newCar = new Car();
+                    newCar.setName(dialogAddCar_name.getText().toString().trim());
+                    newCar.setConsumption(Double.valueOf(dialogAddCar_consumption.getText().toString()));
+                    switch (dialogAddCar_selectFuelType.getSelectedItem().toString()) {
+                        case "E5" : newCar.setFuelType(Car.fuelType.E5); break;
+                        case "E10" : newCar.setFuelType(Car.fuelType.E10); break;
+                        case "Diesel" : newCar.setFuelType(Car.fuelType.DIESEL); break;
+                    }
+                    newCar.setWear(Double.valueOf(dialogAddCar_wear.getText().toString()));
+                    databaseReference.child("Cars").child(selectedUser.getUser_id()).child(newCar.getCar_id()).setValue(newCar);
+                    dialog.dismiss();
+
+                    databaseReference.child("Users").child(selectedUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.getValue() == null)
+                                return;
+                            User foundUser = dataSnapshot.getValue(User.class);
+                            foundUser.addCar(newCar.getCar_id());
+                            databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
+                            selectedUser = foundUser;
+                            for (int i = 0; i < driverList.size(); i++) {
+                                if (driverList.get(i).getUser_id().equals(selectedUser.getUser_id())) {
+                                    driverList.set(i,foundUser);
+                                }
+                            }
+
+                            if (selectedUser.equals(loggedInUser)) {
+                                SharedPreferences.Editor editor = mySPR.edit();
+                                editor.putString("loggedInUser", gson.toJson(loggedInUser));
+                                editor.commit();
+                            }
+                            loadCarSpinner(true);
+                        }
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    });
+
+                }, false)
+                .show();
+
 
         dialog_addCar.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-        dialogAddCar_name.requestFocus();
-
-        dialogAddCar_cancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog_addCar.dismiss();
-            }
-        });
-
-        dialogAddCar_save.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (dialogAddCar_name.getText().toString().trim().equals("") || dialogAddCar_consumption.getText().toString().equals("") || dialogAddCar_wear.getText().toString().equals("")) {
-                    Toast.makeText(AddTripActivity.this, "Alle Felder müssen gefüllt sein", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (carNameToIdMap.containsKey(dialogAddCar_name.getText().toString().trim())) {
-                    Toast.makeText(AddTripActivity.this, "Auto mit dem Namen existiert bereits", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                newCar = new Car();
-                newCar.setName(dialogAddCar_name.getText().toString().trim());
-                newCar.setConsumption(Double.valueOf(dialogAddCar_consumption.getText().toString()));
-                switch (dialogAddCar_selectFuelType.getSelectedItem().toString()) {
-                    case "E5" : newCar.setFuelType(Car.fuelType.E5); break;
-                    case "E10" : newCar.setFuelType(Car.fuelType.E10); break;
-                    case "Diesel" : newCar.setFuelType(Car.fuelType.DIESEL); break;
-                }
-                newCar.setWear(Double.valueOf(dialogAddCar_wear.getText().toString()));
-                databaseReference.child("Cars").child(selectedUser.getUser_id()).child(newCar.getCar_id()).setValue(newCar);
-                dialog_addCar.dismiss();
-
-                databaseReference.child("Users").child(selectedUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.getValue() == null)
-                            return;
-                        User foundUser = dataSnapshot.getValue(User.class);
-                        foundUser.addCar(newCar.getCar_id());
-                        databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
-                        selectedUser = foundUser;
-                        for (int i = 0; i < driverList.size(); i++) {
-                            if (driverList.get(i).getUser_id().equals(selectedUser.getUser_id())) {
-                                driverList.set(i,foundUser);
-                            }
-                        }
-
-                        if (selectedUser.equals(loggedInUser)) {
-                            SharedPreferences.Editor editor = mySPR.edit();
-                            editor.putString("loggedInUser", gson.toJson(loggedInUser));
-                            editor.commit();
-                        }
-                        loadCarSpinner(true);
-                    }
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                    }
-                });
-            }
-        });
+        dialog_addCar.findViewById(R.id.dialogAddCar_name).requestFocus();
     }
 
     void loadCarSpinner(boolean newCar) {
@@ -568,13 +554,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     void showMapDialog() {
         dialog_selectRoute.show();
 
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog_selectRoute.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog_selectRoute.show();
-        dialog_selectRoute.getWindow().setAttributes(lp);
-
+        CustomDialog.setDialogLayoutParameters(dialog_selectRoute, true, true);
 
         dialog_selectRoute.findViewById(R.id.dialogSelectRoute_cancel).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -593,8 +573,25 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     private void showRenamePointsDialog() {
-        dialog_renamePoints = new Dialog(AddTripActivity.this);
-        dialog_renamePoints.setContentView(R.layout.dialog_rename_points);
+        int saveButtonId = View.generateViewId();
+        dialog_renamePoints = CustomDialog.Builder(AddTripActivity.this)
+                .setDividerVisibility(false)
+                .setView(R.layout.dialog_rename_points)
+                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
+                    dialogRenamePoints_from = dialog.findViewById(R.id.dialogRenamePoints_from);
+                    dialogRenamePoints_to = dialog.findViewById(R.id.dialogRenamePoints_to);
+
+                    locationNameArray[0] = dialogRenamePoints_from.getText().toString();
+                    locationNameArray[1] = dialogRenamePoints_to.getText().toString();
+                    addTrip_from.setText(dialogRenamePoints_from.getText());
+                    addTrip_to.setText(dialogRenamePoints_to.getText());
+                    addTrip_distance.setText(dialogSelectRoute_distance.getText());
+                    dialog_selectRoute.dismiss();
+                    if (selectedCar != null)
+                        calculateCost();
+                }, saveButtonId)
+                .show();
 
         dialogRenamePoints_from = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_from);
         dialogRenamePoints_to = dialog_renamePoints.findViewById(R.id.dialogRenamePoints_to);
@@ -622,44 +619,12 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             dialogRenamePoints_to.setText(locationNameArray[1]);
         }
 
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog_renamePoints.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog_renamePoints.show();
-        dialog_renamePoints.getWindow().setAttributes(lp);
-
-        dialogRenamePoints_to.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER) {
-                    dialog_renamePoints.findViewById(R.id.dialogRenamePoints_save).callOnClick();
-                }
-                return true;
+        dialogRenamePoints_to.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER) {
+                dialog_renamePoints.findViewById(saveButtonId).callOnClick();
             }
+            return true;
         });
-
-
-        dialog_renamePoints.findViewById(R.id.dialogRenamePoints_cancel).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog_renamePoints.dismiss();
-            }
-        });
-        dialog_renamePoints.findViewById(R.id.dialogRenamePoints_save).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                locationNameArray[0] = dialogRenamePoints_from.getText().toString();
-                locationNameArray[1] = dialogRenamePoints_to.getText().toString();
-                addTrip_from.setText(dialogRenamePoints_from.getText());
-                addTrip_to.setText(dialogRenamePoints_to.getText());
-                addTrip_distance.setText(dialogSelectRoute_distance.getText());
-                dialog_renamePoints.dismiss();
-                dialog_selectRoute.dismiss();
-                if (selectedCar != null)
-                    calculateCost();
-            }
-        });
-
 
     }
 
@@ -730,14 +695,10 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     private void showBookmarkDialog() {
-        Dialog dialog_selectBookmark = new Dialog(this);
-        dialog_selectBookmark.setContentView(R.layout.dialog_select_bookmark);
-        setDialogLayoutParameters(dialog_selectBookmark, true, false);
-
-
-        dialog_selectBookmark.findViewById(R.id.dialogSelectBookmark_cancel).setOnClickListener(view -> {
-            dialog_selectBookmark.dismiss();
-        });
+        Dialog dialog_selectBookmark = CustomDialog.Builder(AddTripActivity.this)
+                .setTitle("Lesezeichen auswählen")
+                .setView(R.layout.dialog_select_bookmark)
+                .show();
 
         class ListAdapter extends ArrayAdapter<Trip> {
 
@@ -780,7 +741,6 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialogSelectBookmark_list.setAdapter(customAdapter);
 
         dialogSelectBookmark_list.setOnItemClickListener((adapterView, view, i, l) -> {
-//            String test = null;
             applyBookmark(thisGroup.getBookmarkList().get(i));
             dialog_selectBookmark.dismiss();
         });

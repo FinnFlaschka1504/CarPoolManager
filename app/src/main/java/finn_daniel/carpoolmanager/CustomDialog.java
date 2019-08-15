@@ -29,12 +29,13 @@ public class CustomDialog {
     private String title;
     private String text;
     private View view;
-    private buttonType_Enum buttonType = buttonType_Enum.YES_NO;
+    private buttonType_Enum buttonType = buttonType_Enum.BACK;
     private Pair<Boolean, Boolean> dimensions = new Pair<>(true, false);
     private boolean dividerVisibility = true;
     private boolean isDividerVisibilityCustom = false;
     private int titleTextAlignment = View.TEXT_ALIGNMENT_CENTER;
     private boolean isTextBold = false;
+//    private boolean[] dividerVisible = new boolean[5];
 
     private List<Boolean> dismissDialogList = new ArrayList<>();
     private List<Pair<String, OnClick>> pairList = new ArrayList<>();
@@ -141,6 +142,11 @@ public class CustomDialog {
         return this;
     }
 
+//    public CustomDialog setDividerVisible(boolean textTop, boolean textBottom, boolean viweTop, boolean viewBottom, boolean extraDivider) {
+//        this.dividerVisible = dividerVisible;
+//        return this;
+//    }
+
     public Dialog show() {
         dialog = new Dialog(this.context);
         dialog.setContentView(R.layout.dialog_custom);
@@ -170,6 +176,7 @@ public class CustomDialog {
         else
             dialog.findViewById(R.id.dialog_custom_layout_text).setVisibility(View.GONE);
 
+
         if (view != null)
             ((LinearLayout) dialog.findViewById(R.id.dialog_custom_layout_view_interface)).addView(view);
         else
@@ -187,8 +194,14 @@ public class CustomDialog {
                 dialog.findViewById(R.id.dialog_custom_divider).setVisibility(View.VISIBLE);
         }
 
+        if (title == null && text != null)
+            dialog.findViewById(R.id.dialog_custom_divider1).setVisibility(View.INVISIBLE);
 
-            setDialogLayoutParameters(dialog, dimensions.first, dimensions.second);
+        if (title == null && text == null && view != null)
+            dialog.findViewById(R.id.dialog_custom_divider3).setVisibility(View.GONE);
+
+
+        setDialogLayoutParameters(dialog, dimensions.first, dimensions.second);
         setButtons();
         setOnClickListeners();
         return dialog;

@@ -246,8 +246,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 int saveButtonId = View.generateViewId();
                 Dialog dialog_newGroup = CustomDialog.Builder(MainActivity.this)
                         .setTitle("Neue Gruppe Erstellen")
-                        .setText("ToDo:\n1. Ich schreibe einen sehr langen Text\n2. Ich versuche einen Text zu schreiben, der über eine Zeile hinaus geht\n\nOh alles erledigt!")
-                        .setDividerVisibility(false)
                         .setView(R.layout.dialog_new_group)
                         .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
                         .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
@@ -315,9 +313,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             databaseReference.child("Groups").child(newGroup.getGroup_id()).addValueEventListener(groupChangeListener);
 
                             listeLaden();
-                        }, saveButtonId)
+                        }, saveButtonId, false)
                         .show();
-                 dialog_newGroup.findViewById(saveButtonId).setEnabled(false);
+                dialog_newGroup.findViewById(saveButtonId).setEnabled(false);
                 setChangeRadioButtonListener(dialog_newGroup, dialog_newGroup.findViewById(R.id.dialogNewGroup_typeGroup),
                         dialog_newGroup.findViewById(R.id.dialogNewGroup_methodGroup), saveButtonId);
             }
