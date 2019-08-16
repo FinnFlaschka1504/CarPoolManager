@@ -1,11 +1,13 @@
 package finn_daniel.carpoolmanager;
 
 import android.content.Context;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -15,10 +17,12 @@ import java.util.List;
 import java.util.Map;
 
 public class CustomRecycler {
+
     enum ORIENTATION {
         VERTICAL, HORIZONTAL
     }
 
+    private boolean showDivider = true;
     private boolean useCustomRipple = false;
     private Context context;
     private RecyclerView recycler;
@@ -26,18 +30,20 @@ public class CustomRecycler {
     private List<Integer> viewIdList;
     private SetCellContent setItemContent;
     private List objectList;
-    private int orientation = LinearLayoutManager.HORIZONTAL;
+    private int orientation = RecyclerView.VERTICAL;
     private OnLongClickListener onLongClickListener;
     private View.OnLongClickListener longClickListener = view -> {
-        int index = ((ViewGroup) view.getParent()).indexOfChild(view);
-        onLongClickListener.runOnLongClickListener(view, objectList.get(index), index);
+        int index = recycler.getChildAdapterPosition(view);
+        onLongClickListener.runOnLongClickListener(recycler, view, objectList.get(index), index);
         return true;
     };
     private OnClickListener onClickListener;
     private View.OnClickListener clickListener = view -> {
-        int index = ((ViewGroup) view.getParent()).indexOfChild(view);
-        onClickListener.runOnClickListener(view, objectList.get(index), index);
+        int index = recycler.getChildAdapterPosition(view);;
+        onClickListener.runOnClickListener(recycler, view, objectList.get(index), index);
     };
+
+    // ToDo: set sub OnClickListener
 
     private CustomRecycler(Context context) {
         this.context = context;
@@ -55,13 +61,23 @@ public class CustomRecycler {
 
     // ToDo: eventuell per z.B. User.class die dataset-Liste nicht abstrakt machen
 
+
+    public CustomRecycler setRecycler(RecyclerView recycler) {
+        this.recycler = recycler;
+        return this;
+    }
+
+    public RecyclerView getRecycler() {
+        return recycler;
+    }
+
     public CustomRecycler setItemView(int layoutId) {
         this.itemView = layoutId;
         return this;
     }
 
     public CustomRecycler setObjectList(List objectList) {
-        this.objectList = objectList;
+        this.objectList = new ArrayList(objectList);
         return this;
     }
 
@@ -78,14 +94,19 @@ public class CustomRecycler {
 
     public CustomRecycler setOrientation(ORIENTATION orientation) {
         switch (orientation) {
-            case VERTICAL: this.orientation = LinearLayoutManager.VERTICAL; break;
-            case HORIZONTAL: this.orientation = LinearLayoutManager.HORIZONTAL; break;
+            case VERTICAL: this.orientation = RecyclerView.VERTICAL; break;
+            case HORIZONTAL: this.orientation = RecyclerView.HORIZONTAL; break;
         }
         return this;
     }
 
     public CustomRecycler setUseCustomRipple(boolean useCustomRipple) {
         this.useCustomRipple = useCustomRipple;
+        return this;
+    }
+
+    public CustomRecycler setShowDivider(boolean showDivider) {
+        this.showDivider = showDivider;
         return this;
     }
 
@@ -100,7 +121,7 @@ public class CustomRecycler {
 
     public interface OnClickListener {
 
-        void runOnClickListener(View view, Object object, int index);
+        void runOnClickListener(RecyclerView recycler, View view, Object object, int index);
     }
 
     public CustomRecycler setOnClickListener(OnClickListener onClickListener) {
@@ -109,7 +130,7 @@ public class CustomRecycler {
     }
 
     public interface OnLongClickListener {
-        void runOnLongClickListener(View view, Object object, int index);
+        void runOnLongClickListener(RecyclerView recycler, View view, Object object, int index);
     }
 
     public CustomRecycler setOnLongClickListener(OnLongClickListener onLongClickListener) {
@@ -119,6 +140,7 @@ public class CustomRecycler {
 
     class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
         private List dataset;
+        private List<ViewHolder> viewHolders = new ArrayList<>();
 
         public MyAdapter(List list) {
             dataset = list;
@@ -128,8 +150,15 @@ public class CustomRecycler {
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(itemView, parent, false);
-            if (onClickListener != null) {
-                v.setOnClickListener(clickListener);
+            v.setId(View.generateViewId());
+            if (onClickListener != null || onLongClickListener != null) {
+
+                if (onClickListener != null)
+                    v.setOnClickListener(clickListener);
+
+                if (onLongClickListener != null)
+                    v.setOnLongClickListener(longClickListener);
+
                 if (!useCustomRipple) {
                     v.setFocusable(true);
                     v.setClickable(true);
@@ -139,10 +168,11 @@ public class CustomRecycler {
                 }
             }
 
-            if (onLongClickListener != null)
-                v.setOnLongClickListener(longClickListener);
+            ViewHolder viewHolder = new ViewHolder(v);
 
-            return new ViewHolder(v);
+            viewHolders.add(viewHolder);
+
+            return viewHolder;
         }
 
         @Override
@@ -155,6 +185,30 @@ public class CustomRecycler {
             return dataset.size();
         }
 
+        public void removeItemAt(int index) {
+            if (dataset.isEmpty())
+                return;
+            dataset.remove(index);
+//                notifyDataSetChanged();
+            notifyItemRemoved(index);
+            notifyItemRangeChanged(index, dataset.size());
+        }
+
+        public void addItem(Object object, int index) {
+            dataset.add(index, object);
+            notifyItemInserted(index);
+            notifyItemRangeChanged(index, dataset.size());
+        }
+
+        public void addItem(Object object) {
+            dataset.add(object);
+            notifyItemInserted(dataset.size() - 1);
+            notifyItemRangeChanged(dataset.size() - 1, dataset.size());
+        }
+
+        public List<ViewHolder> getViewHolders() {
+            return viewHolders;
+        }
 
         class ViewHolder extends RecyclerView.ViewHolder {
             Map<Integer, View> viewMap = new HashMap<>();
@@ -168,22 +222,39 @@ public class CustomRecycler {
         }
     }
 
-    public RecyclerView generate() {
-        RecyclerView recyclerView;
-        if (this.recycler == null)
-            recyclerView = new RecyclerView(context);
-        else
-            recyclerView = recycler;
 
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(context, orientation, false);
-        recyclerView.setLayoutManager(layoutManager);
 
-        RecyclerView.Adapter mAdapter = new MyAdapter(objectList);
-        recyclerView.setAdapter(mAdapter);
 
-        recyclerView.setClickable(true);
-
-        return recyclerView;
+    public Pair<CustomRecycler, RecyclerView> generatePair() {
+        RecyclerView recyclerView = generate();
+        return new Pair<>(this, recyclerView);
     }
 
+    public CustomRecycler generateCustomRecycler() {
+        RecyclerView recyclerView = generate();
+        return this;
+    }
+
+    public RecyclerView generate() {
+        if (this.recycler == null)
+            recycler = new RecyclerView(context);
+
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(context, orientation, false);
+        recycler.setLayoutManager(layoutManager);
+
+        RecyclerView.Adapter mAdapter = new MyAdapter(objectList);
+        recycler.setAdapter(mAdapter);
+
+        if (showDivider) {
+            DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recycler.getContext(),
+                    ((LinearLayoutManager) layoutManager).getOrientation());
+            recycler.addItemDecoration(dividerItemDecoration);
+        }
+
+        return recycler;
+    }
+    public RecyclerView reload() {
+        recycler.setAdapter(new MyAdapter(objectList));
+        return recycler;
+    }
 }

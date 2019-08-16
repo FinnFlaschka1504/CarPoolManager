@@ -20,6 +20,7 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.SearchView;
 import android.widget.SimpleAdapter;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -39,11 +40,15 @@ import com.github.sundeepk.compactcalendarview.domain.Event;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -258,34 +263,30 @@ class ViewPager_GroupOverview extends Fragment {
                     .addButton("Mitfahrer hinzufügen", dialog ->
                             // ToDo: nutzer hinzufügen implementieren
                             {
-                                Dialog dialog_AddPassenger = CustomDialog.Builder(getContext())
-                                        .setTitle("Mitfahrer hinzufügen")
-                                        .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
-                                        .setView(R.layout.dialog_add_passenger)
-                                        .setDimensions(true, true)
-                                        .show();
+                                if (!isOnline()) {
+                                    Toast.makeText(getContext(), "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+                                databaseReference.child("Users").addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        if (dataSnapshot.getValue() == null)
+                                            return;
 
-                                CustomRecycler.Builder(getContext(), dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_selectedPassengers))
-                                        .setItemView(R.layout.list_item_user_bubble)
-                                        .setObjectList(sortedUserList)
-                                        .setViewList(viewList -> {
-                                            viewList.add(R.id.userList_bubble_name);
-                                            viewList.add(R.id.userList_bubble_email);
-                                            return viewList;
-                                        })
-                                        .setSetItemContent((integerViewMap, object) -> {
-                                            User user = (User) object;
-                                            ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
-                                            ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
-                                            integerViewMap.get(R.id.userList_bubble_email).setSelected(true);
-                                        })
-                                        .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
-                                        .setOnClickListener((view, object, index) -> Toast.makeText(getContext(),
-                                                "click: " + index + "\n" + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
-                                        .setOnLongClickListener((view, object, index) -> Toast.makeText(getContext(),
-                                                "long: " + index + "\n" + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
-                                        .setUseCustomRipple(true)
-                                        .generate();
+                                        List<User> userList = new ArrayList<>();
+                                        for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                                            User foundUser = messageSnapshot.getValue(User.class);
+                                            userList.add(foundUser);
+                                        }
+
+                                        showAddPassengerDialog(userList);
+
+                                    }
+
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) {
+                                    }
+                                });
 
                             },
                             false)
@@ -304,33 +305,6 @@ class ViewPager_GroupOverview extends Fragment {
 //                                    .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
 //                                    .show(),
 //                            false)
-                    .addButton("Recycler", dialog ->
-                            CustomDialog.Builder(getContext())
-//                                    .setText("Test")
-                                    .setDividerVisibility(false)
-                                    .setView(
-                                            CustomRecycler.Builder(getContext())
-                                                    .setItemView(R.layout.list_item_user_bubble)
-                                                    .setViewList(viewList -> {
-                                                        viewList.add(R.id.userList_bubble_name);
-                                                        viewList.add(R.id.userList_bubble_email);
-                                                        return viewList;
-                                                    })
-                                                    .setObjectList(sortedUserList)
-                                                    .setSetItemContent((integerViewMap, object) -> {
-                                                        User user = (User) object;
-                                                        ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
-                                                        ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
-                                                        integerViewMap.get(R.id.userList_bubble_email).setSelected(true);
-                                                    })
-                                                    .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
-                                                    .setOnClickListener((view, object, index) -> Toast.makeText(getContext(),
-                                                            "click: " + index + "\n" + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
-                                                    .setUseCustomRipple(true)
-                                                    .generate()
-                                    )
-                                    .show(),
-                            false)
                     .show();
 
 
@@ -430,6 +404,130 @@ class ViewPager_GroupOverview extends Fragment {
         return view;
 
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
+    }
+
+    private void showAddPassengerDialog(List<User> userList) {
+
+        userList.removeAll(sortedUserList);
+
+        List<User> selectedUserList = new  ArrayList<>();
+        List<User> filterdUserList = new ArrayList<>(userList);
+
+        Dialog dialog_AddPassenger = CustomDialog.Builder(getContext())
+                .setTitle("Mitfahrer hinzufügen")
+                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .setView(R.layout.dialog_add_passenger)
+                .setDimensions(true, true)
+                .show();
+
+        CustomRecycler customRecycler_selectList = CustomRecycler.Builder(getContext(), dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_selectPassengers));
+
+        CustomRecycler customRecycler_selectedList = CustomRecycler.Builder(getContext(), dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_selectedPassengers))
+                .setItemView(R.layout.list_item_user_bubble)
+                .setObjectList(selectedUserList)
+                .setShowDivider(false)
+                .setViewList(viewList -> {
+                    viewList.add(R.id.userList_bubble_name);
+                    viewList.add(R.id.userList_bubble_email);
+                    return viewList;
+                })
+                .setSetItemContent((integerViewMap, object) -> {
+                    User user = (User) object;
+                    ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
+                    ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
+                    integerViewMap.get(R.id.userList_bubble_email).setSelected(true);
+                })
+                .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
+                .setOnClickListener((recycler, view, object, index) -> {
+                    Toast.makeText(getContext(),
+                            "Halten zum abwählen" , Toast.LENGTH_SHORT).show();
+                })
+                .setOnLongClickListener((recycler, view, object, index) -> {
+                    ((CustomRecycler.MyAdapter) recycler.getAdapter()).removeItemAt(index);
+                    selectedUserList.remove(object);
+
+                    if (selectedUserList.size() <= 0)
+                        dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.VISIBLE);
+                    else
+                        dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.GONE);
+
+                    // ToDo: wieder probleme weil entladen
+                    customRecycler_selectList.setObjectList(filterdUserList).reload();
+//                    ((CheckBox) customRecycler_selectList.getRecycler().getLayoutManager().findViewByPosition(
+//                            filterdUserList.indexOf(object)
+//                    ).findViewById(R.id.selectUserList_selected)).setChecked(false);
+//                    ((CheckBox) ((CustomRecycler.MyAdapter) recycler.getAdapter()).getViewHolders().get(filterdUserList.indexOf(object))
+//                            .viewMap.get(R.id.selectUserList_selected)).setChecked(false);
+
+                })
+                .setUseCustomRipple(true)
+                .generateCustomRecycler();
+
+        customRecycler_selectList
+                .setItemView(R.layout.list_item_select_user)
+                .setObjectList(userList)
+                .setViewList(viewList -> {
+                    viewList.add(R.id.selectUserList_name);
+                    viewList.add(R.id.selectUserList_email);
+                    viewList.add(R.id.selectUserList_selected);
+                    return viewList;
+                })
+                .setSetItemContent((integerViewMap, object) -> {
+                    User user = (User) object;
+                    ((TextView) integerViewMap.get(R.id.selectUserList_name)).setText(user.getUserName());
+                    ((TextView) integerViewMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
+                    if (selectedUserList.contains(user))
+                        ((CheckBox) integerViewMap.get(R.id.selectUserList_selected)).setChecked(true);
+                })
+                .setOnClickListener((recycler, view, object, index) -> {
+                    User user = ((User) object);
+                    CheckBox checkBox = view.findViewById(R.id.selectUserList_selected);
+                    checkBox.setChecked(!checkBox.isChecked());
+                    if (selectedUserList.contains(user))
+                        selectedUserList.remove(user);
+                    else
+                        selectedUserList.add(user);
+
+                    if (selectedUserList.size() <= 0)
+                        dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.VISIBLE);
+                    else
+                        dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.GONE);
+
+                    customRecycler_selectedList.setObjectList(selectedUserList).reload();
+                    // ToDo: durch halten removen und dann liste abwählen und divider entfernen wenn leer
+
+                })
+                .generateCustomRecycler();
+
+        SearchView searchView = dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_search);
+        searchView.requestFocus();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                s = s.trim();
+                if (s.equals(""))
+                    customRecycler_selectList.setObjectList(userList).reload();
+
+                filterdUserList.clear();
+                for (User user : userList) {
+                    if (user.getUserName().toLowerCase().contains(s.toLowerCase()) ||
+                            user.getEmailAddress().toLowerCase().contains(s.toLowerCase()))
+                        filterdUserList.add(user);
+                }
+
+                customRecycler_selectList.setObjectList(filterdUserList).reload();
+
+                return true;
+            }
+        });
+
+
     }
 
     public void setData(ViewPager_GroupCalender thisGroupCalender, User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap, FloatingActionButton pGroup_addTrip) {
@@ -759,7 +857,7 @@ class ViewPager_GroupOverview extends Fragment {
 
     private void showCostCalculation() {
         final Dialog dialog_costCalculation = CustomDialog.Builder(getContext())
-                .setTitle("KostenKalkulation")
+                .setTitle("Kosten-Kalkulation")
                 .setView(R.layout.dialog_calculate_costs)
                 .show();
 
@@ -885,8 +983,8 @@ class ViewPager_GroupOverview extends Fragment {
     private void showTripList(boolean showAll) {
 
         dialog_tripList = CustomDialog.Builder(getContext())
-                .setTitle("Trip Liste")
-                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
+                .setTitle((showAll ? "Alle" : "Deine") + "Trips")
+//                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
                 .setView(R.layout.dialog_trip_list)
                 .setButtonType(CustomDialog.buttonType_Enum.BACK)
                 .show();
@@ -1122,6 +1220,21 @@ class ViewPager_GroupOverview extends Fragment {
         };
         userList.getViewTreeObserver().addOnPreDrawListener(mOnPreDrawListener);
     }
+    public boolean isOnline() {
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+            int exitValue = ipProcess.waitFor();
+            return (exitValue == 0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
 
 }
 

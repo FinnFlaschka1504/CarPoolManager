@@ -4,6 +4,7 @@ import android.graphics.Color;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 
@@ -85,5 +86,18 @@ public class User {
 
     public void setEmailAddress(String emailAddress) {
         this.emailAddress = emailAddress;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return user_id.equals(user.user_id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(user_id);
     }
 }
