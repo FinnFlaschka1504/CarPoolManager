@@ -21,7 +21,13 @@ public class CustomRecycler {
     enum ORIENTATION {
         VERTICAL, HORIZONTAL
     }
+    enum SELECTION_MODE {
+        SINGLE_SELECTION, MULTI_SELECTION
+    }
 
+    private long multipleClickDelay = 300;
+    private long lastClickTime = System.currentTimeMillis();
+    private boolean isMultiClickEnabled = false;
     private boolean showDivider = true;
     private boolean useCustomRipple = false;
     private Context context;
@@ -33,17 +39,26 @@ public class CustomRecycler {
     private int orientation = RecyclerView.VERTICAL;
     private OnLongClickListener onLongClickListener;
     private View.OnLongClickListener longClickListener = view -> {
+        if ((lastClickTime > System.currentTimeMillis() - multipleClickDelay) && !isMultiClickEnabled)
+            return false;
+        lastClickTime = System.currentTimeMillis();
         int index = recycler.getChildAdapterPosition(view);
         onLongClickListener.runOnLongClickListener(recycler, view, objectList.get(index), index);
         return true;
     };
     private OnClickListener onClickListener;
     private View.OnClickListener clickListener = view -> {
-        int index = recycler.getChildAdapterPosition(view);;
+        if ((lastClickTime > System.currentTimeMillis() - multipleClickDelay) && !isMultiClickEnabled)
+            return;
+        lastClickTime = System.currentTimeMillis();
+        int index = recycler.getChildAdapterPosition(view);
         onClickListener.runOnClickListener(recycler, view, objectList.get(index), index);
     };
+    Map<Integer, Pair<OnClickListener, Boolean>> idSubOnClickListenerMap = new HashMap<>();
+    private SELECTION_MODE selectionMode = SELECTION_MODE.SINGLE_SELECTION;
 
     // ToDo: set sub OnClickListener
+
 
     private CustomRecycler(Context context) {
         this.context = context;
@@ -84,7 +99,7 @@ public class CustomRecycler {
 
 
     public interface SetViewList{
-        List<Integer> runSetViewList(List<Integer> viewList);
+        List<Integer> runSetViewList(List<Integer> viewIdList);
     }
 
     public CustomRecycler setViewList(SetViewList viewList) {
@@ -110,8 +125,33 @@ public class CustomRecycler {
         return this;
     }
 
+    public CustomRecycler setSelectionMode(SELECTION_MODE selectionMode) {
+        this.selectionMode = selectionMode;
+        return this;
+    }
+
+    public CustomRecycler setMultipleClickDelay(long multipleClickDelay) {
+        this.multipleClickDelay = multipleClickDelay;
+        return this;
+    }
+
+    public CustomRecycler setMultiClickEnabled(boolean multiClickEnabled) {
+        isMultiClickEnabled = multiClickEnabled;
+        return this;
+    }
+
+    public CustomRecycler addSubOnClickListener(int viewId, OnClickListener onClickListener, boolean ripple) {
+        idSubOnClickListenerMap.put(viewId, new Pair<>(onClickListener, ripple));
+        return this;
+    }
+
+    public CustomRecycler addSubOnClickListener(int viewId, OnClickListener onClickListener) {
+        idSubOnClickListenerMap.put(viewId, new Pair<>(onClickListener, true));
+        return this;
+    }
+
     public interface SetCellContent {
-        void runSetCellContent(Map<Integer, View> integerViewMap, Object object);
+        void runSetCellContent(MyAdapter.ViewHolder viewHolder, Map<Integer, View> ViewIdMap, Object object);
     }
 
     public CustomRecycler setSetItemContent(SetCellContent setItemContent) {
@@ -120,7 +160,6 @@ public class CustomRecycler {
     }
 
     public interface OnClickListener {
-
         void runOnClickListener(RecyclerView recycler, View view, Object object, int index);
     }
 
@@ -138,9 +177,12 @@ public class CustomRecycler {
         return this;
     }
 
+
+
     class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
         private List dataset;
         private List<ViewHolder> viewHolders = new ArrayList<>();
+
 
         public MyAdapter(List list) {
             dataset = list;
@@ -151,20 +193,40 @@ public class CustomRecycler {
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(itemView, parent, false);
             v.setId(View.generateViewId());
-            if (onClickListener != null || onLongClickListener != null) {
 
-                if (onClickListener != null)
-                    v.setOnClickListener(clickListener);
+            if (!idSubOnClickListenerMap.isEmpty()) {
+                for (Map.Entry<Integer, Pair<OnClickListener, Boolean>> entry : idSubOnClickListenerMap.entrySet()) {
+                    View view = v.findViewById(entry.getKey());
+                    view.setOnClickListener(view2 -> {
+                        int index = recycler.getChildAdapterPosition(v);
+                        entry.getValue().first.runOnClickListener(recycler, v, dataset.get(index), index);
+                        view.setFocusable(true);
+                        view.setClickable(true);
+                        if (entry.getValue().second) {
+                            TypedValue outValue = new TypedValue();
+                            context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+                            view.setBackgroundResource(outValue.resourceId);
+                        }
+                    });
+                }
+            }
 
-                if (onLongClickListener != null)
-                    v.setOnLongClickListener(longClickListener);
+            if (selectionMode != SELECTION_MODE.MULTI_SELECTION) {
+                if (onClickListener != null || onLongClickListener != null) {
 
-                if (!useCustomRipple) {
-                    v.setFocusable(true);
-                    v.setClickable(true);
-                    TypedValue outValue = new TypedValue();
-                    context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-                    v.setBackgroundResource(outValue.resourceId);
+                    if (onClickListener != null)
+                        v.setOnClickListener(clickListener);
+
+                    if (onLongClickListener != null)
+                        v.setOnLongClickListener(longClickListener);
+
+                    if (!useCustomRipple) {
+                        v.setFocusable(true);
+                        v.setClickable(true);
+                        TypedValue outValue = new TypedValue();
+                        context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+                        v.setBackgroundResource(outValue.resourceId);
+                    }
                 }
             }
 
@@ -176,8 +238,8 @@ public class CustomRecycler {
         }
 
         @Override
-        public void onBindViewHolder(ViewHolder holder, int position) {
-            setItemContent.runSetCellContent(holder.viewMap, dataset.get(position));
+        public void onBindViewHolder(ViewHolder viewHolder, int position) {
+            setItemContent.runSetCellContent(viewHolder, viewHolder.viewMap, dataset.get(position));
         }
 
         @Override
@@ -253,6 +315,7 @@ public class CustomRecycler {
 
         return recycler;
     }
+
     public RecyclerView reload() {
         recycler.setAdapter(new MyAdapter(objectList));
         return recycler;

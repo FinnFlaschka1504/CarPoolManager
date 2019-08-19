@@ -49,8 +49,6 @@ public class CustomDialog {
     public static final String CANCEL_BUTTON = "CANCEL_BUTTON";
     public static final String BACK_BUTTON = "BACK_BUTTON";
 
-    // ToDo: eventuell dialoginteraktionen auch als Executable
-
     public CustomDialog(Context context) {
         this.context = context;
     }

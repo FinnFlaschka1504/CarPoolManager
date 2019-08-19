@@ -64,8 +64,13 @@
             android:paddingTop="8dp"
             android:text="Gruppen werden geladen..." />
 
-        <ListView
-            android:id="@+id/listView_groupList"
+        <!--<ListView-->
+            <!--android:id="@+id/listView_groupList"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="match_parent" />-->
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/main_groupList"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>

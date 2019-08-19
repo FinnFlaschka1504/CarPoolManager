@@ -755,7 +755,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         locationNameArray[1] = trip.getLocationName().get(1);
         addTrip_distance.setText(trip.getDistance());
 
-        // ToDo: für Preisberechnung müssen alle Daten vorhanden sein
+        // ToDo: für Preisberechnung müssen alle Daten vorhanden sein -- ???
 
         dialogSelectRoute_from.setText(trip.getSearchString().get(0));
         dialogSelectRoute_to.setText(trip.getSearchString().get(1));

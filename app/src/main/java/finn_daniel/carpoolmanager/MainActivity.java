@@ -16,13 +16,11 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,12 +54,14 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NetworkStateReceiver.NetworkStateReceiverListener {
 
-    List<String> listviewTitle = new ArrayList<String>();
-    List<Boolean> listviewisDriver = new ArrayList<>();
-    List<String> listviewPassengers = new ArrayList<>();
-    List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
-    List<java.io.Serializable> listviewAllDrivenAmount = new ArrayList<>();
-    ListView listView_groupList;
+//    List<String> listviewTitle = new ArrayList<String>();
+//    List<Boolean> listviewisDriver = new ArrayList<>();
+//    List<String> listviewPassengers = new ArrayList<>();
+//    List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
+//    List<java.io.Serializable> listviewAllDrivenAmount = new ArrayList<>();
+
+//    ListView listView_groupList;
+    CustomRecycler customRecycler_groupList;
 
     List<String> createData_gruppenNamen;
     List<String> createData_emailAddressen;
@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
             for (String user : new ArrayList<>(changeList.get(0))) {
-                changeList.remove(user);
+                changeList.get(0).remove(user);
                 databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -207,7 +207,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             return;
                         User foundUser = dataSnapshot.getValue(User.class);
                         loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
-                        if (changeList.size() <= 0)
+                        loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList().add(foundUser.getUser_id());
+                        if (changeList.get(0).size() <= 0)
                             listeLaden();
                     }
 
@@ -331,7 +332,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
-        listView_groupList = findViewById(R.id.listView_groupList);
+//        listView_groupList = findViewById(R.id.listView_groupList);
 
         if (!isOnline()) {
 
@@ -360,7 +361,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
             listeLaden();
-            listeClickListener();
+//            listeClickListener();
             return;
         }
     }
@@ -529,7 +530,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 loggedInUser_groupTripMap.put(groupId, new HashMap<String, Trip>());
                 if (loggedInUser_groupTripMap.size() >= loggedInUser.getGroupIdList().size()) {
                     listeLaden();
-                    listeClickListener();
+//                    listeClickListener();   //<==
                     return;
                 }
                 else
@@ -548,7 +549,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     loggedInUser_groupTripMap.put(groupId, newMap);
                     if (loggedInUser_groupTripMap.size() >= loggedInUser.getGroupIdList().size()) {
                         listeLaden();
-                        listeClickListener();
+//                        listeClickListener();    //<==
                     }
                 }
 
@@ -707,40 +708,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         TextView main_groupInfo = findViewById(R.id.main_groupInfo);
         main_groupInfo.setVisibility(View.GONE);
 
-//        ArrayList<java.io.Serializable> driver1 = new ArrayList<java.io.Serializable>();
-//        driver1.add("Auf zur Arbeit");
-//        driver1.add(true);
-//        driver1.add("HansP, DanielP, FinnF");
-//        driver1.add(7);
-//        driver1.add(31);
-//
-//        ArrayList<java.io.Serializable> driver2 = new ArrayList<>();
-//        driver2.add("FHDW-Gruppe");
-//        driver2.add(false);
-//        driver2.add("GünterM, HansD, JohnL");
-//        driver2.add(0);
-//        driver2.add(568);
-//
-//        ArrayList<java.io.Serializable> driver3 = new ArrayList<java.io.Serializable>();
-//        driver3.add("FußballTeam");
-//        driver3.add(true);
-//        driver3.add("MarkusG, TomN, TomN");
-//        driver3.add(9);
-//        driver3.add(10);
-//
-//        ArrayList<ArrayList<java.io.Serializable>> driverTest = new ArrayList<>();
-//        driverTest.add(driver1);
-//        driverTest.add(driver2);
-//        driverTest.add(driver3);
-//
-//        // ---------------------------------------------------------------------
-
-        this.listviewTitle.clear();
-        this.listviewisDriver.clear();
-        this.listviewPassengers.clear();
-        this.listviewOwnDrivenAmount.clear();
-        this.listviewAllDrivenAmount.clear();
-
         sortedGroupList = new ArrayList<>(loggedInUser_groupsMap.values());
         Collections.sort(sortedGroupList, new Comparator() {
             public int compare(Group obj1, Group obj2) {
@@ -757,104 +724,52 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
         }
 
-        int count = 0;
-        for (Group group : sortedGroupList) {
-            listviewTitle.add(group.getName());
-            listviewisDriver.add(group.getDriverIdList().contains(loggedInUser.getUser_id()));
+        customRecycler_groupList = CustomRecycler.Builder(this, findViewById(R.id.main_groupList))
+                .setItemView(R.layout.list_item_group)
+                .setObjectList(sortedGroupList)
+                .setViewList(viewIdList -> {
+                    viewIdList.add(R.id.groupList_image);
+                    viewIdList.add(R.id.groupList_name);
+                    viewIdList.add(R.id.groupList_passengers);
+                    viewIdList.add(R.id.groupList_ownAmount);
+                    viewIdList.add(R.id.groupList_allAmount);
+                    return viewIdList;
+                })
+                .setMultipleClickDelay(1000)
+                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                    Group group = (Group) object;
 
-            String passengers = "";
-            for (int n = 0; n < group.getUserIdList().size(); n++) {
-                passengers = passengers.concat(loggedInUser_groupPassengerMap.get(group.getUserIdList().get(n)).getUserName());
-                if (n < group.getUserIdList().size() - 1)
-                    passengers = passengers.concat(", ");
-            }
+                    ((ImageView) ViewIdMap.get(R.id.groupList_image)).setImageResource(
+                            group.getDriverIdList().contains(loggedInUser.getUser_id())
+                                    ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
+                    ((TextView) ViewIdMap.get(R.id.groupList_name)).setText(group.getName());
+                    String passengers = "";
+                    for (int n = 0; n < group.getUserIdList().size(); n++) {
+                        passengers = passengers.concat(loggedInUser_groupPassengerMap.get(group.getUserIdList().get(n)).getUserName());
+                        if (n < group.getUserIdList().size() - 1)
+                            passengers = passengers.concat(", ");
+                    }
+                    ((TextView) ViewIdMap.get(R.id.groupList_passengers)).setText(passengers);
+                    ((TextView) ViewIdMap.get(R.id.groupList_ownAmount)).setText(calculateDrivenAmount(loggedInUser.getUser_id(), group.getGroup_id()));
+                    ((TextView) ViewIdMap.get(R.id.groupList_allAmount)).setText(calculateDrivenAmount(null, group.getGroup_id()));
+                })
+                .setOnClickListener((recycler, view, object, index) -> {
+                    Group selectedGroup = sortedGroupList.get(index);
+                    Intent intent = new Intent(MainActivity.this, GroupActivity.class);
+                    intent.putExtra(EXTRA_USER, gson.toJson(loggedInUser));
+                    intent.putExtra(EXTRA_GROUP, gson.toJson(selectedGroup));
+                    Map<String, User> passengerMap = new HashMap<>();
+                    for (String userId : selectedGroup.getUserIdList()) {
+                        passengerMap.put(userId, loggedInUser_groupPassengerMap.get(userId));
+                    }
+                    intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(passengerMap));
+                    intent.putExtra(EXTRA_TRIPMAP, gson.toJson(loggedInUser_groupTripMap.get(selectedGroup.getGroup_id())));
+                    startActivity(intent);
+                })
+                .generateCustomRecycler();
+        // ToDo: änder neuladen der liste von komplette methode neuladen zu .reload()
 
-            listviewPassengers.add(passengers);
-//            listviewOwnDrivenAmount.add(driverTest.get(count).get(3));
-            listviewOwnDrivenAmount.add(calculateDrivenAmount(loggedInUser.getUser_id(), group.getGroup_id()));
-//            listviewAllDrivenAmount.add(driverTest.get(count).get(4));
-            listviewAllDrivenAmount.add(calculateDrivenAmount(null, group.getGroup_id()));
-            count++;
-        }
-
-//        TextView var11;
-//        if (this.listviewTitle.isEmpty()) {
-//            var11 = (TextView)this._$_findCachedViewById(id.textView_keine_reminder);
-//            Intrinsics.checkExpressionValueIsNotNull(var11, "textView_keine_reminder");
-//            var11.setVisibility(0);
-//        } else {
-//            var11 = (TextView)this._$_findCachedViewById(id.textView_keine_reminder);
-//            Intrinsics.checkExpressionValueIsNotNull(var11, "textView_keine_reminder");
-//            var11.setVisibility(4);
-//        }
-
-        ArrayList<HashMap<String, java.io.Serializable>> aList = new ArrayList<HashMap<String, java.io.Serializable>>();
-
-        for (int i = 0; i < loggedInUser_groupsMap.size(); ++i) {
-            HashMap<String, java.io.Serializable> hm = new HashMap<String, java.io.Serializable>();
-            (hm).put("listview_title", listviewTitle.get(i));
-            (hm).put("listview_isDriver", listviewisDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
-            (hm).put("listview_discription_passengers", listviewPassengers.get(i));
-            (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
-            (hm).put("listview_discription_allAmount", listviewAllDrivenAmount.get(i));
-            aList.add(hm);
-        }
-
-        String[] from = new String[]{"listview_title", "listview_isDriver", "listview_discription_passengers", "listview_discription_ownAmount", "listview_discription_allAmount"};
-        int[] to = new int[]{R.id.groupList_name, R.id.listview_image, R.id.passengers, R.id.groupList_ownAmount, R.id.groupList_allAmount};
-        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getBaseContext(), aList, R.layout.list_item_group, from, to);
-        listView_groupList.setAdapter(simpleAdapter);
-
-//      <undefinedtype> mOnPreDrawListener = new OnPreDrawListener() {
-//            public boolean onPreDraw() {
-//                ListView var10000 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
-//                Intrinsics.checkExpressionValueIsNotNull(var10000, "listView_reminder");
-//                ListAdapter listAdapter = var10000.getAdapter();
-//                int i = 0;
-//                Intrinsics.checkExpressionValueIsNotNull(listAdapter, "listAdapter");
-//
-//                for(int var3 = listAdapter.getCount(); i < var3; ++i) {
-//                    ReminderListe var6 = ReminderListe.this;
-//                    ListView var10002 = (ListView)ReminderListe.this._$_findCachedViewById(id.listView_reminder);
-//                    Intrinsics.checkExpressionValueIsNotNull(var10002, "listView_reminder");
-//                    View listItem = var6.getViewByPosition(i, var10002);
-//                    View var7 = listItem.findViewById(-1000011);
-//                    if (var7 == null) {
-//                        throw new TypeCastException("null cannot be cast to non-null type android.widget.TextView");
-//                    }
-//
-//                    TextView status_description_view = (TextView)var7;
-//                    if (Intrinsics.areEqual(status_description_view.getText(), ReminderListe.this.getDEAKTIVIERT$app_debug())) {
-//                        status_description_view.setTextColor(-65536);
-//                    }
-//                }
-//
-//                return true;
-//            }
-//        };
-//        listView_groupList = (ListView)this._$_findCachedViewById(id.listView_reminder);
-//        listView_groupList.getViewTreeObserver().addOnPreDrawListener((OnPreDrawListener)mOnPreDrawListener);
-//        this.listeClickListener();
         findViewById(R.id.progressBar_loadData).setVisibility(View.GONE);
-    }
-
-    void listeClickListener() {
-        listView_groupList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, final int index, long l) {
-                Group selectedGroup = sortedGroupList.get(index);
-                Intent intent = new Intent(MainActivity.this, GroupActivity.class);
-                intent.putExtra(EXTRA_USER, gson.toJson(loggedInUser));
-                intent.putExtra(EXTRA_GROUP, gson.toJson(selectedGroup));
-                Map<String, User> passengerMap = new HashMap<>();
-                for (String userId : selectedGroup.getUserIdList()) {
-                    passengerMap.put(userId, loggedInUser_groupPassengerMap.get(userId));
-                }
-                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(passengerMap));
-                intent.putExtra(EXTRA_TRIPMAP, gson.toJson(loggedInUser_groupTripMap.get(selectedGroup.getGroup_id())));
-                startActivity(intent);
-            }
-        });
     }
 
     public void msgBox(String nachricht) {

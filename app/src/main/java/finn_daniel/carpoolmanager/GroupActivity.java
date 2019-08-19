@@ -9,14 +9,12 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -31,6 +29,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
@@ -188,7 +187,7 @@ class ViewPager_GroupOverview extends Fragment {
     User loggedInUser;
     Group thisGroup;
     View view;
-    ListView userList;
+    RecyclerView userList;
     Gson gson = new Gson();
     String EXTRA_GROUP = "EXTRA_GROUP";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
@@ -217,7 +216,7 @@ class ViewPager_GroupOverview extends Fragment {
     TextView overview_noDriverText;
     ViewPager_GroupCalender thisGroupCalender;
 
-    List<String> listviewTitle = new ArrayList<String>();
+    List<String> listviewTitle = new ArrayList<>();
     List<Boolean> listviewIsDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList = new ArrayList<>();
@@ -279,7 +278,7 @@ class ViewPager_GroupOverview extends Fragment {
                                             userList.add(foundUser);
                                         }
 
-                                        showAddPassengerDialog(userList);
+                                        showAddPassengerDialog(userList, dialog);
 
                                     }
 
@@ -406,19 +405,35 @@ class ViewPager_GroupOverview extends Fragment {
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
     }
 
-    private void showAddPassengerDialog(List<User> userList) {
+    private void showAddPassengerDialog(List<User> userList, Dialog editPassengersDialog) {
 
         userList.removeAll(sortedUserList);
 
         List<User> selectedUserList = new  ArrayList<>();
         List<User> filterdUserList = new ArrayList<>(userList);
+        int saveButtonId = View.generateViewId();
 
         Dialog dialog_AddPassenger = CustomDialog.Builder(getContext())
                 .setTitle("Mitfahrer hinzufügen")
                 .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
                 .setView(R.layout.dialog_add_passenger)
                 .setDimensions(true, true)
+                .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
+                    for (User user : selectedUserList) {
+                        user.getGroupIdList().add(thisGroup.getGroup_id());
+                        groupPassengerMap.put(user.getUser_id(), user);
+                        thisGroup.getUserIdList().add(user.getUser_id());
+                        listeLaden();
+                        editPassengersDialog.dismiss();
+                        databaseReference.child("Users").child(user.getUser_id()).setValue(user);
+                        databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
+
+                    }
+                }, saveButtonId)
                 .show();
+
+        Button saveButton = dialog_AddPassenger.findViewById(saveButtonId);
+        saveButton.setEnabled(false);
 
         CustomRecycler customRecycler_selectList = CustomRecycler.Builder(getContext(), dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_selectPassengers));
 
@@ -426,16 +441,16 @@ class ViewPager_GroupOverview extends Fragment {
                 .setItemView(R.layout.list_item_user_bubble)
                 .setObjectList(selectedUserList)
                 .setShowDivider(false)
-                .setViewList(viewList -> {
-                    viewList.add(R.id.userList_bubble_name);
-                    viewList.add(R.id.userList_bubble_email);
-                    return viewList;
+                .setViewList(viewIdList -> {
+                    viewIdList.add(R.id.userList_bubble_name);
+                    viewIdList.add(R.id.userList_bubble_email);
+                    return viewIdList;
                 })
-                .setSetItemContent((integerViewMap, object) -> {
+                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
                     User user = (User) object;
-                    ((TextView) integerViewMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
-                    ((TextView) integerViewMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
-                    integerViewMap.get(R.id.userList_bubble_email).setSelected(true);
+                    ((TextView) ViewIdMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
+                    ((TextView) ViewIdMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
+                    ViewIdMap.get(R.id.userList_bubble_email).setSelected(true);
                 })
                 .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
                 .setOnClickListener((recycler, view, object, index) -> {
@@ -446,10 +461,13 @@ class ViewPager_GroupOverview extends Fragment {
                     ((CustomRecycler.MyAdapter) recycler.getAdapter()).removeItemAt(index);
                     selectedUserList.remove(object);
 
-                    if (selectedUserList.size() <= 0)
+                    if (selectedUserList.size() <= 0) {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.VISIBLE);
-                    else
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(false);
+                    } else {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.GONE);
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(true);
+                    }
 
                     // ToDo: wieder probleme weil entladen
                     customRecycler_selectList.setObjectList(filterdUserList).reload();
@@ -465,19 +483,20 @@ class ViewPager_GroupOverview extends Fragment {
 
         customRecycler_selectList
                 .setItemView(R.layout.list_item_select_user)
+                .setMultiClickEnabled(true)
                 .setObjectList(userList)
-                .setViewList(viewList -> {
-                    viewList.add(R.id.selectUserList_name);
-                    viewList.add(R.id.selectUserList_email);
-                    viewList.add(R.id.selectUserList_selected);
-                    return viewList;
+                .setViewList(viewIdList -> {
+                    viewIdList.add(R.id.selectUserList_name);
+                    viewIdList.add(R.id.selectUserList_email);
+                    viewIdList.add(R.id.selectUserList_selected);
+                    return viewIdList;
                 })
-                .setSetItemContent((integerViewMap, object) -> {
+                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
                     User user = (User) object;
-                    ((TextView) integerViewMap.get(R.id.selectUserList_name)).setText(user.getUserName());
-                    ((TextView) integerViewMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
+                    ((TextView) ViewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
+                    ((TextView) ViewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
                     if (selectedUserList.contains(user))
-                        ((CheckBox) integerViewMap.get(R.id.selectUserList_selected)).setChecked(true);
+                        ((CheckBox) ViewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
                 })
                 .setOnClickListener((recycler, view, object, index) -> {
                     User user = ((User) object);
@@ -488,10 +507,13 @@ class ViewPager_GroupOverview extends Fragment {
                     else
                         selectedUserList.add(user);
 
-                    if (selectedUserList.size() <= 0)
+                    if (selectedUserList.size() <= 0) {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.VISIBLE);
-                    else
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(false);
+                    } else {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.GONE);
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(true);
+                    }
 
                     customRecycler_selectedList.setObjectList(selectedUserList).reload();
                     // ToDo: durch halten removen und dann liste abwählen und divider entfernen wenn leer
@@ -1179,46 +1201,35 @@ class ViewPager_GroupOverview extends Fragment {
             }
         });
 
-        for (User user : sortedUserList) {
-            listviewTitle.add(user.getUserName());
-            listviewIsDriver.add(thisGroup.getDriverIdList().contains(user.getUser_id()));
-            listviewOwnDrivenAmount.add(calculateDrivenAmount(user.getUser_id()));
-        }
 
-        ArrayList<HashMap<String, Serializable>> aList = new ArrayList<HashMap<String, Serializable>>();
+        CustomRecycler.Builder(getContext(), userList)
+                .setItemView(R.layout.list_item_passenger)
+                .setObjectList(sortedUserList)
+                .setViewList(viewIdList -> {
+                    viewIdList.add(R.id.userList_name);
+                    viewIdList.add(R.id.userList_image);
+                    viewIdList.add(R.id.userList_ownAmount);
+                    viewIdList.add(R.id.userList_color);
+                    return viewIdList;
+                })
+                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                    User user = (User) object;
 
-        for (int i = 0; i < sortedUserList.size(); ++i) {
-            HashMap<String, Serializable> hm = new HashMap<String, Serializable>();
-            (hm).put("listview_title", listviewTitle.get(i));
-            (hm).put("listview_isDriver", listviewIsDriver.get(i) ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
-            (hm).put("listview_discription_ownAmount", listviewOwnDrivenAmount.get(i));
-            aList.add(hm);
-        }
-
-        String[] from = new String[]{"listview_title", "listview_isDriver", "listview_discription_ownAmount"};
-        int[] to = new int[]{R.id.userList_name, R.id.userList_image, R.id.userList_ownAmount};
-        SimpleAdapter simpleAdapter = new SimpleAdapter(this.getContext(), aList, R.layout.list_item_passenger, from, to);
-        userList.setAdapter(simpleAdapter);
+                    ((TextView) ViewIdMap.get(R.id.userList_name)).setText(user.getUserName());
+                    ((ImageView) ViewIdMap.get(R.id.userList_image)).setImageResource(
+                            thisGroup.getDriverIdList().contains(user.getUser_id()) ?
+                                    R.drawable.ic_lenkrad : R.drawable.ic_leer);
+                    ((TextView) ViewIdMap.get(R.id.userList_ownAmount)).setText(calculateDrivenAmount(user.getUser_id()));
+                    ((TextView) ViewIdMap.get(R.id.userList_color)).setTextColor(Color.parseColor(user.getUserColor()));
+                })
+                .addSubOnClickListener(R.id.userList_image, (recycler, view1, object, index) ->
+                        Toast.makeText(getContext(), "Image: " + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
+                .addSubOnClickListener(R.id.userList_color, (recycler, view1, object, index) ->
+                        Toast.makeText(getContext(), "Dot: " + ((User) object).getUserName(), Toast.LENGTH_SHORT).show(),
+                        false)
+                .generate();
 
         // ToDo: fahrten nach anteil farblich markieren
-
-        ViewTreeObserver.OnPreDrawListener mOnPreDrawListener = new ViewTreeObserver.OnPreDrawListener() {
-            public boolean onPreDraw() {
-                ListAdapter listAdapter = userList.getAdapter();
-
-                for (int i = 0; i < listAdapter.getCount(); i++) {
-                    View rowView = userList.getChildAt(i);//The item number in the List View
-                    if (rowView != null) {
-                        TextView userList_color = rowView.findViewById(R.id.userList_color);
-                        userList_color.setTextColor(Color.parseColor(sortedUserList.get(i).getUserColor()));
-                    }
-                }
-                userList.getViewTreeObserver().removeOnPreDrawListener(this);
-
-                return true;
-            }
-        };
-        userList.getViewTreeObserver().addOnPreDrawListener(mOnPreDrawListener);
     }
     public boolean isOnline() {
         Runtime runtime = Runtime.getRuntime();
@@ -1231,7 +1242,6 @@ class ViewPager_GroupOverview extends Fragment {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
         return false;
     }
 
