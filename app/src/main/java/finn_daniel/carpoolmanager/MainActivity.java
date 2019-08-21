@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     boolean wizzardManuellAktiviert = false;
     SharedPreferences mySPR_daten;
     SharedPreferences mySPR_settings;
+    int shownContent;
 
 
 
@@ -231,18 +232,33 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        stub_groups = findViewById(R.id.layout_stub_groups);
-        stub_groups.setLayoutResource(R.layout.main_content_groups);
-        contentView_groups = stub_groups.inflate();
-
         mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
         mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
+        navigationView = findViewById(R.id.nav_view);
+        databaseReference = FirebaseDatabase.getInstance().getReference();
+
         String loggedInUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
         if (!loggedInUser_string.equals("--Leer--")) {
             loggedInUser = gson.fromJson(loggedInUser_string, User.class);
             // ToDo: Handle nicht angemeldet
         }
 
+        stub_groups = findViewById(R.id.layout_stub_groups);
+        stub_groups.setLayoutResource(R.layout.main_content_groups);
+        contentView_groups = stub_groups.inflate();
+        navigationView.setCheckedItem(R.id.navigation_menu_groups);
+        shownContent = R.id.navigation_menu_groups;
+
+        if (mySPR_settings.getInt("standardView_main", R.id.navigation_menu_groups) != R.id.navigation_menu_groups
+                    && loggedInUser != null) {
+            stub_account = MainActivity.this.findViewById(R.id.layout_stub_account);
+            stub_account.setLayoutResource(R.layout.main_content_account);
+            contentView_account = stub_account.inflate();
+            contentView_groups.setVisibility(View.GONE);
+            setAccountView();
+            navigationView.setCheckedItem(R.id.navigation_menu_account);
+            shownContent = R.id.navigation_menu_account;
+        }
 
 //        mySPR_daten.edit().putString("loggedInUserId", "user_2a48b5ec-bc70-4b5a-8c1d-b76384cec163").commit();
 
@@ -334,14 +350,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        navigationView = findViewById(R.id.nav_view);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
 
-        databaseReference = FirebaseDatabase.getInstance().getReference();
 
 //        listView_groupList = findViewById(R.id.listView_groupList);
 
@@ -672,7 +686,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            if (shownContent != mySPR_settings.getInt("standardView_main", R.id.navigation_menu_groups)) {
+                contentView_groups.setVisibility(shownContent == R.id.navigation_menu_groups ? View.GONE : View.VISIBLE);
+                contentView_account.setVisibility(shownContent == R.id.navigation_menu_groups ? View.VISIBLE : View.GONE);
+                shownContent = shownContent == R.id.navigation_menu_groups ? R.id.navigation_menu_account : R.id.navigation_menu_groups;
+
+                navigationView.setCheckedItem(shownContent);
+            } else {
+                super.onBackPressed();
+            }
         }
     }
 
@@ -705,30 +727,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
 
         switch (id) {
-            case R.id.groups:
+            case R.id.navigation_menu_groups:
                 if (contentView_groups == null) {
                     stub_groups = MainActivity.this.findViewById(R.id.layout_stub_groups);
                     stub_groups.setLayoutResource(R.layout.main_content_groups);
                     contentView_groups = stub_groups.inflate();
                     contentView_account.setVisibility(View.GONE);
-                    break;
                 }
                 contentView_groups.setVisibility(View.VISIBLE);
                 contentView_account.setVisibility(View.GONE);
+                shownContent = id;
                 break;
-            case R.id.account:
+            case R.id.navigation_menu_account:
                 if (contentView_account == null) {
                     stub_account = MainActivity.this.findViewById(R.id.layout_stub_account);
                     stub_account.setLayoutResource(R.layout.main_content_account);
                     contentView_account = stub_account.inflate();
                     contentView_groups.setVisibility(View.GONE);
                     setAccountView();
-                    break;
                 }
                 contentView_groups.setVisibility(View.GONE);
                 contentView_account.setVisibility(View.VISIBLE);
+                shownContent = id;
                 break;
-            case R.id.settings:
+            case R.id.navigation_menu_settings:
                 Intent intent = new Intent(MainActivity.this, Settings.class);
                 startActivityForResult(intent, SETTINGS_INTENT);
                 break;

@@ -64,7 +64,7 @@ public class GroupActivity extends FragmentActivity {
     static final int NUM_PAGES = 2;
     ViewPager mPager;
     PagerAdapter pagerAdapter;
-    String standardView;
+    String standardView_group;
     Gson gson = new Gson();
     Group thisGroup;
     String EXTRA_USER = "EXTRA_USER";
@@ -74,6 +74,7 @@ public class GroupActivity extends FragmentActivity {
     int NEWTRIP = 001;
     User loggedInUser;
     FloatingActionButton group_addTrip;
+    DatabaseReference databaseReference;
 
 
     ViewPager_GroupOverview thisGroupOverview = new ViewPager_GroupOverview();
@@ -89,6 +90,7 @@ public class GroupActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group);
         group_addTrip = findViewById(R.id.group_addTrip);
+        databaseReference = FirebaseDatabase.getInstance().getReference();
 
         loggedInUser = gson.fromJson(getIntent().getStringExtra(EXTRA_USER), User.class);
         thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
@@ -104,12 +106,12 @@ public class GroupActivity extends FragmentActivity {
         thisGroupOverview.setData(thisGroupCalender, loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
         thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
         SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings", 0);
-        standardView = mySPR.getString("standardView", "Übersicht");
+        standardView_group = mySPR.getString("standardView_group", "Übersicht");
 
         mPager = findViewById(R.id.group_pager);
         pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
         mPager.setAdapter(pagerAdapter);
-        mPager.setCurrentItem(standardView.equals("Übersicht") ? 0 : 1);
+        mPager.setCurrentItem(standardView_group.equals("Übersicht") ? 0 : 1);
 
         TabLayout tabLayout = findViewById(R.id.group_tabLayout);
         tabLayout.setupWithViewPager(mPager);
@@ -141,11 +143,24 @@ public class GroupActivity extends FragmentActivity {
         });
         toolbar.inflateMenu(R.menu.group_edit);
         toolbar.setOnMenuItemClickListener(item -> {
+            int buttonId = View.generateViewId();
             CustomDialog.Builder(this)
                     .setTitle("Gruppen-Namen Ändern")
-                    .setText("hier nen EditText einfügen")
                     .setButtonType(CustomDialog.ButtonType.OK_CANCEL)
-//                    .setEdit(new CustomDialog.EditBuilder().setHint("test").setText("Hallöle").setSelectAll(true).setShowKeyboard(true))
+                    .setEdit(new CustomDialog.EditBuilder()
+                            .setShowKeyboard(true)
+                            .setSelectAll(true)
+                            .setText(thisGroup.getName())
+                            .setHint("Neuer Gruppen-Name")
+                            .setDiableButtonWhenEmpty(buttonId))
+                    .addButton(CustomDialog.OK_BUTTON, dialog -> {
+                        String name = CustomDialog.getEditText(dialog);
+                        toolbar.setTitle(name);
+                        thisGroup.setName(name);
+                        databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
+                        // ToDo: namen ändern
+                        dialog.dismiss();
+                    }, buttonId,false)
                     .show();
             return true;
         });
@@ -173,7 +188,7 @@ public class GroupActivity extends FragmentActivity {
 
     @Override
     public void onBackPressed() {
-        if ((mPager.getCurrentItem() == 0 && standardView.equals("Übersicht")) || (mPager.getCurrentItem() == 1 && standardView.equals("Kalender"))) {
+        if ((mPager.getCurrentItem() == 0 && standardView_group.equals("Übersicht")) || (mPager.getCurrentItem() == 1 && standardView_group.equals("Kalender"))) {
             super.onBackPressed();
         } else {
             mPager.setCurrentItem(mPager.getCurrentItem() == 0 ? 1 : 0);
@@ -303,6 +318,7 @@ class ViewPager_GroupOverview extends Fragment {
                     })
                     .addButton("Mitfahrer hinzufügen", dialog ->
                             {
+                                // ToDo: wegen Datenschutz gedanken machen
                                 if (!Utility.isOnline()) {
                                     Toast.makeText(getContext(), "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
                                     return;

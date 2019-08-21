@@ -44,7 +44,45 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Standard Ansicht"
+                            android:text="Standard Ansicht - Start"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:singleLine="false"
+                            android:text="Welche Ansicht soll standardmäßig anezeigt werden?" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/settings_spinnerStandardView_main"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:entries="@array/settings_standardView_main" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="?android:attr/listDivider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Standard Seite - Gruppe"
                             android:textStyle="bold" />
 
                         <TextView
@@ -55,15 +93,14 @@
                     </LinearLayout>
 
                     <Spinner
-                        android:id="@+id/settings_spinnerStandardView"
+                        android:id="@+id/settings_spinnerStandardView_group"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
-                        android:entries="@array/settings_groups_standardView"
+                        android:entries="@array/settings_standardView_groups"
                         android:prompt="@string/test" />
                 </LinearLayout>
 
                 <View
-                    android:id="@+id/view2"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="8dp"
@@ -71,7 +108,6 @@
                     android:background="?android:attr/listDivider" />
 
                 <LinearLayout
-
 
 
                     android:layout_width="match_parent"
@@ -104,6 +140,7 @@
                         android:entries="@array/settings_groups_tripCount"
                         android:prompt="@string/test" />
                 </LinearLayout>
+
             </LinearLayout>
 
             <View

@@ -15,7 +15,12 @@
     <string name="account">Account</string>
 
 
-    <string-array name="settings_groups_standardView">
+    <string-array name="settings_standardView_main">
+        <item>Gruppen</item>
+        <item>Account</item>
+    </string-array>
+
+    <string-array name="settings_standardView_groups">
         <item>Übersicht</item>
         <item>Kalender</item>
     </string-array>

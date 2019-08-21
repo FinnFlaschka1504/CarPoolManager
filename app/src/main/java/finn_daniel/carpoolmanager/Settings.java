@@ -26,14 +26,16 @@ import java.util.Map;
 public class Settings extends AppCompatActivity {
 
     // ToDo: strings durch referenzen ersetzen
+    // ToDo: einstellen welche view standardmäßig in Mainaktivity + backPress ändern
     DatabaseReference databaseReference;
     Boolean isReadingActivated = false;
-    SharedPreferences mySPR;
+    SharedPreferences mySPR_settings;
     int spinnerTripCount_selected = -1;
 
     Map<String, Boolean> hasChangedMap = new HashMap<>();
 
-    Spinner settings_spinnerStandardView;
+    Spinner settings_spinnerStandardView_group;
+    Spinner settings_spinnerStandardView_main;
     Spinner settings_spinnerTripCount;
 
 
@@ -54,31 +56,46 @@ public class Settings extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
-        settings_spinnerStandardView = findViewById(R.id.settings_spinnerStandardView);
+        settings_spinnerStandardView_group = findViewById(R.id.settings_spinnerStandardView_group);
+        settings_spinnerStandardView_main = findViewById(R.id.settings_spinnerStandardView_main);
         settings_spinnerTripCount = findViewById(R.id.settings_spinnerTripCount);
-        mySPR = getSharedPreferences("CarPoolManager_Settings",0);
-        mySPR.getString("standardView", "Übersicht");
+        mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
+//        mySPR_settings.getString("standardView_group", "Übersicht");
         databaseReference = FirebaseDatabase.getInstance().getReference();
         setSpinners();
     }
 
     private void setSpinners() {
-        settings_spinnerStandardView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        settings_spinnerStandardView_main.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                SharedPreferences.Editor editor = mySPR.edit();
-                editor.putString("standardView",((AppCompatTextView) view).getText().toString());
+                SharedPreferences.Editor editor = mySPR_settings.edit();
+                editor.putInt("standardView_main", i == 0 ? R.id.navigation_menu_groups : R.id.navigation_menu_account);
+                editor.apply();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {}
+        });
+        settings_spinnerStandardView_main.setSelection(mySPR_settings.getInt("standardView_main", R.id.navigation_menu_groups) == R.id.navigation_menu_groups
+                ? 0 : 1);
+
+        settings_spinnerStandardView_group.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                SharedPreferences.Editor editor = mySPR_settings.edit();
+                editor.putString("standardView_group", ((AppCompatTextView) view).getText().toString());
                 editor.commit();
             }
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
         });
-        settings_spinnerStandardView.setSelection(mySPR.getString("standardView", "Übersicht").equals("Übersicht") ? 0 : 1);
+        settings_spinnerStandardView_group.setSelection(mySPR_settings.getString("standardView_group", "Übersicht").equals("Übersicht")
+                ? 0 : 1);
 
         settings_spinnerTripCount.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                SharedPreferences.Editor editor = mySPR.edit();
+                SharedPreferences.Editor editor = mySPR_settings.edit();
                 editor.putString("tripCount",((AppCompatTextView) view).getText().toString());
                 editor.commit();
                 if (spinnerTripCount_selected == -1) {
@@ -94,7 +111,7 @@ public class Settings extends AppCompatActivity {
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
         });
-        settings_spinnerTripCount.setSelection(mySPR.getString("tripCount", "Pro Weg").equals("Pro Weg") ? 0 : 1);
+        settings_spinnerTripCount.setSelection(mySPR_settings.getString("tripCount", "Pro Weg").equals("Pro Weg") ? 0 : 1);
 
     }
 
