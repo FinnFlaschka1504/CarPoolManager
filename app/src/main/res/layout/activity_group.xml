@@ -19,15 +19,44 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <androidx.appcompat.widget.Toolbar
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/group_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme" >
+
+            <TextView
+                android:id="@+id/group_toolbar_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Toolbar Title"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:visibility="invisible"
+                tools:visibility="visible" />
+        </androidx.appcompat.widget.Toolbar>
+
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/group_tabLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:tabBackground="@color/colorPrimary"
-            app:tabSelectedTextColor="#FFFFFF"
-            app:tabTextColor="#C9C9C9">
+            app:tabBackground="@drawable/bottom_line"
+            app:tabIndicatorColor="@color/colorPrimary"
+            app:tabSelectedTextColor="@color/colorPrimary"
+            app:tabTextColor="@color/colorGrey">
 
         </com.google.android.material.tabs.TabLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/colorDdivider"
+            android:visibility="gone" />
 
         <androidx.viewpager.widget.ViewPager
             android:id="@+id/group_pager"

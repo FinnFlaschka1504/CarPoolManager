@@ -16,20 +16,29 @@
         app:layout_constraintTop_toTopOf="parent">
 
 
-        <TextView
-            android:id="@+id/overview_groupName"
-            style="?android:textAppearanceMedium"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="12dp"
-            android:text="Gruppen Name"
-            android:textColor="@color/colorFont"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/overview_groupName"
+                style="?android:textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="12dp"
+                android:text="Gruppen Name"
+                android:textColor="@color/colorFont"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="?android:attr/listDivider" />
+            android:background="?android:attr/listDivider"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"

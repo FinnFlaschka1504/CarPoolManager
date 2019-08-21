@@ -24,6 +24,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -47,7 +48,6 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -119,6 +119,11 @@ public class GroupActivity extends FragmentActivity {
         findViewById(R.id.group_addTrip).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (!Utility.isOnline()) {
+                    Toast.makeText(GroupActivity.this, "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
                 intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
                 intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
@@ -127,7 +132,24 @@ public class GroupActivity extends FragmentActivity {
             }
         });
 
-//        LocalBroadcastManager
+        Toolbar toolbar = findViewById(R.id.group_toolbar);
+        toolbar.setTitle(thisGroup.getName());
+//        ((TextView) findViewById(R.id.group_toolbar_title)).setText(thisGroup.getName());
+        toolbar.setNavigationIcon(ContextCompat.getDrawable(this, R.drawable.ic_arrow_back));
+        toolbar.setNavigationOnClickListener(v -> {
+            finish();
+        });
+        toolbar.inflateMenu(R.menu.group_edit);
+        toolbar.setOnMenuItemClickListener(item -> {
+            CustomDialog.Builder(this)
+                    .setTitle("Gruppen-Namen Ändern")
+                    .setText("hier nen EditText einfügen")
+                    .setButtonType(CustomDialog.ButtonType.OK_CANCEL)
+//                    .setEdit(new CustomDialog.EditBuilder().setHint("test").setText("Hallöle").setSelectAll(true).setShowKeyboard(true))
+                    .show();
+            return true;
+        });
+        // ToDo: wegen layout_gravity bescheid sagen
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -180,6 +202,25 @@ public class GroupActivity extends FragmentActivity {
             return NUM_PAGES;
         }
     }
+
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.main, menu);
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        int id = item.getItemId();
+//
+//        if (id == R.id.action_settings) {
+//            Toast.makeText(this, "Test", Toast.LENGTH_SHORT).show();
+//            return true;
+//        }
+//
+//        return super.onOptionsItemSelected(item);
+//    }
+
 }
 
 class ViewPager_GroupOverview extends Fragment {
@@ -254,15 +295,15 @@ class ViewPager_GroupOverview extends Fragment {
                     .setTitle("Mitfahrer bearbeiten")
                     .setText("Was möchtest du tun?")
 //                    .setDividerVisibility(false)
-                    .setButtonType(CustomDialog.buttonType_Enum.CUSTOM)
+                    .setButtonType(CustomDialog.ButtonType.CUSTOM)
                     .addButton("Gruppe Verlassen", dialog -> {
                         // ToDo: Gruppe verlassen implementieren
+
                         Toast.makeText(getContext(), "Tschüss", Toast.LENGTH_SHORT).show();
                     })
                     .addButton("Mitfahrer hinzufügen", dialog ->
-                            // ToDo: nutzer hinzufügen implementieren
                             {
-                                if (!isOnline()) {
+                                if (!Utility.isOnline()) {
                                     Toast.makeText(getContext(), "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
                                     return;
                                 }
@@ -301,7 +342,7 @@ class ViewPager_GroupOverview extends Fragment {
 //                    .addButton("Test2", dialog ->
 //                            CustomDialog.Builder(getContext())
 //                                    .setTitle("Speichern und Abbrechen")
-//                                    .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+//                                    .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
 //                                    .show(),
 //                            false)
                     .show();
@@ -415,7 +456,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         Dialog dialog_AddPassenger = CustomDialog.Builder(getContext())
                 .setTitle("Mitfahrer hinzufügen")
-                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
                 .setView(R.layout.dialog_add_passenger)
                 .setDimensions(true, true)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
@@ -516,8 +557,6 @@ class ViewPager_GroupOverview extends Fragment {
                     }
 
                     customRecycler_selectedList.setObjectList(selectedUserList).reload();
-                    // ToDo: durch halten removen und dann liste abwählen und divider entfernen wenn leer
-
                 })
                 .generateCustomRecycler();
 
@@ -749,7 +788,7 @@ class ViewPager_GroupOverview extends Fragment {
         Dialog dialog_changeCostCalculation = CustomDialog.Builder(getContext())
                 .setTitle("Kostenberechnung ändern")
                 .setView(R.layout.dialog_change_cost_calculation)
-                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
 
                     RadioGroup dialogChangeCostCalculation_typeGroup = dialog.findViewById(R.id.dialogChangeCostCalculation_typeGroup);
@@ -1008,7 +1047,7 @@ class ViewPager_GroupOverview extends Fragment {
                 .setTitle((showAll ? "Alle" : "Deine") + "Trips")
 //                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
                 .setView(R.layout.dialog_trip_list)
-                .setButtonType(CustomDialog.buttonType_Enum.BACK)
+                .setButtonType(CustomDialog.ButtonType.BACK)
                 .show();
 
         dialogTripList_list = dialog_tripList.findViewById(R.id.dialogTripList_list);
@@ -1231,24 +1270,9 @@ class ViewPager_GroupOverview extends Fragment {
 
         // ToDo: fahrten nach anteil farblich markieren
     }
-    public boolean isOnline() {
-        Runtime runtime = Runtime.getRuntime();
-        try {
-            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
-            int exitValue = ipProcess.waitFor();
-            return (exitValue == 0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-
 }
 
-class ViewPager_GroupCalender extends Fragment {
+class  ViewPager_GroupCalender extends Fragment {
 
     View view;
     User loggedInUser;

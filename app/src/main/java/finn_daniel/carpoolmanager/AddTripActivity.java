@@ -443,7 +443,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     private void showAddCarDialog() {
         dialog_addCar = CustomDialog.Builder(AddTripActivity.this)
                 .setTitle("Neues Auto anlegen")
-                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
                 .setView(R.layout.dialog_add_car)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
                     dialogAddCar_name = dialog.findViewById(R.id.dialogAddCar_name);
@@ -577,7 +577,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         dialog_renamePoints = CustomDialog.Builder(AddTripActivity.this)
                 .setDividerVisibility(false)
                 .setView(R.layout.dialog_rename_points)
-                .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
                     dialogRenamePoints_from = dialog.findViewById(R.id.dialogRenamePoints_from);
                     dialogRenamePoints_to = dialog.findViewById(R.id.dialogRenamePoints_to);

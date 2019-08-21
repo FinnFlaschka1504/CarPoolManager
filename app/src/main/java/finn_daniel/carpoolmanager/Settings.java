@@ -25,6 +25,7 @@ import java.util.Map;
 
 public class Settings extends AppCompatActivity {
 
+    // ToDo: strings durch referenzen ersetzen
     DatabaseReference databaseReference;
     Boolean isReadingActivated = false;
     SharedPreferences mySPR;

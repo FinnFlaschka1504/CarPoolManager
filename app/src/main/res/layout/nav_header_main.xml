@@ -17,21 +17,21 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:contentDescription="@string/nav_header_desc"
-        android:onClick="bildClickTest"
         android:paddingTop="@dimen/nav_header_vertical_spacing"
         app:srcCompat="@mipmap/ic_launcher_round" />
 
     <TextView
+        android:id="@+id/main_navView_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="@dimen/nav_header_vertical_spacing"
-        android:text="FinnF"
+        android:text="Name"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/main_navView_eMail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="finn.flaschka@edu.hdw.de" />
+        android:text="E-Mail" />
 
 </LinearLayout>

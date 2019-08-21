@@ -1,9 +1,7 @@
 package finn_daniel.carpoolmanager;
 
-import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,6 +14,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewStub;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -42,7 +41,6 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,6 +60,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 //    ListView listView_groupList;
     CustomRecycler customRecycler_groupList;
+    View contentView_groups;
+    View contentView_account;
+    ViewStub stub_groups;
+    ViewStub stub_account;
+    NavigationView navigationView;
 
     List<String> createData_gruppenNamen;
     List<String> createData_emailAddressen;
@@ -83,6 +86,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     boolean wizzardManuellAktiviert = false;
     SharedPreferences mySPR_daten;
     SharedPreferences mySPR_settings;
+
+
 
     int SETTINGS_INTENT = 001;
     String EXTRA_USER = "EXTRA_USER";
@@ -226,6 +231,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        stub_groups = findViewById(R.id.layout_stub_groups);
+        stub_groups.setLayoutResource(R.layout.main_content_groups);
+        contentView_groups = stub_groups.inflate();
+
         mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
         mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
         String loggedInUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
@@ -235,13 +244,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
 
+//        mySPR_daten.edit().putString("loggedInUserId", "user_2a48b5ec-bc70-4b5a-8c1d-b76384cec163").commit();
+
         networkStateReceiver = new NetworkStateReceiver();
         networkStateReceiver.addListener(this);
         this.registerReceiver(networkStateReceiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        FloatingActionButton fab = findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.main_groups_addGroup);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -249,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Dialog dialog_newGroup = CustomDialog.Builder(MainActivity.this)
                         .setTitle("Neue Gruppe Erstellen")
                         .setView(R.layout.dialog_new_group)
-                        .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
+                        .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
                         .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
                             Group newGroup = new Group();
 
@@ -323,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView = findViewById(R.id.nav_view);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -334,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 //        listView_groupList = findViewById(R.id.listView_groupList);
 
-        if (!isOnline()) {
+        if (!Utility.isOnline()) {
 
             String loggedInUser_groupsMap_string = mySPR_daten.getString("loggedInUser_groupsMap", "--Leer--");
             if (!loggedInUser_groupsMap_string.equals("--Leer--")) {
@@ -342,6 +353,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         loggedInUser_groupsMap_string, new TypeToken<HashMap<String, Group>>() {
                         }.getType()
                 );
+            } else {
+                Toast.makeText(this, "Fehler beim Laden der Offline Daten", Toast.LENGTH_SHORT).show();
+                return;
             }
 
             String loggedInUser_groupPassengerMap_string = mySPR_daten.getString("loggedInUser_groupPassengerMap", "--Leer--");
@@ -350,6 +364,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         loggedInUser_groupPassengerMap_string, new TypeToken<HashMap<String, User>>() {
                         }.getType()
                 );
+            } else {
+                Toast.makeText(this, "Fehler beim Laden der Offline Daten", Toast.LENGTH_SHORT).show();
+                return;
             }
 
             String loggedInUser_groupTripMap_string = mySPR_daten.getString("loggedInUser_groupTripMap", "--Leer--");
@@ -358,12 +375,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         loggedInUser_groupTripMap_string, new TypeToken<Map<String, Map<String, Trip>>>() {
                         }.getType()
                 );
+            } else {
+                Toast.makeText(this, "Fehler beim Laden der Offline Daten", Toast.LENGTH_SHORT).show();
+                return;
             }
 
             listeLaden();
-//            listeClickListener();
             return;
         }
+
+    }
+
+    private void getUserFromUserId(String loggedInUserId_string) {
+        databaseReference.child("Users").child(loggedInUserId_string).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+                loggedInUser = dataSnapshot.getValue(User.class);
+
+                reloadLoggedInUser();
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) { }
+        });
     }
 
     private void setChangeRadioButtonListener(final Dialog dialog_newGroup, RadioGroup dialogNewGroup_typeGroup, RadioGroup dialogNewGroup_methodGroup, int saveButtonId) {
@@ -400,7 +435,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     private void showNoInternetSnackBar() {
-        Snackbar.make(findViewById(R.id.include), "Es gibt keine verbindung zum Internet!", Snackbar.LENGTH_LONG)
+        Snackbar.make(contentView_groups, "Es gibt keine verbindung zum Internet!", Snackbar.LENGTH_LONG)
                 .setAction("Aktivieren", new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -435,6 +470,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     private void reloadLoggedInUser() {
+        if (loggedInUser == null) {
+            String loggedInUserId_string = mySPR_daten.getString("loggedInUserId", "--Leer--");
+            if (!loggedInUserId_string.equals("--Leer--")) {
+                getUserFromUserId(loggedInUserId_string);
+            }
+            else
+                Toast.makeText(this, "Fehler", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        View view = navigationView.getHeaderView(0);
+        ((TextView) view.findViewById(R.id.main_navView_name)).setText(loggedInUser.getUserName());
+        ((TextView) view.findViewById(R.id.main_navView_eMail)).setText(loggedInUser.getEmailAddress());
         databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -442,7 +489,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     return;
 
                 loggedInUser = dataSnapshot.getValue(User.class);
-
                 getGroupsfromUser();
             }
 
@@ -453,18 +499,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void getGroupsfromUser() {
-//        databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(DataSnapshot dataSnapshot) {
-//                if (dataSnapshot.getValue() == null)
-//                    return;
-//                User foundUser = dataSnapshot.getValue(User.class);
-//                loggedInUser_groupsIdList = foundUser.getGroupIdList();
         loggedInUser_groupsIdList = loggedInUser.getGroupIdList();
         if (loggedInUser_groupsIdList.size() == 0) {
-            TextView main_groupInfo = findViewById(R.id.main_groupInfo);
+            TextView main_groupInfo = findViewById(R.id.main_groups_groupInfo);
             main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
-            findViewById(R.id.progressBar_loadData).setVisibility(View.GONE);
+            findViewById(R.id.main_groups_loadData).setVisibility(View.GONE);
             return;
         }
         for (String groupId : loggedInUser_groupsIdList) {
@@ -600,8 +639,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void networkAvailable() {
-        findViewById(R.id.main_noInternet).setVisibility(View.GONE);
-        findViewById(R.id.progressBar_loadData).setVisibility(View.VISIBLE);
+        findViewById(R.id.main_groups_noInternet).setVisibility(View.GONE);
+        findViewById(R.id.main_groups_loadData).setVisibility(View.VISIBLE);
 //        createListData();
         reloadLoggedInUser();
 //        getGroupsfromUser();
@@ -610,15 +649,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void networkUnavailable() {
         showNoInternetSnackBar();
-        TextView main_noInternet = findViewById(R.id.main_noInternet);
+        TextView main_noInternet = findViewById(R.id.main_groups_noInternet);
         main_noInternet.setVisibility(View.VISIBLE);
         main_noInternet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!isOnline()) {
+                if (!Utility.isOnline()) {
                     showActivateInternetDialog();
                 } else {
-                    findViewById(R.id.main_noInternet).setVisibility(View.GONE);
+                    findViewById(R.id.main_groups_noInternet).setVisibility(View.GONE);
 //                    getGroupsfromUser();
                     reloadLoggedInUser();
                 }
@@ -665,16 +704,99 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.groups) {
-            msgBox("groups");
-        } else if (id == R.id.settings) {
-            Intent intent = new Intent(MainActivity.this, Settings.class);
-            startActivityForResult(intent, SETTINGS_INTENT);
+        switch (id) {
+            case R.id.groups:
+                if (contentView_groups == null) {
+                    stub_groups = MainActivity.this.findViewById(R.id.layout_stub_groups);
+                    stub_groups.setLayoutResource(R.layout.main_content_groups);
+                    contentView_groups = stub_groups.inflate();
+                    contentView_account.setVisibility(View.GONE);
+                    break;
+                }
+                contentView_groups.setVisibility(View.VISIBLE);
+                contentView_account.setVisibility(View.GONE);
+                break;
+            case R.id.account:
+                if (contentView_account == null) {
+                    stub_account = MainActivity.this.findViewById(R.id.layout_stub_account);
+                    stub_account.setLayoutResource(R.layout.main_content_account);
+                    contentView_account = stub_account.inflate();
+                    contentView_groups.setVisibility(View.GONE);
+                    setAccountView();
+                    break;
+                }
+                contentView_groups.setVisibility(View.GONE);
+                contentView_account.setVisibility(View.VISIBLE);
+                break;
+            case R.id.settings:
+                Intent intent = new Intent(MainActivity.this, Settings.class);
+                startActivityForResult(intent, SETTINGS_INTENT);
+                break;
         }
+
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void setAccountView() {
+        ((TextView) contentView_account.findViewById(R.id.main_account_name)).setText(loggedInUser.getUserName());
+        databaseReference.child("Users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.getValue() == null)
+                    return;
+
+                List<User> userList = new ArrayList<>();
+                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                    User foundUser = messageSnapshot.getValue(User.class);
+                    userList.add(foundUser);
+                }
+
+                CustomRecycler.Builder(MainActivity.this, MainActivity.this.findViewById(R.id.main_account_groupList))
+                        .setItemView(R.layout.list_item_select_user)
+                        .setObjectList(userList)
+                        .setViewList(viewIdList -> {
+                            viewIdList.add(R.id.selectUserList_name);
+                            viewIdList.add(R.id.selectUserList_email);
+                            viewIdList.add(R.id.selectUserList_selected);
+                            return viewIdList;
+                        })
+                        .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                            User user = (User) object;
+                            ((TextView) ViewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
+                            ((TextView) ViewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
+                            if (user.equals(loggedInUser))
+                                ((CheckBox) ViewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
+                        })
+                        .setOnClickListener((recycler, view, object, index) -> {
+//                            CheckBox checkBox = view.findViewById(R.id.selectUserList_selected);
+//                            checkBox.setChecked(!checkBox.isChecked());
+                            CustomDialog.Builder(MainActivity.this)
+                                    .setTitle("Benutzer Wechseln")
+                                    .setText("Du wirst als '" + ((User) object).getUserName() + "' angemeldet?")
+                                    .setButtonType(CustomDialog.ButtonType.OK_CANCEL)
+                                    .addButton(CustomDialog.OK_BUTTON, dialog -> {
+                                        mySPR_daten.edit().clear().commit();
+                                        mySPR_daten.edit().putString("loggedInUserId", ((User) object).getUser_id()).commit();
+                                        Utility.restartApp(MainActivity.this);
+//                                        reloadLoggedInUser();
+//                                        navigationView.setCheckedItem(R.id.groups);
+                                        return;
+                                    })
+                                    .show();
+                        })
+                        .generate();
+
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data){
@@ -705,7 +827,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void listeLaden() {
 
-        TextView main_groupInfo = findViewById(R.id.main_groupInfo);
+        TextView main_groupInfo = findViewById(R.id.main_groups_groupInfo);
         main_groupInfo.setVisibility(View.GONE);
 
         sortedGroupList = new ArrayList<>(loggedInUser_groupsMap.values());
@@ -724,7 +846,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
         }
 
-        customRecycler_groupList = CustomRecycler.Builder(this, findViewById(R.id.main_groupList))
+        customRecycler_groupList = CustomRecycler.Builder(this, findViewById(R.id.main_groups_groupList))
                 .setItemView(R.layout.list_item_group)
                 .setObjectList(sortedGroupList)
                 .setViewList(viewIdList -> {
@@ -769,15 +891,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .generateCustomRecycler();
         // ToDo: änder neuladen der liste von komplette methode neuladen zu .reload()
 
-        findViewById(R.id.progressBar_loadData).setVisibility(View.GONE);
+        findViewById(R.id.main_groups_loadData).setVisibility(View.GONE);
     }
 
     public void msgBox(String nachricht) {
         Toast.makeText(this, nachricht, Toast.LENGTH_SHORT).show();
-    }
-
-    public void bildClickTest(View view) {
-        msgBox("Konto Informationen Öffnen");
     }
 
     public void startWizzard(View view) {
@@ -886,12 +1004,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
                 if (wizzardManuellAktiviert) {
                     wizzardManuellAktiviert = false;
-                    Intent mStartActivity = new Intent(MainActivity.this, MainActivity.class);
-                    int mPendingIntentId = 123456;
-                    PendingIntent mPendingIntent = PendingIntent.getActivity(MainActivity.this, mPendingIntentId, mStartActivity, PendingIntent.FLAG_CANCEL_CURRENT);
-                    AlarmManager mgr = (AlarmManager) MainActivity.this.getSystemService(Context.ALARM_SERVICE);
-                    mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
-                    System.exit(0);
+                    Utility.restartApp(MainActivity.this);
                 }
             }
 
@@ -900,21 +1013,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
-    }
-
-    public boolean isOnline() {
-        Runtime runtime = Runtime.getRuntime();
-        try {
-            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
-            int exitValue = ipProcess.waitFor();
-            return (exitValue == 0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return false;
     }
 
     private String getGroupIdByName(final String name) {

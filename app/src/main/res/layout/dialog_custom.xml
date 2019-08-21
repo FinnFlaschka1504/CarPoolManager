@@ -13,7 +13,7 @@
         android:layout_marginLeft="16dp"
         android:layout_marginTop="12dp"
         android:layout_marginRight="16dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="12dp"
         android:text="title"
         android:textAlignment="center"
         android:textColor="@color/colorPrimary"
@@ -49,6 +49,35 @@
             android:background="@color/colorDdivider" />
     </LinearLayout>
 
+<!--    <LinearLayout-->
+<!--        android:id="@+id/dialog_custom_layout_edit"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:orientation="vertical">-->
+
+<!--        <View-->
+<!--            android:id="@+id/dialog_custom_divider3"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="1dp"-->
+<!--            android:layout_marginBottom="16dp"-->
+<!--            android:background="@color/colorDdivider" />-->
+
+<!--        <EditText-->
+<!--            android:id="@+id/dialog_custom_edit"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginHorizontal="16dp"-->
+<!--            android:ems="10"-->
+<!--            android:inputType="textPersonName" />-->
+
+<!--        <View-->
+<!--            android:id="@+id/dialog_custom_divider4"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="1dp"-->
+<!--            android:layout_marginTop="16dp"-->
+<!--            android:background="@color/colorDdivider" />-->
+<!--    </LinearLayout>-->
+
     <LinearLayout
         android:id="@+id/dialog_custom_layout_view"
         android:layout_width="match_parent"
@@ -57,7 +86,7 @@
         android:orientation="vertical">
 
         <View
-            android:id="@+id/dialog_custom_divider3"
+            android:id="@+id/dialog_custom_divider5"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/colorDdivider" />
@@ -70,7 +99,7 @@
             android:orientation="vertical"></LinearLayout>
 
         <View
-            android:id="@+id/dialog_custom_divider4"
+            android:id="@+id/dialog_custom_divider6"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/colorDdivider" />

@@ -20,22 +20,24 @@ import java.util.List;
 import java.util.Map;
 
 public class CustomDialog {
-    public enum buttonType_Enum {
-        YES_NO, SAVE_CANCEL, BACK, CUSTOM
+    public enum ButtonType {
+        YES_NO, SAVE_CANCEL, BACK, OK, OK_CANCEL, CUSTOM
     }
+    // ToDo: EditText zum standard hinzufügen
 
+    private boolean showKeyboard;
+    private boolean showEdit;
     private Context context;
     private Dialog dialog;
     private String title;
     private String text;
     private View view;
-    private buttonType_Enum buttonType = buttonType_Enum.BACK;
+    private ButtonType buttonType = ButtonType.BACK;
     private Pair<Boolean, Boolean> dimensions = new Pair<>(true, false);
     private boolean dividerVisibility = true;
     private boolean isDividerVisibilityCustom = false;
     private int titleTextAlignment = View.TEXT_ALIGNMENT_CENTER;
     private boolean isTextBold = false;
-//    private boolean[] dividerVisible = new boolean[5];
 
     private List<Boolean> dismissDialogList = new ArrayList<>();
     private List<Pair<String, OnClick>> pairList = new ArrayList<>();
@@ -48,6 +50,7 @@ public class CustomDialog {
     public static final String SAVE_BUTTON = "SAVE_BUTTON";
     public static final String CANCEL_BUTTON = "CANCEL_BUTTON";
     public static final String BACK_BUTTON = "BACK_BUTTON";
+    public static final String OK_BUTTON = "OK_BUTTON";
 
     public CustomDialog(Context context) {
         this.context = context;
@@ -86,7 +89,7 @@ public class CustomDialog {
         return this;
     }
 
-    public CustomDialog setButtonType(buttonType_Enum buttonType) {
+    public CustomDialog setButtonType(ButtonType buttonType) {
         this.buttonType = buttonType;
         return this;
     }
@@ -140,71 +143,44 @@ public class CustomDialog {
         return this;
     }
 
-//    public CustomDialog setDividerVisible(boolean textTop, boolean textBottom, boolean viweTop, boolean viewBottom, boolean extraDivider) {
-//        this.dividerVisible = dividerVisible;
+//    public CustomDialog setEdit(EditBuilder editBuilder) {
+//        this.showEdit = true;
+//        EditText editText = dialog.findViewById(R.id.dialog_custom_edit);
+//        if (editBuilder.text != null)
+//            editText.setText(editBuilder.text);
+//        if (editBuilder.hint != null)
+//            editText.setHint(editBuilder.hint);
+//        editText.setSelectAllOnFocus(editBuilder.selectAll);
+//        this.showKeyboard = editBuilder.showKeyboard;
 //        return this;
 //    }
 
-    public Dialog show() {
-        dialog = new Dialog(this.context);
-        dialog.setContentView(R.layout.dialog_custom);
-
-        TextView dialog_custom_title = dialog.findViewById(R.id.dialog_custom_title);
-        TextView dialog_custom_text = dialog.findViewById(R.id.dialog_custom_text);
-
-        dialog_custom_title.setTextAlignment(titleTextAlignment);
-
-        if (isDividerVisibilityCustom) {
-            dialog.findViewById(R.id.dialog_custom_divider1).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
-            dialog.findViewById(R.id.dialog_custom_divider2).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
-            dialog.findViewById(R.id.dialog_custom_divider3).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
-            dialog.findViewById(R.id.dialog_custom_divider4).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
-        }
-
-        if (title != null)
-            dialog_custom_title.setText(this.title);
-        else
-            dialog_custom_title.setVisibility(View.GONE);
-
-        if (text != null) {
-            dialog_custom_text.setText(this.text);
-            if (isTextBold)
-                dialog_custom_text.setTypeface(null, Typeface.BOLD);
-        }
-        else
-            dialog.findViewById(R.id.dialog_custom_layout_text).setVisibility(View.GONE);
-
-
-        if (view != null)
-            ((LinearLayout) dialog.findViewById(R.id.dialog_custom_layout_view_interface)).addView(view);
-        else
-            dialog.findViewById(R.id.dialog_custom_layout_view).setVisibility(View.GONE);
-
-        if (text != null && view != null) {
-            LinearLayout dialog_custom_layout_view = dialog.findViewById(R.id.dialog_custom_layout_view);
-//            dialog_custom_layout_view.setPadding(dialog_custom_layout_view.getPaddingLeft(), 0,
-//                    dialog_custom_layout_view.getPaddingRight(), dialog_custom_layout_view.getPaddingBottom());
-            dialog.findViewById(R.id.dialog_custom_divider3).setVisibility(View.GONE);
-        }
-
-        if (text == null && view == null) {
-            if (isDividerVisibilityCustom && dividerVisibility)
-                dialog.findViewById(R.id.dialog_custom_divider).setVisibility(View.VISIBLE);
-        }
-
-        if (title == null && text != null)
-            dialog.findViewById(R.id.dialog_custom_divider1).setVisibility(View.INVISIBLE);
-
-        if (title == null && text == null && view != null)
-            dialog.findViewById(R.id.dialog_custom_divider3).setVisibility(View.GONE);
-
-
-        setDialogLayoutParameters(dialog, dimensions.first, dimensions.second);
-        setButtons();
-        setOnClickListeners();
-        return dialog;
-
-    }
+//    static class EditBuilder {
+//        private String text;
+//        private String hint;
+//        private boolean showKeyboard = false;
+//        private boolean selectAll = false;
+//
+//        public EditBuilder setText(String text) {
+//            this.text = text;
+//            return this;
+//        }
+//
+//        public EditBuilder setHint(String hint) {
+//            this.hint = hint;
+//            return this;
+//        }
+//
+//        public EditBuilder setShowKeyboard(boolean showKeyboard) {
+//            this.showKeyboard = showKeyboard;
+//            return this;
+//        }
+//
+//        public EditBuilder setSelectAll(boolean selectAll) {
+//            this.selectAll = selectAll;
+//            return this;
+//        }
+//    }
 
     private void setButtons() {
         switch (buttonType) {
@@ -218,6 +194,13 @@ public class CustomDialog {
                 break;
             case BACK:
                 addNewButton("Zurück");
+                break;
+            case OK:
+                addNewButton("OK");
+                break;
+            case OK_CANCEL:
+                addNewButton("Abbrechen");
+                addNewButton("OK");
                 break;
             case CUSTOM:
                 for (Pair<String, OnClick> pair : pairList) addNewButton(pair.first);
@@ -270,8 +253,8 @@ public class CustomDialog {
                         Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
-
                 return;
+
             case SAVE_CANCEL:
                 if (stringOnClickMap.keySet().contains(CANCEL_BUTTON)) {
                     int index = nameList.indexOf(CANCEL_BUTTON);
@@ -301,7 +284,6 @@ public class CustomDialog {
                         Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
-
                 return;
 
             case BACK:
@@ -318,7 +300,54 @@ public class CustomDialog {
                     buttonList.get(0).setOnClickListener(view -> {
                         dialog.dismiss();
                     });
+                return;
 
+            case OK_CANCEL:
+                if (stringOnClickMap.keySet().contains(CANCEL_BUTTON)) {
+                    int index = nameList.indexOf(CANCEL_BUTTON);
+                    buttonList.get(0).setId(buttonIdList.get(index));
+                    buttonList.get(0).setOnClickListener(view1 -> {
+                        if (dismissDialogList.get(index))
+                            dialog.dismiss();
+                        pairList.get(index).second.run(dialog);
+                    });
+                }
+                else
+                    buttonList.get(0).setOnClickListener(view -> {
+                        dialog.dismiss();
+                    });
+
+                if (stringOnClickMap.keySet().contains(OK_BUTTON)) {
+                    int index = nameList.indexOf(OK_BUTTON);
+                    buttonList.get(1).setId(buttonIdList.get(index));
+                    buttonList.get(1).setOnClickListener(view1 -> {
+                        if (dismissDialogList.get(index))
+                            dialog.dismiss();
+                        pairList.get(index).second.run(dialog);
+                    });
+                }
+                else
+                    buttonList.get(1).setOnClickListener(view -> {
+                        Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    });
+                return;
+
+            case OK:
+                if (stringOnClickMap.keySet().contains(OK_BUTTON)) {
+                    int index = nameList.indexOf(OK_BUTTON);
+                    buttonList.get(0).setId(buttonIdList.get(index));
+                    buttonList.get(0).setOnClickListener(view1 -> {
+                        if (dismissDialogList.get(index))
+                            dialog.dismiss();
+                        pairList.get(index).second.run(dialog);
+                    });
+                }
+                else
+                    buttonList.get(0).setOnClickListener(view -> {
+                        Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    });
                 return;
         }
 
@@ -332,6 +361,73 @@ public class CustomDialog {
             });
             count++;
         }
+    }
+
+    public Dialog show() {
+        dialog = new Dialog(this.context);
+        dialog.setContentView(R.layout.dialog_custom);
+
+        TextView dialog_custom_title = dialog.findViewById(R.id.dialog_custom_title);
+        TextView dialog_custom_text = dialog.findViewById(R.id.dialog_custom_text);
+
+        dialog_custom_title.setTextAlignment(titleTextAlignment);
+
+        if (isDividerVisibilityCustom) {
+            dialog.findViewById(R.id.dialog_custom_divider1).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
+            dialog.findViewById(R.id.dialog_custom_divider2).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
+//            dialog.findViewById(R.id.dialog_custom_divider3).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
+//            dialog.findViewById(R.id.dialog_custom_divider4).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
+            dialog.findViewById(R.id.dialog_custom_divider5).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
+            dialog.findViewById(R.id.dialog_custom_divider6).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
+        }
+
+        if (title != null)
+            dialog_custom_title.setText(this.title);
+        else
+            dialog_custom_title.setVisibility(View.GONE);
+
+        if (text != null) {
+            dialog_custom_text.setText(this.text);
+            if (isTextBold)
+                dialog_custom_text.setTypeface(null, Typeface.BOLD);
+        }
+        else
+            dialog.findViewById(R.id.dialog_custom_layout_text).setVisibility(View.GONE);
+
+//        if (!showEdit)
+//            dialog.findViewById(R.id.dialog_custom_layout_edit).setVisibility(View.GONE);
+//        if (showKeyboard)
+//            Utility.changeDialogKeyboard(dialog, true);
+
+        if (view != null)
+            ((LinearLayout) dialog.findViewById(R.id.dialog_custom_layout_view_interface)).addView(view);
+        else
+            dialog.findViewById(R.id.dialog_custom_layout_view).setVisibility(View.GONE);
+
+        if (text != null && view != null) {
+            LinearLayout dialog_custom_layout_view = dialog.findViewById(R.id.dialog_custom_layout_view);
+//            dialog_custom_layout_view.setPadding(dialog_custom_layout_view.getPaddingLeft(), 0,
+//                    dialog_custom_layout_view.getPaddingRight(), dialog_custom_layout_view.getPaddingBottom());
+            dialog.findViewById(R.id.dialog_custom_divider5).setVisibility(View.GONE);
+        }
+
+        if (text == null && view == null) {
+            if (isDividerVisibilityCustom && dividerVisibility)
+                dialog.findViewById(R.id.dialog_custom_divider).setVisibility(View.VISIBLE);
+        }
+
+        if (title == null && text != null)
+            dialog.findViewById(R.id.dialog_custom_divider1).setVisibility(View.INVISIBLE);
+
+        if (title == null && text == null && view != null)
+            dialog.findViewById(R.id.dialog_custom_divider5).setVisibility(View.GONE);
+
+
+        setDialogLayoutParameters(dialog, dimensions.first, dimensions.second);
+        setButtons();
+        setOnClickListeners();
+        return dialog;
+
     }
 
     static void setDialogLayoutParameters(Dialog dialog, boolean width, boolean height) {
