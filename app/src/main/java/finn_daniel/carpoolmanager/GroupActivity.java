@@ -217,7 +217,7 @@ class ViewPager_GroupOverview extends Fragment {
     TextView overview_noDriverText;
     ViewPager_GroupCalender thisGroupCalender;
 
-    List<String> listviewTitle = new ArrayList<String>();
+    List<String> listviewTitle = new ArrayList<>();
     List<Boolean> listviewIsDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList = new ArrayList<>();
@@ -279,7 +279,7 @@ class ViewPager_GroupOverview extends Fragment {
                                             userList.add(foundUser);
                                         }
 
-                                        showAddPassengerDialog(userList);
+                                        showAddPassengerDialog(userList, dialog);
 
                                     }
 
@@ -406,19 +406,34 @@ class ViewPager_GroupOverview extends Fragment {
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
     }
 
-    private void showAddPassengerDialog(List<User> userList) {
+    private void showAddPassengerDialog(List<User> userList, Dialog editPassengersDialog) {
 
         userList.removeAll(sortedUserList);
 
         List<User> selectedUserList = new  ArrayList<>();
         List<User> filterdUserList = new ArrayList<>(userList);
+        int saveButtonId = View.generateViewId();
 
         Dialog dialog_AddPassenger = CustomDialog.Builder(getContext())
                 .setTitle("Mitfahrer hinzufügen")
                 .setButtonType(CustomDialog.buttonType_Enum.SAVE_CANCEL)
                 .setView(R.layout.dialog_add_passenger)
                 .setDimensions(true, true)
+                .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
+                    for (User user : selectedUserList) {
+                        user.getGroupIdList().add(thisGroup.getGroup_id());
+                        groupPassengerMap.put(user.getUser_id(), user);
+                        thisGroup.getUserIdList().add(user.getUser_id());
+                        listeLaden();
+                        editPassengersDialog.dismiss();
+                        databaseReference.child("Users").child(user.getUser_id()).setValue(user);
+
+                    }
+                }, saveButtonId)
                 .show();
+
+        Button saveButton = dialog_AddPassenger.findViewById(saveButtonId);
+        saveButton.setEnabled(false);
 
         CustomRecycler customRecycler_selectList = CustomRecycler.Builder(getContext(), dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_selectPassengers));
 
@@ -446,10 +461,13 @@ class ViewPager_GroupOverview extends Fragment {
                     ((CustomRecycler.MyAdapter) recycler.getAdapter()).removeItemAt(index);
                     selectedUserList.remove(object);
 
-                    if (selectedUserList.size() <= 0)
+                    if (selectedUserList.size() <= 0) {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.VISIBLE);
-                    else
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(false);
+                    } else {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.GONE);
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(true);
+                    }
 
                     // ToDo: wieder probleme weil entladen
                     customRecycler_selectList.setObjectList(filterdUserList).reload();
@@ -488,10 +506,13 @@ class ViewPager_GroupOverview extends Fragment {
                     else
                         selectedUserList.add(user);
 
-                    if (selectedUserList.size() <= 0)
+                    if (selectedUserList.size() <= 0) {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.VISIBLE);
-                    else
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(false);
+                    } else {
                         dialog_AddPassenger.findViewById(R.id.dialogAddPassenger_nothingSelected).setVisibility(View.GONE);
+                        dialog_AddPassenger.findViewById(saveButtonId).setEnabled(true);
+                    }
 
                     customRecycler_selectedList.setObjectList(selectedUserList).reload();
                     // ToDo: durch halten removen und dann liste abwählen und divider entfernen wenn leer

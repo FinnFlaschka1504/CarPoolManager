@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     private String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
     int loggedInUser_passengerCount = 0;
-
+    int LOGIN_INTENT = 002;
 
     Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
     User loggedInUser;
@@ -228,9 +228,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
         mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
         String loggedInUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
-        if (!loggedInUser_string.equals("--Leer--")) {
+        if (!loggedInUser_string.matches("--Leer--|null")) {
             loggedInUser = gson.fromJson(loggedInUser_string, User.class);
             // ToDo: Handle nicht angemeldet
+        }else{
+            // ToDo: notification for login / register if no usre is logged in
+            Intent registerlogin = new Intent(MainActivity.this, LoginOrRegister.class);
+            startActivityForResult(registerlogin,LOGIN_INTENT);
+            return;
         }
 
 

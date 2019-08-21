@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "777676415663-vmtngl4sss7ti93l3ck6iv1s1r01gn6d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "finn_daniel.carpoolmanager",
+            "certificate_hash": "23c3c122df8944ff59d6d7aade1915a1dbffdb24"
+          }
+        },
+        {
           "client_id": "777676415663-avkl3vb089c2i3i6okha24ah3t8in4tk.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
