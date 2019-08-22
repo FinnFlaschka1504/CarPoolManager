@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -310,6 +311,7 @@ public class CustomRecycler {
         if (showDivider) {
             DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recycler.getContext(),
                     ((LinearLayoutManager) layoutManager).getOrientation());
+            dividerItemDecoration.setDrawable(ContextCompat.getDrawable(context,R.drawable.divider));
             recycler.addItemDecoration(dividerItemDecoration);
         }
 

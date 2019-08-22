@@ -314,8 +314,26 @@ class ViewPager_GroupOverview extends Fragment {
                     .addButton("Gruppe Verlassen", dialog -> {
                         // ToDo: Gruppe verlassen implementieren
 
-                        Toast.makeText(getContext(), "Tschüss", Toast.LENGTH_SHORT).show();
-                    })
+                        CustomDialog.Builder(getContext())
+                                .setTitle("Gruppe Verlassen")
+                                .setText("Möchtest du wirklich die Gruppe verlassen?")
+                                .setButtonType(CustomDialog.ButtonType.YES_NO)
+                                .addButton(CustomDialog.YES_BUTTON, dialog2 -> {
+
+                                    if (leaveGroup(loggedInUser, thisGroup).equals(Database.SUCCSESS)) {
+                                        Toast.makeText(getContext(), "Gruppe Verlasen"
+                                                + (thisGroup.getUserIdList().size() == 0 ? " und gelöscht" : ""), Toast.LENGTH_SHORT).show();
+                                        getActivity().finish();
+                                    } else {
+                                        Toast.makeText(getContext(), "Failed", Toast.LENGTH_SHORT).show();
+                                    }
+
+
+                                    dialog.dismiss();
+                                })
+                                .show();
+
+                    }, false)
                     .addButton("Mitfahrer hinzufügen", dialog ->
                             {
                                 // ToDo: wegen Datenschutz gedanken machen
@@ -460,6 +478,38 @@ class ViewPager_GroupOverview extends Fragment {
         return view;
 
         // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
+    }
+
+    private String leaveGroup(User user, Group group) {
+
+        List<Trip> tripList = new ArrayList<>();
+        for (Trip trip : groupTripsMap.values()) {
+            if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+                tripList.add(trip);
+        }
+
+        thisGroup.getUserIdList().remove(loggedInUser.getUser_id());
+        thisGroup.getDriverIdList().remove(loggedInUser.getUser_id());
+        List<Trip> lesezeichenList = new ArrayList<>();
+        thisGroup.getBookmarkList().forEach(trip -> {
+            if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+                lesezeichenList.add(trip);
+        });
+        thisGroup.getBookmarkList().removeAll(lesezeichenList);
+        tripList.stream().forEach(trip -> {
+            thisGroup.getTripIdList().remove(trip.getTrip_id());
+            databaseReference.child(Database.TRIPS).child(thisGroup.getGroup_id()).child(trip.getTrip_id()).removeValue();
+        });
+        loggedInUser.getGroupIdList().remove(thisGroup.getGroup_id());
+
+        if (thisGroup.getUserIdList().size() == 0)
+            databaseReference.child(Database.GROUPS).child(thisGroup.getGroup_id()).removeValue();
+        else
+            databaseReference.child(Database.GROUPS).child(thisGroup.getGroup_id()).setValue(thisGroup);
+
+        databaseReference.child(Database.USERS).child(loggedInUser.getUser_id()).setValue(loggedInUser);
+
+        return Database.SUCCSESS;
     }
 
     private void showAddPassengerDialog(List<User> userList, Dialog editPassengersDialog) {
@@ -1073,6 +1123,7 @@ class ViewPager_GroupOverview extends Fragment {
             Dialog dialog_deleteTrip = CustomDialog.Builder(getContext())
                     .setTitle("Den Trip Löschen?")
                     .setView(R.layout.dialog_delete_trip)
+                    .setButtonType(CustomDialog.ButtonType.YES_NO)
                     .addButton(CustomDialog.YES_BUTTON, dialog -> {
                         Trip trip = tripList.get(i);
 
@@ -1086,7 +1137,6 @@ class ViewPager_GroupOverview extends Fragment {
                         thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap,groupTripsMap);
                         thisGroupCalender.reLoadContent();
                     })
-                    .addButton(CustomDialog.NO_BUTTON, dialog -> {})
                     .show();
 //            Dialog dialog_deleteTrip = new Dialog(getContext());
 //            dialog_deleteTrip.setContentView(R.layout.dialog_delete_trip);

@@ -11,7 +11,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewStub;
@@ -113,22 +112,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if (dataSnapshot.getValue() == null) {
                 // ToDo: Gruppe aus speicherungen der nutzer Löschen
                 final String removedGroup = dataSnapshot.getKey();
-                for (String user : loggedInUser_groupsMap.get(removedGroup).getUserIdList()) {
-                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            if (dataSnapshot.getValue() == null)
-                                return;
-                            User foundUser = dataSnapshot.getValue(User.class);
-                            foundUser.getGroupIdList().remove(removedGroup);
-                            databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
-                        }
-                    });
-                }
+//                for (String user : loggedInUser_groupsMap.get(removedGroup).getUserIdList()) {
+//                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+//                        @Override
+//                        public void onDataChange(DataSnapshot dataSnapshot) {
+//                            if (dataSnapshot.getValue() == null)
+//                                return;
+//                            User foundUser = dataSnapshot.getValue(User.class);
+//                            foundUser.getGroupIdList().remove(removedGroup);
+//                            databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
+//                        }
+//
+//                        @Override
+//                        public void onCancelled(DatabaseError databaseError) {
+//                        }
+//                    });
+//                }
 
                 loggedInUser_groupsIdList.remove(removedGroup);
                 loggedInUser_groupsMap.remove(removedGroup);
@@ -698,29 +697,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        // Inflate the menu; this adds items to the action bar if it is present.
+//        getMenuInflater().inflate(R.menu.main, menu);
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        // Handle action bar item clicks here. The action bar will
+//        // automatically handle clicks on the Home/Up button, so long
+//        // as you specify a parent activity in AndroidManifest.xml.
+//        int id = item.getItemId();
+//
+//        //noinspection SimplifiableIfStatement
+//        if (id == R.id.action_settings) {
+//            return true;
+//        }
+//
+//        return super.onOptionsItemSelected(item);
+//    }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.

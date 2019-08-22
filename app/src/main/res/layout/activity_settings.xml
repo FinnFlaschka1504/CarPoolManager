@@ -26,9 +26,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Gruppen"
+                    android:text="Start"
                     android:textColor="@color/colorFont"
                     android:textStyle="bold" />
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -44,7 +45,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Standard Ansicht - Start"
+                            android:text="Standard Ansicht"
                             android:textStyle="bold" />
 
                         <TextView
@@ -61,12 +62,27 @@
                         android:entries="@array/settings_standardView_main" />
                 </LinearLayout>
 
-                <View
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="?android:attr/listDivider" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="16dp"
+                android:orientation="vertical">
+
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:background="?android:attr/listDivider" />
+                    android:text="Gruppen"
+                    android:textColor="@color/colorFont"
+                    android:textStyle="bold" />
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -82,7 +98,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Standard Seite - Gruppe"
+                            android:text="Standard Seite"
                             android:textStyle="bold" />
 
                         <TextView

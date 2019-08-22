@@ -244,7 +244,7 @@ public class CustomDialog {
                 }
                 else
                     buttonList.get(0).setOnClickListener(view -> {
-                        Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(context, "Keine Funktion zugewisen", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
 
