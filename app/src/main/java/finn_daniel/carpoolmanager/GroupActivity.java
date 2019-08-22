@@ -118,20 +118,15 @@ public class GroupActivity extends FragmentActivity {
         tabLayout.getTabAt(0).setText("Übersicht");
         tabLayout.getTabAt(1).setText("Kalender");
 
-        findViewById(R.id.group_addTrip).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!Utility.isOnline()) {
-                    Toast.makeText(GroupActivity.this, "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+        findViewById(R.id.group_addTrip).setOnClickListener(view -> {
+            if (!Utility.isOnline(GroupActivity.this))
+                return;
 
-                Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
-                intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
-                intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
-                intent.putExtra(EXTRA_TRIPMAP, gson.toJson(groupTripsMap));
-                startActivityForResult(intent, NEWTRIP);
-            }
+            Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
+            intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
+            intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
+            intent.putExtra(EXTRA_TRIPMAP, gson.toJson(groupTripsMap));
+            startActivityForResult(intent, NEWTRIP);
         });
 
         Toolbar toolbar = findViewById(R.id.group_toolbar);
@@ -143,6 +138,9 @@ public class GroupActivity extends FragmentActivity {
         });
         toolbar.inflateMenu(R.menu.group_edit);
         toolbar.setOnMenuItemClickListener(item -> {
+            if (!Utility.isOnline(GroupActivity.this))
+                return true;
+
             int buttonId = View.generateViewId();
             CustomDialog.Builder(this)
                     .setTitle("Gruppen-Namen Ändern")
@@ -306,13 +304,15 @@ class ViewPager_GroupOverview extends Fragment {
         overview_editPassengers = view.findViewById(R.id.overview_editPassengers);
 
         overview_editPassengers.setOnClickListener(view1 -> {
+            if (!Utility.isOnline(getContext()))
+                return;
+
             Dialog dialog1 = CustomDialog.Builder(getContext())
                     .setTitle("Mitfahrer bearbeiten")
                     .setText("Was möchtest du tun?")
 //                    .setDividerVisibility(false)
                     .setButtonType(CustomDialog.ButtonType.CUSTOM)
                     .addButton("Gruppe Verlassen", dialog -> {
-                        // ToDo: Gruppe verlassen implementieren
 
                         CustomDialog.Builder(getContext())
                                 .setTitle("Gruppe Verlassen")
@@ -337,10 +337,6 @@ class ViewPager_GroupOverview extends Fragment {
                     .addButton("Mitfahrer hinzufügen", dialog ->
                             {
                                 // ToDo: wegen Datenschutz gedanken machen
-                                if (!Utility.isOnline()) {
-                                    Toast.makeText(getContext(), "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
                                 databaseReference.child("Users").addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -403,6 +399,9 @@ class ViewPager_GroupOverview extends Fragment {
         });
 
         overview_save_isDriver.setOnClickListener(view -> {
+            if (!Utility.isOnline(getContext()))
+                return;
+
             if (overview_isDriverSwitch.isChecked())
                 thisGroup.getDriverIdList().add(loggedInUser.getUser_id());
             else
@@ -856,6 +855,8 @@ class ViewPager_GroupOverview extends Fragment {
                 .setView(R.layout.dialog_change_cost_calculation)
                 .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
+                    if (!Utility.isOnline(getContext()))
+                        return;
 
                     RadioGroup dialogChangeCostCalculation_typeGroup = dialog.findViewById(R.id.dialogChangeCostCalculation_typeGroup);
                     RadioGroup dialogChangeCostCalculation_methodGroup = dialog.findViewById(R.id.dialogChangeCostCalculation_methodGroup);

@@ -441,6 +441,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     private void showAddCarDialog() {
+        // ToDo: nur erstellen können wenn man der besitzer ist
         dialog_addCar = CustomDialog.Builder(AddTripActivity.this)
                 .setTitle("Neues Auto anlegen")
                 .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)

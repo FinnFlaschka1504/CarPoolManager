@@ -1,14 +1,13 @@
 package finn_daniel.carpoolmanager;
 
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -22,7 +21,6 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -51,13 +49,6 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NetworkStateReceiver.NetworkStateReceiverListener {
 
-//    List<String> listviewTitle = new ArrayList<String>();
-//    List<Boolean> listviewisDriver = new ArrayList<>();
-//    List<String> listviewPassengers = new ArrayList<>();
-//    List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
-//    List<java.io.Serializable> listviewAllDrivenAmount = new ArrayList<>();
-
-//    ListView listView_groupList;
     CustomRecycler customRecycler_groupList;
     View contentView_groups;
     View contentView_account;
@@ -94,33 +85,94 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String EXTRA_GROUP = "EXTRA_GROUP";
     private String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     private String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
-    int loggedInUser_passengerCount = 0;
 
 
-    Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
-    User loggedInUser;
+//    Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
+//    User loggedInUser;
     String loggedInUser_Name = "FinnF";
-    List<String> loggedInUser_groupsIdList = new ArrayList<>(); //<---
-    Map<String, Group> loggedInUser_groupsMap = new HashMap<>(); //<---
-    Map<String, User> loggedInUser_groupPassengerMap = new HashMap<>(); //<---
+    String loggedInUser_Id;
+    //    List<String> loggedInUser_groupsIdList = new ArrayList<>(); //<---
+//    Map<String, Group> database.groupsMap = new HashMap<>();
+//    Map<String, User> database.groupPassengerMap = new HashMap<>(); //<---
     List<Group> sortedGroupList;
-    Map<String, Map<String, Trip>> loggedInUser_groupTripMap = new HashMap<>(); //<---
+//    Map<String, Map<String, Trip>> database.groupTripMap = new HashMap<>(); //<---
+    Database database;
 
-    ValueEventListener groupChangeListener = new ValueEventListener() {
-        @Override
-        public void onDataChange(DataSnapshot dataSnapshot) {
-            if (dataSnapshot.getValue() == null) {
-                // ToDo: Gruppe aus speicherungen der nutzer Löschen
-                final String removedGroup = dataSnapshot.getKey();
-//                for (String user : loggedInUser_groupsMap.get(removedGroup).getUserIdList()) {
-//                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+
+//    ValueEventListener groupChangeListener = new ValueEventListener() {
+//        @Override
+//        public void onDataChange(DataSnapshot dataSnapshot) {
+//            if (dataSnapshot.getValue() == null) {
+//                // ToDo: Gruppe aus speicherungen der nutzer Löschen
+//                final String removedGroup = dataSnapshot.getKey();
+////                for (String user : groupsMap.get(removedGroup).getUserIdList()) {
+////                    databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+////                        @Override
+////                        public void onDataChange(DataSnapshot dataSnapshot) {
+////                            if (dataSnapshot.getValue() == null)
+////                                return;
+////                            User foundUser = dataSnapshot.getValue(User.class);
+////                            foundUser.getGroupIdList().remove(removedGroup);
+////                            databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
+////                        }
+////
+////                        @Override
+////                        public void onCancelled(DatabaseError databaseError) {
+////                        }
+////                    });
+////                }
+//
+//                loggedInUser_groupsIdList.remove(removedGroup);
+//                database.groupsMap.remove(removedGroup);
+//                listeLaden();
+//                return;
+//            }
+//            // ToDo: was passiert wenn gelöscht? eventuell per cloud function?
+//            Group foundGroup = dataSnapshot.getValue(Group.class);
+//            if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {  // neue Gruppe?
+//                hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
+//                return;
+//            }
+//
+////            Findet heraus, ob ein Nutzer eingetreten, oder ausgetreten ist
+//            if (!foundGroup.getUserIdList().equals(database.groupsMap.get(foundGroup.getGroup_id()).getUserIdList())) {
+//                onChangedUsers(foundGroup);
+//                return;
+//            }
+//
+////            Findet heraus, ob sich bei den Trips was verändert hat --> groupTripMap muss aktuallisiert werden
+//            if (!foundGroup.getTripIdList().equals(database.groupsMap.get(foundGroup.getGroup_id()).getTripIdList())) {
+//                onChangedTrip(foundGroup);
+//                return;
+//            }
+//
+//            database.groupsMap.replace(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
+//
+//            listeLaden();
+//
+//        }
+//
+//        @Override
+//        public void onCancelled(DatabaseError databaseError) {
+//        }
+//
+//        void onChangedTrip(final Group foundGroup) {
+//            final List<List<String>> changeList = foundGroup.getChangedTripsLists(database.groupTripMap.get(foundGroup.getGroup_id()).keySet());
+//
+//            if (changeList.get(0) != null) {
+//                for (String trip : new ArrayList<>(changeList.get(0))) {
+//                    databaseReference.child("Trips").child(foundGroup.getGroup_id()).child(trip).addListenerForSingleValueEvent(new ValueEventListener() {
 //                        @Override
 //                        public void onDataChange(DataSnapshot dataSnapshot) {
 //                            if (dataSnapshot.getValue() == null)
 //                                return;
-//                            User foundUser = dataSnapshot.getValue(User.class);
-//                            foundUser.getGroupIdList().remove(removedGroup);
-//                            databaseReference.child("Users").child(foundUser.getUser_id()).setValue(foundUser);
+//                            Trip foundTrip = dataSnapshot.getValue(Trip.class);
+//                            changeList.get(0).remove(foundTrip.getTrip_id());
+//                            database.groupTripMap.get(foundGroup.getGroup_id()).put(foundTrip.getTrip_id(), foundTrip);
+//                            database.groupsMap.get(foundGroup.getGroup_id()).getTripIdList().add(foundTrip.getTrip_id());
+////                        groupPassengerMap.put(foundTrip.getUser_id(), foundTrip);
+//                            if (changeList.get(0).size() <= 0)
+//                                listeLaden();
 //                        }
 //
 //                        @Override
@@ -128,102 +180,43 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //                        }
 //                    });
 //                }
-
-                loggedInUser_groupsIdList.remove(removedGroup);
-                loggedInUser_groupsMap.remove(removedGroup);
-                listeLaden();
-                return;
-            }
-            // ToDo: was passiert wenn gelöscht? eventuell per cloud function?
-            Group foundGroup = dataSnapshot.getValue(Group.class);
-            if (!hasGroupChangeListener.get(foundGroup.getGroup_id())) {  // neue Gruppe?
-                hasGroupChangeListener.put(foundGroup.getGroup_id(), true);
-                return;
-            }
-
-//            Findet heraus, ob ein Nutzer eingetreten, oder ausgetreten ist
-            if (!foundGroup.getUserIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList())) {
-                onChangedUsers(foundGroup);
-                return;
-            }
-
-//            Findet heraus, ob sich bei den Trips was verändert hat --> loggedInUser_groupTripMap muss aktuallisiert werden
-            if (!foundGroup.getTripIdList().equals(loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList())) {
-                onChangedTrip(foundGroup);
-                return;
-            }
-
-            loggedInUser_groupsMap.replace(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
-
-            listeLaden();
-
-        }
-
-        @Override
-        public void onCancelled(DatabaseError databaseError) {
-        }
-
-        void onChangedTrip(final Group foundGroup) {
-            final List<List<String>> changeList = foundGroup.getChangedTripsLists(loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).keySet());
-
-            if (changeList.get(0) != null) {
-                for (String trip : new ArrayList<>(changeList.get(0))) {
-                    databaseReference.child("Trips").child(foundGroup.getGroup_id()).child(trip).addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            if (dataSnapshot.getValue() == null)
-                                return;
-                            Trip foundTrip = dataSnapshot.getValue(Trip.class);
-                            changeList.get(0).remove(foundTrip.getTrip_id());
-                            loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).put(foundTrip.getTrip_id(), foundTrip);
-                            loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList().add(foundTrip.getTrip_id());
-//                        loggedInUser_groupPassengerMap.put(foundTrip.getUser_id(), foundTrip);
-                            if (changeList.get(0).size() <= 0)
-                                listeLaden();
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
-                        }
-                    });
-                }
-            }
-            if (changeList.get(1) != null) {
-                for (String tripId : changeList.get(1)) {
-                    loggedInUser_groupTripMap.get(foundGroup.getGroup_id()).remove(tripId);
-                    loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getTripIdList().remove(tripId);
-                }
-                listeLaden();
-            }
-        }
-        void onChangedUsers(Group foundGroup) {
-            final List<List<String>> changeList = foundGroup.getChangedUserLists(loggedInUser_groupsMap.get(foundGroup.getGroup_id()));
-
-            for (String user : changeList.get(1)) {
-                loggedInUser_groupPassengerMap.remove(user);
-            }
-
-            for (String user : new ArrayList<>(changeList.get(0))) {
-                changeList.get(0).remove(user);
-                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.getValue() == null)
-                            return;
-                        User foundUser = dataSnapshot.getValue(User.class);
-                        loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
-                        loggedInUser_groupsMap.get(foundGroup.getGroup_id()).getUserIdList().add(foundUser.getUser_id());
-                        if (changeList.get(0).size() <= 0)
-                            listeLaden();
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                    }
-                });
-            }
-        }
-    };
+//            }
+//            if (changeList.get(1) != null) {
+//                for (String tripId : changeList.get(1)) {
+//                    database.groupTripMap.get(foundGroup.getGroup_id()).remove(tripId);
+//                    database.groupsMap.get(foundGroup.getGroup_id()).getTripIdList().remove(tripId);
+//                }
+//                listeLaden();
+//            }
+//        }
+//        void onChangedUsers(Group foundGroup) {
+//            final List<List<String>> changeList = foundGroup.getChangedUserLists(database.groupsMap.get(foundGroup.getGroup_id()));
+//
+//            for (String user : changeList.get(1)) {
+//                database.groupPassengerMap.remove(user);
+//            }
+//
+//            for (String user : new ArrayList<>(changeList.get(0))) {
+//                changeList.get(0).remove(user);
+//                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+//                    @Override
+//                    public void onDataChange(DataSnapshot dataSnapshot) {
+//                        if (dataSnapshot.getValue() == null)
+//                            return;
+//                        User foundUser = dataSnapshot.getValue(User.class);
+//                        database.groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+//                        database.groupsMap.get(foundGroup.getGroup_id()).getUserIdList().add(foundUser.getUser_id());
+//                        if (changeList.get(0).size() <= 0)
+//                            listeLaden();
+//                    }
+//
+//                    @Override
+//                    public void onCancelled(DatabaseError databaseError) {
+//                    }
+//                });
+//            }
+//        }
+//    };
 
 
     @Override
@@ -231,16 +224,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+
         mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
         mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
         navigationView = findViewById(R.id.nav_view);
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
-        String loggedInUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
-        if (!loggedInUser_string.equals("--Leer--")) {
-            loggedInUser = gson.fromJson(loggedInUser_string, User.class);
-            // ToDo: Handle nicht angemeldet
-        }
+//        mySPR_daten.edit().putString("loggedInUserId", "user_2a48b5ec-bc70-4b5a-8c1d-b76384cec163").commit();
 
         stub_groups = findViewById(R.id.layout_stub_groups);
         stub_groups.setLayoutResource(R.layout.main_content_groups);
@@ -249,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         shownContent = R.id.navigation_menu_groups;
 
         if (mySPR_settings.getInt("standardView_main", R.id.navigation_menu_groups) != R.id.navigation_menu_groups
-                    && loggedInUser != null) {
+                    && !loggedInUser_Id.equals("--Leer--")) {
             stub_account = MainActivity.this.findViewById(R.id.layout_stub_account);
             stub_account.setLayoutResource(R.layout.main_content_account);
             contentView_account = stub_account.inflate();
@@ -259,94 +250,85 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             shownContent = R.id.navigation_menu_account;
         }
 
-//        mySPR_daten.edit().putString("loggedInUserId", "user_2a48b5ec-bc70-4b5a-8c1d-b76384cec163").commit();
-
-        networkStateReceiver = new NetworkStateReceiver();
-        networkStateReceiver.addListener(this);
-        this.registerReceiver(networkStateReceiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
-
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         FloatingActionButton fab = findViewById(R.id.main_groups_addGroup);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int saveButtonId = View.generateViewId();
-                Dialog dialog_newGroup = CustomDialog.Builder(MainActivity.this)
-                        .setTitle("Neue Gruppe Erstellen")
-                        .setView(R.layout.dialog_new_group)
-                        .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
-                        .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
-                            Group newGroup = new Group();
+        fab.setOnClickListener(view -> {
+            int saveButtonId = View.generateViewId();
+            Dialog dialog_newGroup = CustomDialog.Builder(MainActivity.this)
+                    .setTitle("Neue Gruppe Erstellen")
+                    .setView(R.layout.dialog_new_group)
+                    .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
+                    .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
+                        Group newGroup = new Group();
 
-                            newGroup.setName(((EditText) dialog.findViewById(R.id.dialogNewGroup_name)).getText().toString().trim());
-                            if (newGroup.getName().equals("")) {
-                                Toast.makeText(MainActivity.this, "Einen Gruppen-Namen angeben", Toast.LENGTH_SHORT).show();
+                        newGroup.setName(((EditText) dialog.findViewById(R.id.dialogNewGroup_name)).getText().toString().trim());
+                        if (newGroup.getName().equals("")) {
+                            Toast.makeText(MainActivity.this, "Einen Gruppen-Namen angeben", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        switch (((RadioGroup)(dialog.findViewById(R.id.dialogNewGroup_typeGroup))).getCheckedRadioButtonId()) {
+                            case R.id.dialogNewGroup_budgetRadio:
+                                newGroup.setCalculationType(Group.costCalculationType.BUDGET);
+                                break;
+                            case R.id.dialogNewGroup_costRadio:
+                                newGroup.setCalculationType(Group.costCalculationType.COST);
+                                break;
+                        }
+                        switch (((RadioGroup)(dialog.findViewById(R.id.dialogNewGroup_methodGroup))).getCheckedRadioButtonId()) {
+                            case R.id.dialogNewGroup_realCostRadio:
+                                newGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
+                                break;
+                            case R.id.dialogNewGroup_kilometerAllowanceRadio:
+                                newGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
+                                break;
+                            case R.id.dialogNewGroup_tripRadio:
+                                newGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
+                                break;
+                        }
+                        EditText dialogNewGroup_budget = dialog.findViewById(R.id.dialogNewGroup_budget);
+                        if (dialog.findViewById(R.id.dialogNewGroup_budget).isEnabled()) {
+                            if (!dialogNewGroup_budget.getText().toString().equals("")) {
+                                newGroup.setBudget(Double.parseDouble(dialogNewGroup_budget.getText().toString()));
+                            } else {
+                                Toast.makeText(MainActivity.this, "Ein Budget angeben", Toast.LENGTH_SHORT).show();
                                 return;
                             }
+                        }
 
-                            switch (((RadioGroup)(dialog.findViewById(R.id.dialogNewGroup_typeGroup))).getCheckedRadioButtonId()) {
-                                case R.id.dialogNewGroup_budgetRadio:
-                                    newGroup.setCalculationType(Group.costCalculationType.BUDGET);
-                                    break;
-                                case R.id.dialogNewGroup_costRadio:
-                                    newGroup.setCalculationType(Group.costCalculationType.COST);
-                                    break;
+                        EditText dialogNewGroup_kilometerAllowance = dialog.findViewById(R.id.dialogNewGroup_kilometerAllowance);
+                        if (dialogNewGroup_kilometerAllowance.isEnabled()) {
+                            if (!dialogNewGroup_kilometerAllowance.getText().toString().equals("")) {
+                                newGroup.setKilometerAllowance(Double.parseDouble(dialogNewGroup_kilometerAllowance.getText().toString()));
+                            } else {
+                                Toast.makeText(MainActivity.this, "Eine Pauschale angeben", Toast.LENGTH_SHORT).show();
+                                return;
                             }
-                            switch (((RadioGroup)(dialog.findViewById(R.id.dialogNewGroup_methodGroup))).getCheckedRadioButtonId()) {
-                                case R.id.dialogNewGroup_realCostRadio:
-                                    newGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
-                                    break;
-                                case R.id.dialogNewGroup_kilometerAllowanceRadio:
-                                    newGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
-                                    break;
-                                case R.id.dialogNewGroup_tripRadio:
-                                    newGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
-                                    break;
-                            }
-                            EditText dialogNewGroup_budget = dialog.findViewById(R.id.dialogNewGroup_budget);
-                            if (dialog.findViewById(R.id.dialogNewGroup_budget).isEnabled()) {
-                                if (!dialogNewGroup_budget.getText().toString().equals("")) {
-                                    newGroup.setBudget(Double.parseDouble(dialogNewGroup_budget.getText().toString()));
-                                } else {
-                                    Toast.makeText(MainActivity.this, "Ein Budget angeben", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                            }
+                        }
 
-                            EditText dialogNewGroup_kilometerAllowance = dialog.findViewById(R.id.dialogNewGroup_kilometerAllowance);
-                            if (dialogNewGroup_kilometerAllowance.isEnabled()) {
-                                if (!dialogNewGroup_kilometerAllowance.getText().toString().equals("")) {
-                                    newGroup.setKilometerAllowance(Double.parseDouble(dialogNewGroup_kilometerAllowance.getText().toString()));
-                                } else {
-                                    Toast.makeText(MainActivity.this, "Eine Pauschale angeben", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                            }
+                        newGroup.setBudgetPerUser(((CheckBox) dialog.findViewById(R.id.dialogNewGroup_perPerson)).isChecked());
+                        newGroup.getUserIdList().add(database.loggedInUser.getUser_id());
+                        newGroup.getDriverIdList().add(database.loggedInUser.getUser_id());
 
-                            newGroup.setBudgetPerUser(((CheckBox) dialog.findViewById(R.id.dialogNewGroup_perPerson)).isChecked());
-                            newGroup.getUserIdList().add(loggedInUser.getUser_id());
-                            newGroup.getDriverIdList().add(loggedInUser.getUser_id());
+                        databaseReference.child("Groups").child(newGroup.getGroup_id()).setValue(newGroup);
 
-                            databaseReference.child("Groups").child(newGroup.getGroup_id()).setValue(newGroup);
+                        dialog.dismiss();
 
-                            dialog.dismiss();
+                        database.loggedInUser.getGroupIdList().add(newGroup.getGroup_id());
+                        database.groupsMap.put(newGroup.getGroup_id(), newGroup);
+                        database.groupTripMap.put(newGroup.getGroup_id(), new HashMap<>());
+                        databaseReference.child("Users").child(database.loggedInUser.getUser_id()).child("groupIdList").setValue(database.loggedInUser.getGroupIdList());
+                        database.hasGroupChangeListener.put(newGroup.getGroup_id(), false);
+                        database.addOnGroupChangeListener_database(newGroup.getGroup_id());
+//                        databaseReference.child("Groups").child(newGroup.getGroup_id()).addValueEventListener(groupChangeListener);
 
-                            loggedInUser.getGroupIdList().add(newGroup.getGroup_id());
-                            loggedInUser_groupsMap.put(newGroup.getGroup_id(), newGroup);
-                            loggedInUser_groupTripMap.put(newGroup.getGroup_id(), new HashMap<>());
-                            databaseReference.child("Users").child(loggedInUser.getUser_id()).child("groupIdList").setValue(loggedInUser.getGroupIdList());
-
-                            hasGroupChangeListener.put(newGroup.getGroup_id(), false);
-                            databaseReference.child("Groups").child(newGroup.getGroup_id()).addValueEventListener(groupChangeListener);
-
-                            listeLaden();
-                        }, saveButtonId, false)
-                        .show();
-                dialog_newGroup.findViewById(saveButtonId).setEnabled(false);
-                setChangeRadioButtonListener(dialog_newGroup, dialog_newGroup.findViewById(R.id.dialogNewGroup_typeGroup),
-                        dialog_newGroup.findViewById(R.id.dialogNewGroup_methodGroup), saveButtonId);
-            }
+                        listeNeuLaden();
+                    }, saveButtonId, false)
+                    .show();
+            dialog_newGroup.findViewById(saveButtonId).setEnabled(false);
+            setChangeRadioButtonListener(dialog_newGroup, dialog_newGroup.findViewById(R.id.dialogNewGroup_typeGroup),
+                    dialog_newGroup.findViewById(R.id.dialogNewGroup_methodGroup), saveButtonId);
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -355,14 +337,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
 
+        loggedInUser_Id = mySPR_daten.getString("loggedInUserId", "--Leer--");
+        if (loggedInUser_Id.equals("--Leer--")) {
+            // ToDo: Handle nicht angemeldet
+            return;
+        }
+//        else {
+//            database.loggedInUser = gson.fromJson(loggedInUser_Id, String.class);
+//        }
 
-//        listView_groupList = findViewById(R.id.listView_groupList);
+        networkStateReceiver = new NetworkStateReceiver();
+        networkStateReceiver.addListener(this);
+        this.registerReceiver(networkStateReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
 
         if (!Utility.isOnline()) {
 
-            String loggedInUser_groupsMap_string = mySPR_daten.getString("loggedInUser_groupsMap", "--Leer--");
+            database = new Database(mySPR_daten.getString("loggedInUserId", "--Leer--"));
+
+            String loggedInUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
+            if (!loggedInUser_string.equals("--Leer--")) {
+                database.loggedInUser = gson.fromJson(loggedInUser_string, User.class);
+            } else {
+                Toast.makeText(this, "Fehler beim Laden der Offline Daten", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String loggedInUser_groupsMap_string = mySPR_daten.getString("groupsMap", "--Leer--");
             if (!loggedInUser_groupsMap_string.equals("--Leer--")) {
-                loggedInUser_groupsMap = gson.fromJson(
+                database.groupsMap = gson.fromJson(
                         loggedInUser_groupsMap_string, new TypeToken<HashMap<String, Group>>() {
                         }.getType()
                 );
@@ -371,9 +374,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 return;
             }
 
-            String loggedInUser_groupPassengerMap_string = mySPR_daten.getString("loggedInUser_groupPassengerMap", "--Leer--");
+            String loggedInUser_groupPassengerMap_string = mySPR_daten.getString("groupPassengerMap", "--Leer--");
             if (!loggedInUser_groupPassengerMap_string.equals("--Leer--")) {
-                loggedInUser_groupPassengerMap = gson.fromJson(
+                database.groupPassengerMap = gson.fromJson(
                         loggedInUser_groupPassengerMap_string, new TypeToken<HashMap<String, User>>() {
                         }.getType()
                 );
@@ -382,9 +385,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 return;
             }
 
-            String loggedInUser_groupTripMap_string = mySPR_daten.getString("loggedInUser_groupTripMap", "--Leer--");
+            String loggedInUser_groupTripMap_string = mySPR_daten.getString("groupTripMap", "--Leer--");
             if (!loggedInUser_groupTripMap_string.equals("--Leer--")) {
-                loggedInUser_groupTripMap = gson.fromJson(
+                database.groupTripMap = gson.fromJson(
                         loggedInUser_groupTripMap_string, new TypeToken<Map<String, Map<String, Trip>>>() {
                         }.getType()
                 );
@@ -399,20 +402,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
-    private void getUserFromUserId(String loggedInUserId_string) {
-        databaseReference.child("Users").child(loggedInUserId_string).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.getValue() == null)
-                    return;
-                loggedInUser = dataSnapshot.getValue(User.class);
-
-                reloadLoggedInUser();
-            }
-            @Override
-            public void onCancelled(DatabaseError databaseError) { }
-        });
-    }
+//    private void getUserFromUserId(String loggedInUserId_string) {
+//        databaseReference.child("Users").child(loggedInUserId_string).addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(DataSnapshot dataSnapshot) {
+//                if (dataSnapshot.getValue() == null)
+//                    return;
+//                database.loggedInUser = dataSnapshot.getValue(User.class);
+//
+//                reloadLoggedInUser();
+//            }
+//            @Override
+//            public void onCancelled(DatabaseError databaseError) { }
+//        });
+//    }
 
     private void setChangeRadioButtonListener(final Dialog dialog_newGroup, RadioGroup dialogNewGroup_typeGroup, RadioGroup dialogNewGroup_methodGroup, int saveButtonId) {
         dialogNewGroup_typeGroup.setOnCheckedChangeListener((radioGroup, checkedId) -> {
@@ -459,164 +462,159 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void showActivateInternetDialog() {
-        new AlertDialog.Builder(MainActivity.this)
+        CustomDialog.Builder(MainActivity.this)
                 .setTitle("Was möchtest du aktivieren?")
-//                                    .setMessage("Are you sure you want to delete this entry?")
-                .setPositiveButton("W-Lan", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-                        wifi.setWifiEnabled(true);
-                        msgBox("W-Lan aktiviert");
-                    }
+                .setButtonType(CustomDialog.ButtonType.CUSTOM)
+                .addButton("Mobiel", dialog -> {
+                    Intent intent = new Intent(Intent.ACTION_MAIN);
+                    intent.setComponent(new ComponentName("com.android.settings",
+                            "com.android.settings.Settings$DataUsageSummaryActivity"));
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
                 })
-                .setNegativeButton("Mobiel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        Intent intent = new Intent(Intent.ACTION_MAIN);
-                        intent.setComponent(new ComponentName("com.android.settings",
-                                "com.android.settings.Settings$DataUsageSummaryActivity"));
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        startActivity(intent);
-                    }
+                .addButton("W-Lan", dialog -> {
+                    WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                    wifi.setWifiEnabled(true);
+                    msgBox("W-Lan aktiviert");
                 })
                 .show();
     }
 
 
-    private void reloadLoggedInUser() {
-        if (loggedInUser == null) {
-            String loggedInUserId_string = mySPR_daten.getString("loggedInUserId", "--Leer--");
-            if (!loggedInUserId_string.equals("--Leer--")) {
-                getUserFromUserId(loggedInUserId_string);
-            }
-            else
-                Toast.makeText(this, "Fehler", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        View view = navigationView.getHeaderView(0);
-        ((TextView) view.findViewById(R.id.main_navView_name)).setText(loggedInUser.getUserName());
-        ((TextView) view.findViewById(R.id.main_navView_eMail)).setText(loggedInUser.getEmailAddress());
-        databaseReference.child("Users").child(loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.getValue() == null)
-                    return;
-
-                loggedInUser = dataSnapshot.getValue(User.class);
-                getGroupsfromUser();
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        });
-    }
-
-    private void getGroupsfromUser() {
-        loggedInUser_groupsIdList = loggedInUser.getGroupIdList();
-        if (loggedInUser_groupsIdList.size() == 0) {
-            TextView main_groupInfo = findViewById(R.id.main_groups_groupInfo);
-            main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
-            findViewById(R.id.main_groups_loadData).setVisibility(View.GONE);
-            return;
-        }
-        for (String groupId : loggedInUser_groupsIdList) {
-            databaseReference.child("Groups").child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.getValue() == null)
-                        return;
-                    Group foundGroup = dataSnapshot.getValue(Group.class);
-                    loggedInUser_groupsMap.put(foundGroup.getGroup_id(), foundGroup);
-                    if (loggedInUser_groupsMap.size() == loggedInUser_groupsIdList.size()) {
-                        getGroupPassengers();
-                    }
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-                }
-            });
-            hasGroupChangeListener.put(groupId, false);
-            addGroupChangeListener(groupId);
-        }
+//    private void reloadLoggedInUser() {
+//        if (database.loggedInUser == null) {
+//            String loggedInUserId_string = mySPR_daten.getString("loggedInUserId", "--Leer--");
+//            if (!loggedInUserId_string.equals("--Leer--")) {
+//                getUserFromUserId(loggedInUserId_string);
+//            }
+//            else
+//                Toast.makeText(this, "Fehler", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//        View view = navigationView.getHeaderView(0);
+//        ((TextView) view.findViewById(R.id.main_navView_name)).setText(database.loggedInUser.getUserName());
+//        ((TextView) view.findViewById(R.id.main_navView_eMail)).setText(database.loggedInUser.getEmailAddress());
+//        databaseReference.child("Users").child(database.loggedInUser.getUser_id()).addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(DataSnapshot dataSnapshot) {
+//                if (dataSnapshot.getValue() == null)
+//                    return;
+//
+//                database.loggedInUser = dataSnapshot.getValue(User.class);
+//                getGroupsfromUser();
 //            }
 //
 //            @Override
 //            public void onCancelled(DatabaseError databaseError) {
 //            }
 //        });
-    }
+//    }
+//
+//    private void getGroupsfromUser() {
+//        if (database.groupsMap.size() == 0) {
+//            TextView main_groupInfo = findViewById(R.id.main_groups_groupInfo);
+//            main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
+//            findViewById(R.id.main_groups_loadData).setVisibility(View.GONE);
+//            return;
+//        }
+//        for (String groupId : database.groupsMap.keySet()) {
+//            databaseReference.child("Groups").child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
+//                @Override
+//                public void onDataChange(DataSnapshot dataSnapshot) {
+//                    if (dataSnapshot.getValue() == null)
+//                        return;
+//                    Group foundGroup = dataSnapshot.getValue(Group.class);
+//                    database.groupsMap.put(foundGroup.getGroup_id(), foundGroup);
+//                    if (database.groupsMap.size() == database.groupsMap.size()) {
+//                        getGroupPassengers();
+//                    }
+//                }
+//
+//                @Override
+//                public void onCancelled(DatabaseError databaseError) {
+//                }
+//            });
+//            hasGroupChangeListener.put(groupId, false);
+//            addOnGroupChangeListener(groupId);
+//        }
+////            }
+////
+////            @Override
+////            public void onCancelled(DatabaseError databaseError) {
+////            }
+////        });
+//    }
+//
+//    private void getGroupPassengers() {
+//        for (Map.Entry<String, Group> entry : database.groupsMap.entrySet()) {
+//            loggedInUser_passengerCount += entry.getValue().getUserIdList().size();
+//        }
+//        for (Map.Entry<String, Group> entry : database.groupsMap.entrySet()) {
+//            for (String user : entry.getValue().getUserIdList()) {
+//                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
+//                    @Override
+//                    public void onDataChange(DataSnapshot dataSnapshot) {
+//                        if (dataSnapshot.getValue() == null)
+//                            return;
+//                        User foundUser = dataSnapshot.getValue(User.class);
+//                        database.groupPassengerMap.put(foundUser.getUser_id(), foundUser);
+//                        loggedInUser_passengerCount--;
+//                        if (loggedInUser_passengerCount == 0) {
+//                            getGroupTrips();
+//                        }
+//                    }
+//
+//                    @Override
+//                    public void onCancelled(DatabaseError databaseError) {
+//                    }
+//                });
+//
+//            }
+//        }
+//    }
+//
+//    private void getGroupTrips() {
+//        database.groupTripMap.clear();
+//        for (final String groupId : database.loggedInUser.getGroupIdList()) {
+//            if (database.groupsMap.get(groupId).getTripIdList().size() == 0) {
+//                database.groupTripMap.put(groupId, new HashMap<String, Trip>());
+//                if (database.groupTripMap.size() >= database.loggedInUser.getGroupIdList().size()) {
+//                    listeLaden();
+////                    listeClickListener();   //<==
+//                    return;
+//                }
+//                else
+//                    continue;
+//            }
+//            databaseReference.child("Trips").child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
+//                @Override
+//                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+//                    if (dataSnapshot.getValue() == null)
+//                        return;
+//                    Map<String, Trip> newMap = new HashMap<>();
+//                    for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+//                        Trip foundTrip = messageSnapshot.getValue(Trip.class);
+//                        newMap.put(foundTrip.getTrip_id(), foundTrip);
+//                    }
+//                    database.groupTripMap.put(groupId, newMap);
+//                    if (database.groupTripMap.size() >= database.loggedInUser.getGroupIdList().size()) {
+//                        listeLaden();
+////                        listeClickListener();    //<==
+//                    }
+//                }
+//
+//                @Override
+//                public void onCancelled(@NonNull DatabaseError databaseError) {
+//                    String  test = null;
+//                }
+//            });
+//        }
+//    }
 
-    private void getGroupPassengers() {
-        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
-            loggedInUser_passengerCount += entry.getValue().getUserIdList().size();
-        }
-        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
-            for (String user : entry.getValue().getUserIdList()) {
-                databaseReference.child("Users").child(user).addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.getValue() == null)
-                            return;
-                        User foundUser = dataSnapshot.getValue(User.class);
-                        loggedInUser_groupPassengerMap.put(foundUser.getUser_id(), foundUser);
-                        loggedInUser_passengerCount--;
-                        if (loggedInUser_passengerCount == 0) {
-                            getGroupTrips();
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                    }
-                });
-
-            }
-        }
-    }
-
-    private void getGroupTrips() {
-        loggedInUser_groupTripMap.clear();
-        for (final String groupId : loggedInUser.getGroupIdList()) {
-            if (loggedInUser_groupsMap.get(groupId).getTripIdList().size() == 0) {
-                loggedInUser_groupTripMap.put(groupId, new HashMap<String, Trip>());
-                if (loggedInUser_groupTripMap.size() >= loggedInUser.getGroupIdList().size()) {
-                    listeLaden();
-//                    listeClickListener();   //<==
-                    return;
-                }
-                else
-                    continue;
-            }
-            databaseReference.child("Trips").child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.getValue() == null)
-                        return;
-                    Map<String, Trip> newMap = new HashMap<>();
-                    for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
-                        Trip foundTrip = messageSnapshot.getValue(Trip.class);
-                        newMap.put(foundTrip.getTrip_id(), foundTrip);
-                    }
-                    loggedInUser_groupTripMap.put(groupId, newMap);
-                    if (loggedInUser_groupTripMap.size() >= loggedInUser.getGroupIdList().size()) {
-                        listeLaden();
-//                        listeClickListener();    //<==
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                    String  test = null;
-                }
-            });
-        }
-    }
-
-    private void addGroupChangeListener(final String groupId) {
-        databaseReference.child("Groups").child(groupId).removeEventListener( groupChangeListener);
-        databaseReference.child("Groups").child(groupId).addValueEventListener(groupChangeListener);
-    }
+//    private void addOnGroupChangeListener(final String groupId) {
+////        databaseReference.child("Groups").child(groupId).removeEventListener( groupChangeListener);
+//        databaseReference.child("Groups").child(groupId).addValueEventListener(groupChangeListener);
+//    }
 
     @Override
     protected void onStop() {
@@ -624,21 +622,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SharedPreferences.Editor editor = mySPR.edit();
         editor.clear();
 
-        editor.putString("loggedInUser_groupsMap", gson.toJson(loggedInUser_groupsMap));
-        editor.putString("loggedInUser_groupPassengerMap", gson.toJson(loggedInUser_groupPassengerMap));
-        editor.putString("loggedInUser_groupTripMap", gson.toJson(loggedInUser_groupTripMap));
-
-//        for (Map.Entry<String, Group> entry : loggedInUser_groupsMap.entrySet()) {
-//            editor.putString("loggedInUser_groupsList_" + count, gson.toJson(entry.getValue()));
-//            count++;
-//        }
-//        for (Map.Entry<String, User> entry : loggedInUser_groupPassengerMap.entrySet()) {
-//            editor.putString("loggedInUser_groupPassengerMap_" + count, gson.toJson(entry.getValue()));
-//            count++;
-//        }
-//        editor.putString("loggedInUser_Id", loggedInUser_Id);
-
-        editor.putString("loggedInUser", gson.toJson(loggedInUser));
+        editor.putString("loggedInUserId", loggedInUser_Id);
+        editor.putString("groupsMap", gson.toJson(database.groupsMap));
+        editor.putString("groupPassengerMap", gson.toJson(database.groupPassengerMap));
+        editor.putString("groupTripMap", gson.toJson(database.groupTripMap));
+        editor.putString("loggedInUser", gson.toJson(database.loggedInUser));
         editor.commit();
         super.onStop();
     }
@@ -655,8 +643,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         findViewById(R.id.main_groups_noInternet).setVisibility(View.GONE);
         findViewById(R.id.main_groups_loadData).setVisibility(View.VISIBLE);
 //        createListData();
-        reloadLoggedInUser();
-//        getGroupsfromUser();
+
+        Database.getInstance(loggedInUser_Id, database -> {
+            MainActivity.this.database = database;
+            View view = navigationView.getHeaderView(0);
+            ((TextView) view.findViewById(R.id.main_navView_name)).setText(database.loggedInUser.getUserName());
+            ((TextView) view.findViewById(R.id.main_navView_eMail)).setText(database.loggedInUser.getEmailAddress());
+            database.addOnGroupChangeListener(() -> {
+                listeNeuLaden();
+                // ToDo: eventuell group activity neu laden
+                // ToDo: herausfinden wie change listener löchen
+            });
+
+            listeLaden();
+        });
+
+//        reloadLoggedInUser();
     }
 
     @Override
@@ -672,7 +674,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 } else {
                     findViewById(R.id.main_groups_noInternet).setVisibility(View.GONE);
 //                    getGroupsfromUser();
-                    reloadLoggedInUser();
+                    Database.getInstance(loggedInUser_Id, database -> {
+                        MainActivity.this.database = database;
+                        listeLaden();
+                    });
+//                    reloadLoggedInUser();
                 }
 
             }
@@ -761,7 +767,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void setAccountView() {
-        ((TextView) contentView_account.findViewById(R.id.main_account_name)).setText(loggedInUser.getUserName());
+        ((TextView) contentView_account.findViewById(R.id.main_account_name)).setText(database.loggedInUser.getUserName());
         databaseReference.child("Users").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -787,7 +793,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             User user = (User) object;
                             ((TextView) ViewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
                             ((TextView) ViewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
-                            if (user.equals(loggedInUser))
+                            if (user.equals(database.loggedInUser))
                                 ((CheckBox) ViewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
                         })
                         .setOnClickListener((recycler, view, object, index) -> {
@@ -822,14 +828,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onActivityResult(int requestCode, int resultCode, Intent data){
         super.onActivityResult(requestCode,resultCode,data);
         if (requestCode == SETTINGS_INTENT && resultCode == RESULT_OK) {
-            listeLaden();
+            listeNeuLaden();
         }
     }
 
     String calculateDrivenAmount(String userId, String groupId) {
         double count = 0;
-        for (String tripId : loggedInUser_groupsMap.get(groupId).getTripIdList()) {
-            Trip trip = loggedInUser_groupTripMap.get(groupId).get(tripId);
+        for (String tripId : database.groupsMap.get(groupId).getTripIdList()) {
+            Trip trip = database.groupTripMap.get(groupId).get(tripId);
             if (trip.getDriverId().equals(userId) || userId == null) {
                 count++;
                 if (trip.isTwoWay())
@@ -850,7 +856,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         TextView main_groupInfo = findViewById(R.id.main_groups_groupInfo);
         main_groupInfo.setVisibility(View.GONE);
 
-        sortedGroupList = new ArrayList<>(loggedInUser_groupsMap.values());
+        sortedGroupList = new ArrayList<>(database.groupsMap.values());
         Collections.sort(sortedGroupList, new Comparator() {
             public int compare(Group obj1, Group obj2) {
                 return obj1.getName().compareTo(obj2.getName());
@@ -882,34 +888,58 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     Group group = (Group) object;
 
                     ((ImageView) ViewIdMap.get(R.id.groupList_image)).setImageResource(
-                            group.getDriverIdList().contains(loggedInUser.getUser_id())
+                            group.getDriverIdList().contains(database.loggedInUser.getUser_id())
                                     ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
                     ((TextView) ViewIdMap.get(R.id.groupList_name)).setText(group.getName());
                     String passengers = "";
                     for (int n = 0; n < group.getUserIdList().size(); n++) {
-                        passengers = passengers.concat(loggedInUser_groupPassengerMap.get(group.getUserIdList().get(n)).getUserName());
+                        passengers = passengers.concat(database.groupPassengerMap.get(group.getUserIdList().get(n)).getUserName());
                         if (n < group.getUserIdList().size() - 1)
                             passengers = passengers.concat(", ");
                     }
                     ((TextView) ViewIdMap.get(R.id.groupList_passengers)).setText(passengers);
-                    ((TextView) ViewIdMap.get(R.id.groupList_ownAmount)).setText(calculateDrivenAmount(loggedInUser.getUser_id(), group.getGroup_id()));
+                    ((TextView) ViewIdMap.get(R.id.groupList_ownAmount)).setText(calculateDrivenAmount(database.loggedInUser.getUser_id(), group.getGroup_id()));
                     ((TextView) ViewIdMap.get(R.id.groupList_allAmount)).setText(calculateDrivenAmount(null, group.getGroup_id()));
                 })
                 .setOnClickListener((recycler, view, object, index) -> {
                     Group selectedGroup = sortedGroupList.get(index);
                     Intent intent = new Intent(MainActivity.this, GroupActivity.class);
-                    intent.putExtra(EXTRA_USER, gson.toJson(loggedInUser));
+                    intent.putExtra(EXTRA_USER, gson.toJson(database.loggedInUser));
                     intent.putExtra(EXTRA_GROUP, gson.toJson(selectedGroup));
                     Map<String, User> passengerMap = new HashMap<>();
                     for (String userId : selectedGroup.getUserIdList()) {
-                        passengerMap.put(userId, loggedInUser_groupPassengerMap.get(userId));
+                        passengerMap.put(userId, database.groupPassengerMap.get(userId));
                     }
                     intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(passengerMap));
-                    intent.putExtra(EXTRA_TRIPMAP, gson.toJson(loggedInUser_groupTripMap.get(selectedGroup.getGroup_id())));
+                    intent.putExtra(EXTRA_TRIPMAP, gson.toJson(database.groupTripMap.get(selectedGroup.getGroup_id())));
                     startActivity(intent);
                 })
                 .generateCustomRecycler();
         // ToDo: änder neuladen der liste von komplette methode neuladen zu .reload()
+
+        findViewById(R.id.main_groups_loadData).setVisibility(View.GONE);
+    }
+
+    public void listeNeuLaden() {
+        findViewById(R.id.main_groups_loadData).setVisibility(View.VISIBLE);
+        sortedGroupList = new ArrayList<>(database.groupsMap.values());
+        Collections.sort(sortedGroupList, new Comparator() {
+            public int compare(Group obj1, Group obj2) {
+                return obj1.getName().compareTo(obj2.getName());
+            }
+
+            public int compare(Object var1, Object var2) {
+                return this.compare((Group) var1, (Group) var2);
+            }
+        });
+
+        if (sortedGroupList.size() == 0) {
+            TextView main_groupInfo = findViewById(R.id.main_groups_groupInfo);
+            main_groupInfo.setVisibility(View.VISIBLE);
+            main_groupInfo.setText("Du bist aktuell in keiner Fahrgemeinschaft");
+        }
+
+        customRecycler_groupList.setObjectList(sortedGroupList).reload();
 
         findViewById(R.id.main_groups_loadData).setVisibility(View.GONE);
     }
@@ -970,7 +1000,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             databaseReference.child("Groups").child(newGroup.getGroup_id()).setValue(newGroup);
         }
 
-        loggedInUser = new User();
+        database.loggedInUser = new User();
         int count = 0;
         for (String name : createData_userNamen) {
             User newUser = new User();
@@ -985,9 +1015,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
             if (name.equals(loggedInUser_Name)) {
-                loggedInUser = newUser;
+                database.loggedInUser = newUser;
                 SharedPreferences.Editor editor = mySPR_daten.edit();
-                editor.putString("loggedInUser", gson.toJson(loggedInUser));
+                editor.putString("loggedInUser", gson.toJson(database.loggedInUser));
                 editor.commit();
             }
 

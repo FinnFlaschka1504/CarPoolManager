@@ -6,10 +6,21 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import java.io.IOException;
 
 public class Utility {
+
+    static public boolean isOnline(Context context) {
+        boolean isOnleine = isOnline();
+        if (isOnleine) {
+            return true;
+        } else {
+            Toast.makeText(context, "Keine Internetverbindung", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
     static public boolean isOnline() {
         Runtime runtime = Runtime.getRuntime();
         try {

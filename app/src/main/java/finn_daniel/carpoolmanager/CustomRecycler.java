@@ -294,7 +294,7 @@ public class CustomRecycler {
     }
 
     public CustomRecycler generateCustomRecycler() {
-        RecyclerView recyclerView = generate();
+        this.recycler = generate();
         return this;
     }
 
@@ -319,7 +319,7 @@ public class CustomRecycler {
     }
 
     public RecyclerView reload() {
-        recycler.setAdapter(new MyAdapter(objectList));
+        this.recycler.setAdapter(new MyAdapter(objectList));
         return recycler;
     }
 }
