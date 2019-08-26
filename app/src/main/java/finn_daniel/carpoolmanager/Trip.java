@@ -17,13 +17,7 @@ public class Trip {
     private double fuelCost;
     private double cost;
     private String driverId;
-    private String polylineString;
-//    private boolean isSaved = true;
-//    private boolean isBookmark;
-
-    public enum type {
-        TRIP, BOOKMARK
-    }
+//    private String polylineString;
 
     public Trip() {
             trip_id = "trip_" + UUID.randomUUID().toString();
@@ -117,13 +111,13 @@ public class Trip {
         this.driverId = driverId;
     }
 
-    public String getPolylineString() {
-        return polylineString;
-    }
+//    public String getPolylineString() {
+//        return polylineString;
+//    }
 
-    public void setPolylineString(String polylineString) {
-        this.polylineString = polylineString;
-    }
+//    public void setPolylineString(String polylineString) {
+//        this.polylineString = polylineString;
+//    }
 
     public static Trip createBookmark(Trip trip) {
         Trip newTrip = new Trip();
@@ -134,7 +128,7 @@ public class Trip {
         newTrip.setTwoWay(trip.isTwoWay());
         newTrip.setCarId(trip.getCarId());
         newTrip.setDriverId(trip.getDriverId());
-        newTrip.setPolylineString(trip.getPolylineString());
+//        newTrip.setPolylineString(trip.getPolylineString());
         return newTrip;
     }
 

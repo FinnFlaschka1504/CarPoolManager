@@ -1,7 +1,6 @@
 package finn_daniel.carpoolmanager;
 
 import android.content.Context;
-import android.util.Pair;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -35,7 +34,7 @@ public class Database {
     public Map<String, User> groupPassengerMap = new HashMap<>();
     public Map<String, Map<String, Trip>> groupTripMap = new HashMap<>();
 
-    private Pair<Boolean,List<OnChangeListener>> onGroupChangeListenerList_pair = new Pair<>(true, new ArrayList<>());
+    private List<OnChangeListener> onGroupChangeListenerList = new ArrayList<>();
     public Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
 
 
@@ -215,16 +214,20 @@ public class Database {
     }
 
 //  ----- Change Listener ----->
+    // ToDo: onLoggedInUserChange
     interface OnChangeListener {
         void onChangeListener();
     }
 
     private void fireOnGroupChangeListeners(){
-        if (onGroupChangeListenerList_pair.first)
-            onGroupChangeListenerList_pair.second.forEach(OnChangeListener::onChangeListener);
+            onGroupChangeListenerList.forEach(OnChangeListener::onChangeListener);
     }
-    public void addOnGroupChangeListener(OnChangeListener onChangeListener) {
-        onGroupChangeListenerList_pair.second.add(onChangeListener);
+    public OnChangeListener addOnGroupChangeListener(OnChangeListener onChangeListener) {
+        onGroupChangeListenerList.add(onChangeListener);
+        return onChangeListener;
+    }
+    public boolean removeOnGroupChangeListener(OnChangeListener onChangeListener) {
+        return onGroupChangeListenerList.remove(onChangeListener);
     }
     public void addOnGroupChangeListener_database(final String groupId) {
         databaseReference.child(Database.GROUPS).child(groupId).addValueEventListener(onGroupChangeListener);
@@ -349,7 +352,6 @@ public class Database {
         }
     }
 };
-
 //  <----- Change Listener -----
 
 }

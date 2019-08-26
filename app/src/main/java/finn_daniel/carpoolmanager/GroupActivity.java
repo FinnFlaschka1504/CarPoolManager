@@ -38,7 +38,6 @@ import com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar;
 import com.github.sundeepk.compactcalendarview.CompactCalendarView;
 import com.github.sundeepk.compactcalendarview.domain.Event;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -46,7 +45,6 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import java.io.Serializable;
 import java.text.DecimalFormat;
@@ -66,24 +64,19 @@ public class GroupActivity extends FragmentActivity {
     PagerAdapter pagerAdapter;
     String standardView_group;
     Gson gson = new Gson();
-    Group thisGroup;
-    String EXTRA_USER = "EXTRA_USER";
-    String EXTRA_GROUP = "EXTRA_GROUP";
+    public static String EXTRA_GROUP_ID = "EXTRA_GROUP_ID";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
     int NEWTRIP = 001;
-    User loggedInUser;
+    String thisGroup_Id;
     FloatingActionButton group_addTrip;
     DatabaseReference databaseReference;
-
 
     ViewPager_GroupOverview thisGroupOverview = new ViewPager_GroupOverview();
     ViewPager_GroupCalender thisGroupCalender = new ViewPager_GroupCalender();
 
-
-    Map<String, User> groupPassengerMap = new HashMap<>();
-    Map<String, Trip> groupTripsMap = new HashMap<>();
-
+    Database database = Database.getInstance();
+    Database.OnChangeListener onGroupChangeListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,19 +85,10 @@ public class GroupActivity extends FragmentActivity {
         group_addTrip = findViewById(R.id.group_addTrip);
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
-        loggedInUser = gson.fromJson(getIntent().getStringExtra(EXTRA_USER), User.class);
-        thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
-        groupPassengerMap = gson.fromJson(
-                getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {
-                }.getType()
-        );
-        groupTripsMap = gson.fromJson(
-                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {
-                }.getType()
-        );
+        thisGroup_Id = getIntent().getStringExtra(EXTRA_GROUP_ID);
 
-        thisGroupOverview.setData(thisGroupCalender, loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
-        thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
+        thisGroupOverview.setData(thisGroupCalender, thisGroup_Id, group_addTrip);
+        thisGroupCalender.setData(thisGroup_Id);
         SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings", 0);
         standardView_group = mySPR.getString("standardView_group", "Übersicht");
 
@@ -123,17 +107,20 @@ public class GroupActivity extends FragmentActivity {
                 return;
 
             Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
-            intent.putExtra(EXTRA_GROUP, gson.toJson(thisGroup));
-            intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(groupPassengerMap));
-            intent.putExtra(EXTRA_TRIPMAP, gson.toJson(groupTripsMap));
+            intent.putExtra(EXTRA_GROUP_ID, thisGroup_Id);
+//            intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(database.groupPassengerMap));
+//            intent.putExtra(EXTRA_TRIPMAP, gson.toJson(database.groupTripMap.get(thisGroup_Id)));
             startActivityForResult(intent, NEWTRIP);
         });
 
         Toolbar toolbar = findViewById(R.id.group_toolbar);
-        toolbar.setTitle(thisGroup.getName());
-//        ((TextView) findViewById(R.id.group_toolbar_title)).setText(thisGroup.getName());
+        toolbar.setTitle(database.groupsMap.get(thisGroup_Id).getName());
+//        ((TextView) findViewById(R.id.group_toolbar_title)).setText(database.groupsMap.get(thisGroup_Id).getName());
         toolbar.setNavigationIcon(ContextCompat.getDrawable(this, R.drawable.ic_arrow_back));
         toolbar.setNavigationOnClickListener(v -> {
+            database.removeOnGroupChangeListener(onGroupChangeListener);
+            thisGroupOverview.removeListeners();
+            thisGroupCalender.removeListeners();
             finish();
         });
         toolbar.inflateMenu(R.menu.group_edit);
@@ -148,49 +135,23 @@ public class GroupActivity extends FragmentActivity {
                     .setEdit(new CustomDialog.EditBuilder()
                             .setShowKeyboard(true)
                             .setSelectAll(true)
-                            .setText(thisGroup.getName())
+                            .setText(database.groupsMap.get(thisGroup_Id).getName())
                             .setHint("Neuer Gruppen-Name")
                             .setDiableButtonWhenEmpty(buttonId))
                     .addButton(CustomDialog.OK_BUTTON, dialog -> {
                         String name = CustomDialog.getEditText(dialog);
                         toolbar.setTitle(name);
-                        thisGroup.setName(name);
-                        databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
+                        database.groupsMap.get(thisGroup_Id).setName(name);
+                        databaseReference.child("Groups").child(database.groupsMap.get(thisGroup_Id).getGroup_id()).setValue(database.groupsMap.get(thisGroup_Id));
                         // ToDo: namen ändern
                         dialog.dismiss();
                     }, buttonId,false)
                     .show();
             return true;
         });
+        onGroupChangeListener = database.addOnGroupChangeListener(() ->
+                toolbar.setTitle(database.groupsMap.get(thisGroup_Id).getName()));
         // ToDo: wegen layout_gravity bescheid sagen
-    }
-
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == NEWTRIP && resultCode == RESULT_OK) {
-            ArrayList<Trip> newTrips = gson.fromJson(
-                    data.getStringExtra(AddTripActivity.EXTRA_REPLY_TRIPS), new TypeToken<ArrayList<Trip>>() {
-                    }.getType()
-            );
-
-            for (Trip newTrip : newTrips) {
-                groupTripsMap.put(newTrip.getTrip_id(), newTrip);
-                thisGroup.getTripIdList().add(newTrip.getTrip_id());
-            }
-            thisGroupOverview.setData(thisGroupCalender, loggedInUser, thisGroup, groupPassengerMap, groupTripsMap, group_addTrip);
-            thisGroupOverview.reLoadContent();
-            thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap, groupTripsMap);
-            thisGroupCalender.reLoadContent();
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if ((mPager.getCurrentItem() == 0 && standardView_group.equals("Übersicht")) || (mPager.getCurrentItem() == 1 && standardView_group.equals("Kalender"))) {
-            super.onBackPressed();
-        } else {
-            mPager.setCurrentItem(mPager.getCurrentItem() == 0 ? 1 : 0);
-        }
     }
 
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
@@ -216,47 +177,44 @@ public class GroupActivity extends FragmentActivity {
         }
     }
 
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        getMenuInflater().inflate(R.menu.main, menu);
-//        return true;
-//    }
-//
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        int id = item.getItemId();
-//
-//        if (id == R.id.action_settings) {
-//            Toast.makeText(this, "Test", Toast.LENGTH_SHORT).show();
-//            return true;
-//        }
-//
-//        return super.onOptionsItemSelected(item);
-//    }
 
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == NEWTRIP && resultCode == RESULT_OK) {
+            thisGroupOverview.reLoadContent();
+            thisGroupCalender.reLoadContent();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if ((mPager.getCurrentItem() == 0 && standardView_group.equals("Übersicht")) || (mPager.getCurrentItem() == 1 && standardView_group.equals("Kalender"))) {
+            database.removeOnGroupChangeListener(onGroupChangeListener);
+            thisGroupOverview.removeListeners();
+            thisGroupCalender.removeListeners();
+            super.onBackPressed();
+        } else {
+            mPager.setCurrentItem(mPager.getCurrentItem() == 0 ? 1 : 0);
+        }
+    }
 }
 
 class ViewPager_GroupOverview extends Fragment {
 
-    User loggedInUser;
-    Group thisGroup;
+    String thisGroup_Id;
     View view;
     RecyclerView userList;
-    Gson gson = new Gson();
-    String EXTRA_GROUP = "EXTRA_GROUP";
-    String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
     Dialog dialog_tripList;
     SharedPreferences mySPR_settings;
     double colorMargin = 0.1;
     DatabaseReference databaseReference;
     boolean isDriver;
-    Snackbar noDriverSnackbar;
+    Database.OnChangeListener onGroupChangeListener;
 
     Button overview_showAllTrips;
     Button overview_showMyTrips;
     Button overview_calculateCosts;
     Button overview_editPassengers;
-    TextView overview_groupName;
     Switch overview_isDriverSwitch;
     ListView dialogTripList_list;
     TextView overview_calculationType;
@@ -274,20 +232,33 @@ class ViewPager_GroupOverview extends Fragment {
     List<Boolean> listviewIsDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList = new ArrayList<>();
-    Map<String, User> groupPassengerMap = new HashMap<>();
-    Map<String, Trip> groupTripsMap = new HashMap<>();
     List<Trip> userTripList = new ArrayList<>();
     Map<String, Map<String, Trip>> userTripMap = new HashMap<>();
     List<Trip> tripList;
+    Database database = Database.getInstance();
+    
+    public void setData(ViewPager_GroupCalender thisGroupCalender, String thisGroup_Id, FloatingActionButton pGroup_addTrip) {
+        this.thisGroup_Id = thisGroup_Id;
+        group_addTrip = pGroup_addTrip;
+        this.thisGroupCalender = thisGroupCalender;
+    }
 
+    public void reLoadContent() {
+        overview_showAllTrips.setText(String.valueOf(calculateDrivenAmount(null)));
+        overview_showMyTrips.setText(String.valueOf(calculateDrivenAmount(database.loggedInUser.getUser_id())));
+        listeLaden();
+        setCalculationTexts();
+    }
 
+    public void removeListeners() {
+        database.removeOnGroupChangeListener(onGroupChangeListener);
+    }
 
     @SuppressLint("RestrictedApi")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, final Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.group_overview, container, false);
         databaseReference = FirebaseDatabase.getInstance().getReference();
-        overview_groupName = view.findViewById(R.id.overview_groupName);
         userList = view.findViewById(R.id.overview_userList);
         overview_showAllTrips = view.findViewById(R.id.overview_showAllTrips);
         overview_showMyTrips = view.findViewById(R.id.overview_showMyTrips);
@@ -320,9 +291,9 @@ class ViewPager_GroupOverview extends Fragment {
                                 .setButtonType(CustomDialog.ButtonType.YES_NO)
                                 .addButton(CustomDialog.YES_BUTTON, dialog2 -> {
 
-                                    if (leaveGroup(loggedInUser, thisGroup).equals(Database.SUCCSESS)) {
+                                    if (leaveGroup(database.loggedInUser, database.groupsMap.get(thisGroup_Id)).equals(Database.SUCCSESS)) {
                                         Toast.makeText(getContext(), "Gruppe Verlasen"
-                                                + (thisGroup.getUserIdList().size() == 0 ? " und gelöscht" : ""), Toast.LENGTH_SHORT).show();
+                                                + (database.groupsMap.get(thisGroup_Id).getUserIdList().size() == 0 ? " und gelöscht" : ""), Toast.LENGTH_SHORT).show();
                                         getActivity().finish();
                                     } else {
                                         Toast.makeText(getContext(), "Failed", Toast.LENGTH_SHORT).show();
@@ -360,64 +331,39 @@ class ViewPager_GroupOverview extends Fragment {
 
                             },
                             false)
-//                    .addButton("Test1", dialog ->
-//                            CustomDialog.Builder(getContext())
-//                                    .setTitle("Nur zurück")
-//                                    .setTitleTextAlignment(View.TEXT_ALIGNMENT_TEXT_START)
-//                                    .setText("Das ist ein etwas längerer Text")
-//                                    .setDividerVisibility(false)
-//                                    .setTextBold(true)
-//                                    .show(),
-//                            false)
-//                    .addButton("Test2", dialog ->
-//                            CustomDialog.Builder(getContext())
-//                                    .setTitle("Speichern und Abbrechen")
-//                                    .setButtonType(CustomDialog.ButtonType.SAVE_CANCEL)
-//                                    .show(),
-//                            false)
                     .show();
 
 
         });
 
-        // ToDo: dialoge durch neuen Custom Dialog ersetzen
-        overview_changeCostCalculation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showChangeCostCalculation();
-            }
-        });
+        overview_changeCostCalculation.setOnClickListener(view -> showChangeCostCalculation());
 
         mySPR_settings = getActivity().getSharedPreferences("CarPoolManager_Settings", 0);
 
-        view.findViewById(R.id.overview_isDriverSwitch).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        view.findViewById(R.id.overview_isDriverSwitch).setOnClickListener(view ->
                 overview_save_isDriver.setVisibility(overview_isDriverSwitch.isChecked() == isDriver ?
-                        View.INVISIBLE : View.VISIBLE);
-            }
-        });
+                View.INVISIBLE : View.VISIBLE));
 
         overview_save_isDriver.setOnClickListener(view -> {
             if (!Utility.isOnline(getContext()))
                 return;
 
             if (overview_isDriverSwitch.isChecked())
-                thisGroup.getDriverIdList().add(loggedInUser.getUser_id());
+                database.groupsMap.get(thisGroup_Id).getDriverIdList().add(database.loggedInUser.getUser_id());
             else
-                thisGroup.getDriverIdList().remove(loggedInUser.getUser_id());
+                database.groupsMap.get(thisGroup_Id).getDriverIdList().remove(database.loggedInUser.getUser_id());
             isDriver = overview_isDriverSwitch.isChecked();
             overview_save_isDriver.setVisibility(View.INVISIBLE);
-            reLoadContent();
-            databaseReference.child("Groups").child(thisGroup.getGroup_id()).child("driverIdList").setValue(thisGroup.getDriverIdList());
-            if (thisGroup.getDriverIdList().size() <= 0) {
-                group_addTrip.setVisibility(View.INVISIBLE);
-                overview_noDriverText.setVisibility(View.VISIBLE);
-                overview_noDriverText.setSelected(true);
-            } else {
-                group_addTrip.setVisibility(View.VISIBLE);
-                overview_noDriverText.setVisibility(View.INVISIBLE);
-            }
+//            reLoadContent();
+            databaseReference.child("Groups").child(database.groupsMap.get(thisGroup_Id).getGroup_id()).child("driverIdList").setValue(database.groupsMap.get(thisGroup_Id).getDriverIdList());
+//            if (database.groupsMap.get(thisGroup_Id).getDriverIdList().size() <= 0) {
+//                group_addTrip.setVisibility(View.INVISIBLE);
+//                overview_noDriverText.setVisibility(View.VISIBLE);
+//                overview_noDriverText.setSelected(true);
+//            } else {
+//                group_addTrip.setVisibility(View.VISIBLE);
+//                overview_noDriverText.setVisibility(View.INVISIBLE);
+//            }
             Toast.makeText(getContext(), "Gespeichert", Toast.LENGTH_SHORT).show();
         });
 
@@ -443,24 +389,24 @@ class ViewPager_GroupOverview extends Fragment {
         overview_calculateCosts.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (thisGroup.getTripIdList().size() != 0)
+                if (database.groupsMap.get(thisGroup_Id).getTripIdList().size() != 0)
                     showCostCalculation();
                 else
                     Toast.makeText(getContext(), "Es gibt nix zum anzeigen", Toast.LENGTH_SHORT).show();
             }
         });
 
-        group_addTrip.setVisibility(thisGroup.getDriverIdList().size() > 0 ?
+        group_addTrip.setVisibility(database.groupsMap.get(thisGroup_Id).getDriverIdList().size() > 0 ?
                 View.VISIBLE : View.INVISIBLE);
-        overview_noDriverText.setVisibility(thisGroup.getDriverIdList().size() <= 0 ?
+        overview_noDriverText.setVisibility(database.groupsMap.get(thisGroup_Id).getDriverIdList().size() <= 0 ?
                 View.VISIBLE : View.INVISIBLE);
-        overview_noDriverText.setSelected(thisGroup.getDriverIdList().size() <= 0);
-        overview_isDriverSwitch.setChecked(thisGroup.getDriverIdList().contains(loggedInUser.getUser_id()));
-        isDriver = thisGroup.getDriverIdList().contains(loggedInUser.getUser_id());
+        overview_noDriverText.setSelected(database.groupsMap.get(thisGroup_Id).getDriverIdList().size() <= 0);
+        overview_isDriverSwitch.setChecked(database.groupsMap.get(thisGroup_Id).getDriverIdList().contains(database.loggedInUser.getUser_id()));
+        isDriver = database.groupsMap.get(thisGroup_Id).getDriverIdList().contains(database.loggedInUser.getUser_id());
         overview_save_isDriver.setVisibility(View.INVISIBLE);
         reLoadContent();
 
-        for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+        for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
             Trip trip = entry.getValue();
 
             Map<String, Trip> map = userTripMap.get(trip.getDriverId());
@@ -474,39 +420,49 @@ class ViewPager_GroupOverview extends Fragment {
             }
         }
 
-        return view;
+        onGroupChangeListener = database.addOnGroupChangeListener(() -> {
+            if (database.groupsMap.get(thisGroup_Id).getDriverIdList().size() <= 0) {
+                group_addTrip.setVisibility(View.INVISIBLE);
+                overview_noDriverText.setVisibility(View.VISIBLE);
+                overview_noDriverText.setSelected(true);
+            } else {
+                group_addTrip.setVisibility(View.VISIBLE);
+                overview_noDriverText.setVisibility(View.INVISIBLE);
+            }
+            reLoadContent();
+        });
 
-        // ToDo: Lade Daten aus der Cloud und passe an bei Änderungen
+        return view;
     }
 
     private String leaveGroup(User user, Group group) {
 
         List<Trip> tripList = new ArrayList<>();
-        for (Trip trip : groupTripsMap.values()) {
-            if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+        for (Trip trip : database.groupTripMap.get(thisGroup_Id).values()) {
+            if (trip.getDriverId().equals(database.loggedInUser.getUser_id()))
                 tripList.add(trip);
         }
 
-        thisGroup.getUserIdList().remove(loggedInUser.getUser_id());
-        thisGroup.getDriverIdList().remove(loggedInUser.getUser_id());
+        database.groupsMap.get(thisGroup_Id).getUserIdList().remove(database.loggedInUser.getUser_id());
+        database.groupsMap.get(thisGroup_Id).getDriverIdList().remove(database.loggedInUser.getUser_id());
         List<Trip> lesezeichenList = new ArrayList<>();
-        thisGroup.getBookmarkList().forEach(trip -> {
-            if (trip.getDriverId().equals(loggedInUser.getUser_id()))
+        database.groupsMap.get(thisGroup_Id).getBookmarkList().forEach(trip -> {
+            if (trip.getDriverId().equals(database.loggedInUser.getUser_id()))
                 lesezeichenList.add(trip);
         });
-        thisGroup.getBookmarkList().removeAll(lesezeichenList);
+        database.groupsMap.get(thisGroup_Id).getBookmarkList().removeAll(lesezeichenList);
         tripList.stream().forEach(trip -> {
-            thisGroup.getTripIdList().remove(trip.getTrip_id());
-            databaseReference.child(Database.TRIPS).child(thisGroup.getGroup_id()).child(trip.getTrip_id()).removeValue();
+            database.groupsMap.get(thisGroup_Id).getTripIdList().remove(trip.getTrip_id());
+            databaseReference.child(Database.TRIPS).child(database.groupsMap.get(thisGroup_Id).getGroup_id()).child(trip.getTrip_id()).removeValue();
         });
-        loggedInUser.getGroupIdList().remove(thisGroup.getGroup_id());
+        database.loggedInUser.getGroupIdList().remove(database.groupsMap.get(thisGroup_Id).getGroup_id());
 
-        if (thisGroup.getUserIdList().size() == 0)
-            databaseReference.child(Database.GROUPS).child(thisGroup.getGroup_id()).removeValue();
+        if (database.groupsMap.get(thisGroup_Id).getUserIdList().size() == 0)
+            databaseReference.child(Database.GROUPS).child(database.groupsMap.get(thisGroup_Id).getGroup_id()).removeValue();
         else
-            databaseReference.child(Database.GROUPS).child(thisGroup.getGroup_id()).setValue(thisGroup);
+            databaseReference.child(Database.GROUPS).child(database.groupsMap.get(thisGroup_Id).getGroup_id()).setValue(database.groupsMap.get(thisGroup_Id));
 
-        databaseReference.child(Database.USERS).child(loggedInUser.getUser_id()).setValue(loggedInUser);
+        databaseReference.child(Database.USERS).child(database.loggedInUser.getUser_id()).setValue(database.loggedInUser);
 
         return Database.SUCCSESS;
     }
@@ -526,13 +482,13 @@ class ViewPager_GroupOverview extends Fragment {
                 .setDimensions(true, true)
                 .addButton(CustomDialog.SAVE_BUTTON, dialog -> {
                     for (User user : selectedUserList) {
-                        user.getGroupIdList().add(thisGroup.getGroup_id());
-                        groupPassengerMap.put(user.getUser_id(), user);
-                        thisGroup.getUserIdList().add(user.getUser_id());
+                        user.getGroupIdList().add(database.groupsMap.get(thisGroup_Id).getGroup_id());
+                        database.groupPassengerMap.put(user.getUser_id(), user);
+                        database.groupsMap.get(thisGroup_Id).getUserIdList().add(user.getUser_id());
                         listeLaden();
                         editPassengersDialog.dismiss();
                         databaseReference.child("Users").child(user.getUser_id()).setValue(user);
-                        databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
+                        databaseReference.child("Groups").child(database.groupsMap.get(thisGroup_Id).getGroup_id()).setValue(database.groupsMap.get(thisGroup_Id));
 
                     }
                 }, saveButtonId)
@@ -656,27 +612,10 @@ class ViewPager_GroupOverview extends Fragment {
 
     }
 
-    public void setData(ViewPager_GroupCalender thisGroupCalender, User pLoggedInUser, Group pThisGroup, Map<String,User> pGroupPassengerMap, Map<String,Trip> pGroupTripsMap, FloatingActionButton pGroup_addTrip) {
-        loggedInUser = pLoggedInUser;
-        thisGroup = pThisGroup;
-        groupPassengerMap = pGroupPassengerMap;
-        groupTripsMap = pGroupTripsMap;
-        group_addTrip = pGroup_addTrip;
-        this.thisGroupCalender = thisGroupCalender;
-    }
-
-    public void reLoadContent() {
-        overview_groupName.setText(thisGroup.getName());
-        overview_showAllTrips.setText(String.valueOf(calculateDrivenAmount(null)));
-        overview_showMyTrips.setText(String.valueOf(calculateDrivenAmount(loggedInUser.getUser_id())));
-        listeLaden();
-        setCalculationTexts();
-    }
-
     private void setCalculationTexts() {
         String typeText;
         String methodText;
-        switch (thisGroup.getCalculationType()) {
+        switch (database.groupsMap.get(thisGroup_Id).getCalculationType()) {
             case COST:
                 typeText = "nach Kosten";
                 break;
@@ -688,7 +627,7 @@ class ViewPager_GroupOverview extends Fragment {
                 break;
         }
         overview_calculationType.setText(typeText);
-        switch (thisGroup.getCalculationMethod()) {
+        switch (database.groupsMap.get(thisGroup_Id).getCalculationMethod()) {
             case ACTUAL_COST:
                 methodText = "nach tatsächlichen Kosten";
                 break;
@@ -704,38 +643,38 @@ class ViewPager_GroupOverview extends Fragment {
         }
         overview_calculationMethod.setText(methodText);
 
-        setProgressBar(overview_progressBar, loggedInUser);
+        setProgressBar(overview_progressBar, database.loggedInUser);
 
     }
 
     private void setProgressBar(RoundCornerProgressBar progressBar, User user) {
-        if (thisGroup.getCalculationType() == Group.costCalculationType.BUDGET) {
-            double budget = thisGroup.getBudget();
-            if (thisGroup.isBudgetPerUser()) {
-                budget *= thisGroup.getUserIdList().size();
+        if (database.groupsMap.get(thisGroup_Id).getCalculationType() == Group.costCalculationType.BUDGET) {
+            double budget = database.groupsMap.get(thisGroup_Id).getBudget();
+            if (database.groupsMap.get(thisGroup_Id).isBudgetPerUser()) {
+                budget *= database.groupsMap.get(thisGroup_Id).getUserIdList().size();
             }
             progressBar.setMax((float) budget);
             double ownProgress = 0;
             double allProgress = 0;
-            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
-                for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
+                for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
                     if (entry.getValue().getDriverId().equals(user.getUser_id()))
                         ownProgress += entry.getValue().getCost();
                     allProgress += entry.getValue().getCost();
                 }
                 progressBar.setSecondaryProgress((float) allProgress);
             }
-            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
-                for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
+                for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
                     Trip trip = entry.getValue();
                     if (trip.getDriverId().equals(user.getUser_id()))
-                        ownProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
-                    allProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
+                        ownProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * database.groupsMap.get(thisGroup_Id).getKilometerAllowance();
+                    allProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * database.groupsMap.get(thisGroup_Id).getKilometerAllowance();
                 }
                 progressBar.setSecondaryProgress((float) allProgress);
             }
-            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.TRIP) {
-                for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.TRIP) {
+                for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
                     Trip trip = entry.getValue();
                     if (trip.getDriverId().equals(user.getUser_id()))
                         ownProgress += trip.isTwoWay() ? 2 : 1;
@@ -751,13 +690,13 @@ class ViewPager_GroupOverview extends Fragment {
             }
             progressBar.setProgress((float) ownProgress);
 
-            if (thisGroup.getCalculationMethod() != Group.costCalculationMethod.TRIP) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() != Group.costCalculationMethod.TRIP) {
                 overview_progress.setText(convertToEuro(allProgress));
                 overview_budget.setText(convertToEuro(budget) + "€");
                 if (ownProgress >= budget)
                     progressBar.setProgressColor(Color.RED);
                 else
-                    setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin, user);
+                    setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, database.groupsMap.get(thisGroup_Id).getDriverIdList().size(), colorMargin, user);
                 if (allProgress >= budget)
                     progressBar.setSecondaryProgressColor(Color.RED);
                 else
@@ -766,26 +705,26 @@ class ViewPager_GroupOverview extends Fragment {
             } else {
                 overview_progress.setText(convertToEuro(ownProgress));
                 overview_budget.setText(convertToEuro(allProgress));
-                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin, user);
+                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, database.groupsMap.get(thisGroup_Id).getDriverIdList().size(), colorMargin, user);
                 progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
             }
         }
-        if (thisGroup.getCalculationType() == Group.costCalculationType.COST) {
+        if (database.groupsMap.get(thisGroup_Id).getCalculationType() == Group.costCalculationType.COST) {
             double ownProgress = 0;
             double allProgress = 0;
-            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
-                for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST) {
+                for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
                     if (entry.getValue().getDriverId().equals(user.getUser_id()))
                         ownProgress += entry.getValue().getCost();
                     allProgress += entry.getValue().getCost();
                 }
             }
-            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
-                for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.KIKOMETER_ALLOWANCE) {
+                for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
                     Trip trip = entry.getValue();
                     if (trip.getDriverId().equals(user.getUser_id()))
-                        ownProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
-                    allProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * thisGroup.getKilometerAllowance();
+                        ownProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * database.groupsMap.get(thisGroup_Id).getKilometerAllowance();
+                    allProgress += Double.valueOf(trip.getDistance().split(" ")[0].replaceAll(",", ".")) * database.groupsMap.get(thisGroup_Id).getKilometerAllowance();
                 }
             }
             progressBar.setMax((float) allProgress);
@@ -797,7 +736,7 @@ class ViewPager_GroupOverview extends Fragment {
             if (ownProgress >= allProgress)
                 progressBar.setProgressColor(Color.RED);
             else
-                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, thisGroup.getDriverIdList().size(), colorMargin, user);
+                setColorBasedOnRatio(overview_progressBar, ownProgress, allProgress, database.groupsMap.get(thisGroup_Id).getDriverIdList().size(), colorMargin, user);
             progressBar.setSecondaryProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
 
         }
@@ -805,7 +744,7 @@ class ViewPager_GroupOverview extends Fragment {
 
 
     private void setColorBasedOnRatio(RoundCornerProgressBar progressBar, double ownProgress, double allProgress, int size, double margin, User user) {
-        if (!thisGroup.getDriverIdList().contains(user.getUser_id())) {
+        if (!database.groupsMap.get(thisGroup_Id).getDriverIdList().contains(user.getUser_id())) {
 //            progressBar.setProgressColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryProgressBar_toMutch));
             progressBar.setProgressColor(Color.RED);
             return;
@@ -866,26 +805,26 @@ class ViewPager_GroupOverview extends Fragment {
 
                     switch (dialogChangeCostCalculation_typeGroup.getCheckedRadioButtonId()) {
                         case R.id.dialogChangeCostCalculation_budgetRadio:
-                            thisGroup.setCalculationType(Group.costCalculationType.BUDGET);
+                            database.groupsMap.get(thisGroup_Id).setCalculationType(Group.costCalculationType.BUDGET);
                             break;
                         case R.id.dialogChangeCostCalculation_costRadio:
-                            thisGroup.setCalculationType(Group.costCalculationType.COST);
+                            database.groupsMap.get(thisGroup_Id).setCalculationType(Group.costCalculationType.COST);
                             break;
                     }
                     switch (dialogChangeCostCalculation_methodGroup.getCheckedRadioButtonId()) {
                         case R.id.dialogChangeCostCalculation_realCostRadio:
-                            thisGroup.setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
+                            database.groupsMap.get(thisGroup_Id).setCalculationMethod(Group.costCalculationMethod.ACTUAL_COST);
                             break;
                         case R.id.dialogChangeCostCalculation_kilometerAllowanceRadio:
-                            thisGroup.setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
+                            database.groupsMap.get(thisGroup_Id).setCalculationMethod(Group.costCalculationMethod.KIKOMETER_ALLOWANCE);
                             break;
                         case R.id.dialogChangeCostCalculation_tripRadio:
-                            thisGroup.setCalculationMethod(Group.costCalculationMethod.TRIP);
+                            database.groupsMap.get(thisGroup_Id).setCalculationMethod(Group.costCalculationMethod.TRIP);
                             break;
                     }
                     if (dialogChangeCostCalculation_budget.isEnabled()) {
                         if (!dialogChangeCostCalculation_budget.getText().toString().equals("")) {
-                            thisGroup.setBudget(Double.parseDouble(dialogChangeCostCalculation_budget.getText().toString()));
+                            database.groupsMap.get(thisGroup_Id).setBudget(Double.parseDouble(dialogChangeCostCalculation_budget.getText().toString()));
                         } else {
                             Toast.makeText(getContext(), "Ein Budget angeben", Toast.LENGTH_SHORT).show();
                             return;
@@ -894,16 +833,16 @@ class ViewPager_GroupOverview extends Fragment {
 
                     if (dialogChangeCostCalculation_kilometerAllowance.isEnabled()) {
                         if (!dialogChangeCostCalculation_kilometerAllowance.getText().toString().equals("")) {
-                            thisGroup.setKilometerAllowance(Double.parseDouble(dialogChangeCostCalculation_kilometerAllowance.getText().toString()));
+                            database.groupsMap.get(thisGroup_Id).setKilometerAllowance(Double.parseDouble(dialogChangeCostCalculation_kilometerAllowance.getText().toString()));
                         } else {
                             Toast.makeText(getContext(), "Eine Pauschale angeben", Toast.LENGTH_SHORT).show();
                             return;
                         }
                     }
 
-                    thisGroup.setBudgetPerUser(dialogChangeCostCalculation_perPerson.isChecked());
+                    database.groupsMap.get(thisGroup_Id).setBudgetPerUser(dialogChangeCostCalculation_perPerson.isChecked());
                     setCalculationTexts();
-                    databaseReference.child("Groups").child(thisGroup.getGroup_id()).setValue(thisGroup);
+                    databaseReference.child("Groups").child(database.groupsMap.get(thisGroup_Id).getGroup_id()).setValue(database.groupsMap.get(thisGroup_Id));
                     dialog.dismiss();
 
                 }, saveButtonId, false)
@@ -917,7 +856,7 @@ class ViewPager_GroupOverview extends Fragment {
 
         setChangeCostListener(dialog_changeCostCalculation, dialogChangeCostCalculation_typeGroup, dialogChangeCostCalculation_methodGroup, saveButtonId);
 
-        switch (thisGroup.getCalculationType()) {
+        switch (database.groupsMap.get(thisGroup_Id).getCalculationType()) {
             default:
             case COST:
                 dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_costRadio);
@@ -926,7 +865,7 @@ class ViewPager_GroupOverview extends Fragment {
                 dialogChangeCostCalculation_typeGroup.check(R.id.dialogChangeCostCalculation_budgetRadio);
                 break;
         }
-        switch (thisGroup.getCalculationMethod()) {
+        switch (database.groupsMap.get(thisGroup_Id).getCalculationMethod()) {
             default:
             case ACTUAL_COST:
                 dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_realCostRadio);
@@ -938,9 +877,9 @@ class ViewPager_GroupOverview extends Fragment {
                 dialogChangeCostCalculation_methodGroup.check(R.id.dialogChangeCostCalculation_tripRadio);
                 break;
         }
-        dialogChangeCostCalculation_budget.setText(String.valueOf(thisGroup.getBudget()));
-        dialogChangeCostCalculation_perPerson.setChecked(thisGroup.isBudgetPerUser());
-        dialogChangeCostCalculation_kilometerAllowance.setText(String.valueOf(thisGroup.getKilometerAllowance()));
+        dialogChangeCostCalculation_budget.setText(String.valueOf(database.groupsMap.get(thisGroup_Id).getBudget()));
+        dialogChangeCostCalculation_perPerson.setChecked(database.groupsMap.get(thisGroup_Id).isBudgetPerUser());
+        dialogChangeCostCalculation_kilometerAllowance.setText(String.valueOf(database.groupsMap.get(thisGroup_Id).getKilometerAllowance()));
     }
 
     private void setChangeCostListener(final Dialog dialog_changeCostCalculation, RadioGroup dialogChangeCostCalculation_typeGroup, RadioGroup dialogChangeCostCalculation_methodGroup, int saveButtonId) {
@@ -1042,8 +981,8 @@ class ViewPager_GroupOverview extends Fragment {
             RoundCornerProgressBar progressBar = listItem.findViewById(R.id.costList_progressBar);
 
 
-            if (thisGroup.getCalculationType() == Group.costCalculationType.BUDGET) {
-                if (thisGroup.getCalculationMethod() != Group.costCalculationMethod.TRIP) {
+            if (database.groupsMap.get(thisGroup_Id).getCalculationType() == Group.costCalculationType.BUDGET) {
+                if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() != Group.costCalculationMethod.TRIP) {
                     costList_methodLabel.setText("Kosten:");
 
                     double thisCost = calculateUserTripCost(thisUser.getUser_id());
@@ -1051,11 +990,11 @@ class ViewPager_GroupOverview extends Fragment {
 
                     progressBar.setMax((float) allCost);
                     progressBar.setProgress((float) thisCost);
-                    setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin, thisUser);
+                    setColorBasedOnRatio(progressBar, thisCost, allCost, database.groupsMap.get(thisGroup_Id).getDriverIdList().size(), colorMargin, thisUser);
 
                     tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
                     costList_budgetShare.setText(convertToEuro(thisCost / allCost *
-                            (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
+                            (database.groupsMap.get(thisGroup_Id).getBudget() * (database.groupsMap.get(thisGroup_Id).isBudgetPerUser() ? database.groupsMap.get(thisGroup_Id).getUserIdList().size() : 1)
                             )) + "€");
                     // ToDo: check ob weniger als budget - ???
                 } else {
@@ -1067,14 +1006,14 @@ class ViewPager_GroupOverview extends Fragment {
 
                     tripList_percentage.setText((int) percentage + "%");
                     costList_budgetShare.setText(convertToEuro(Double.valueOf(drivenAmorunt) / allTripCount *
-                            (thisGroup.getBudget() * (thisGroup.isBudgetPerUser() ? thisGroup.getUserIdList().size() : 1)
+                            (database.groupsMap.get(thisGroup_Id).getBudget() * (database.groupsMap.get(thisGroup_Id).isBudgetPerUser() ? database.groupsMap.get(thisGroup_Id).getUserIdList().size() : 1)
                             )) + "€");
 
                     progressBar.setMax((float) allTripCount);
                     progressBar.setProgress(Float.valueOf(drivenAmorunt));
-                    setColorBasedOnRatio(progressBar, Double.valueOf(drivenAmorunt), allTripCount, thisGroup.getDriverIdList().size(), colorMargin, thisUser);
+                    setColorBasedOnRatio(progressBar, Double.valueOf(drivenAmorunt), allTripCount, database.groupsMap.get(thisGroup_Id).getDriverIdList().size(), colorMargin, thisUser);
                 }
-            } else if (thisGroup.getCalculationType() == Group.costCalculationType.COST) {
+            } else if (database.groupsMap.get(thisGroup_Id).getCalculationType() == Group.costCalculationType.COST) {
                 costList_methodLabel.setText("Kosten:");
                 costList_share.setText("Anteil an Kosten:");
 
@@ -1083,13 +1022,13 @@ class ViewPager_GroupOverview extends Fragment {
 
                 progressBar.setMax((float) allCost);
                 progressBar.setProgress((float) thisCost);
-                setColorBasedOnRatio(progressBar, thisCost, allCost, thisGroup.getDriverIdList().size(), colorMargin, thisUser);
+                setColorBasedOnRatio(progressBar, thisCost, allCost, database.groupsMap.get(thisGroup_Id).getDriverIdList().size(), colorMargin, thisUser);
 
                 tripList_percentage.setText((int) (thisCost / allCost * 100) + "%");
 
-                costList_budgetShare.setText(convertToEuro(allCost / thisGroup.getUserIdList().size()) + "€");
+                costList_budgetShare.setText(convertToEuro(allCost / database.groupsMap.get(thisGroup_Id).getUserIdList().size()) + "€");
 
-                double costDifference = thisCost - (allCost / thisGroup.getUserIdList().size());
+                double costDifference = thisCost - (allCost / database.groupsMap.get(thisGroup_Id).getUserIdList().size());
 
                 if (costDifference < 0) {
                     costList_costDifference.setTextColor(Color.RED);
@@ -1109,7 +1048,7 @@ class ViewPager_GroupOverview extends Fragment {
     }
 
     private void showTripList(boolean showAll) {
-
+        // ToDo: trips werden doppelt angezeigt
         dialog_tripList = CustomDialog.Builder(getContext())
                 .setTitle((showAll ? "Alle" : "Deine") + "Trips")
 //                .setText("Das sind " + (showAll ? "alle" : "deine") + " Trips")
@@ -1128,14 +1067,14 @@ class ViewPager_GroupOverview extends Fragment {
                     .addButton(CustomDialog.YES_BUTTON, dialog -> {
                         Trip trip = tripList.get(i);
 
-                        thisGroup.getTripIdList().remove(trip.getTrip_id());
-                        groupTripsMap.remove(trip.getTrip_id());
-                        databaseReference.child("Groups").child(thisGroup.getGroup_id()).child("tripIdList").setValue(thisGroup.getTripIdList());
-                        databaseReference.child("Trips").child(thisGroup.getGroup_id()).child(trip.getTrip_id()).removeValue();
+                        database.groupsMap.get(thisGroup_Id).getTripIdList().remove(trip.getTrip_id());
+                        database.groupTripMap.get(thisGroup_Id).remove(trip.getTrip_id());
+                        databaseReference.child("Groups").child(database.groupsMap.get(thisGroup_Id).getGroup_id()).child("tripIdList").setValue(database.groupsMap.get(thisGroup_Id).getTripIdList());
+                        databaseReference.child("Trips").child(database.groupsMap.get(thisGroup_Id).getGroup_id()).child(trip.getTrip_id()).removeValue();
 
                         tripListLaden(showAll);
                         reLoadContent();
-                        thisGroupCalender.setData(loggedInUser, thisGroup, groupPassengerMap,groupTripsMap);
+                        thisGroupCalender.setData(thisGroup_Id);
                         thisGroupCalender.reLoadContent();
                     })
                     .show();
@@ -1176,9 +1115,9 @@ class ViewPager_GroupOverview extends Fragment {
         List<String> tripList_cost_list = new ArrayList<>();
 
         tripList = new ArrayList<>();
-        for (String tripId : thisGroup.getTripIdList()) {
-            Trip trip = groupTripsMap.get(tripId);
-            if (!showAll && !trip.getDriverId().equals(loggedInUser.getUser_id()))
+        for (String tripId : database.groupsMap.get(thisGroup_Id).getTripIdList()) {
+            Trip trip = database.groupTripMap.get(thisGroup_Id).get(tripId);
+            if (!showAll && !trip.getDriverId().equals(database.loggedInUser.getUser_id()))
                 continue;
             tripList.add(trip);
         }
@@ -1200,7 +1139,7 @@ class ViewPager_GroupOverview extends Fragment {
         for (Trip trip : tripList) {
             tripList_date_list.add(simpleDateFormat.format(trip.getDate()).replace(" ", " (") + ")");
             tripList_driver_list.add(showAll ?
-                    "- " + groupPassengerMap.get(trip.getDriverId()).getUserName() : "");
+                    "- " + database.groupPassengerMap.get(trip.getDriverId()).getUserName() : "");
             tripList_fromTo_list.add(trip.getLocationName().get(0) +
                     (trip.isTwoWay() ? " ⇔ " : " ⇒ ") + trip.getLocationName().get(1));
             tripList_distance_list.add(trip.getDistance());
@@ -1243,10 +1182,10 @@ class ViewPager_GroupOverview extends Fragment {
         if (userId == null) {
             for (Map<String, Trip> tripMap : userTripMap.values()) {
                 for (Trip trip : tripMap.values()) {
-                    if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST)
+                    if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST)
                         count += trip.getCost();
                     else
-                        count += Double.valueOf(trip.getDistance().split(" ")[0].replace(",", ".")) * thisGroup.getKilometerAllowance();
+                        count += Double.valueOf(trip.getDistance().split(" ")[0].replace(",", ".")) * database.groupsMap.get(thisGroup_Id).getKilometerAllowance();
                 }
             }
             return count;
@@ -1255,21 +1194,21 @@ class ViewPager_GroupOverview extends Fragment {
             return count;
 
         for (Trip trip : userTripMap.get(userId).values()) {
-            if (thisGroup.getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST)
+            if (database.groupsMap.get(thisGroup_Id).getCalculationMethod() == Group.costCalculationMethod.ACTUAL_COST)
                 count += trip.getCost();
             else
-                count += Double.valueOf(trip.getDistance().split(" ")[0].replace(",", ".")) * thisGroup.getKilometerAllowance();
+                count += Double.valueOf(trip.getDistance().split(" ")[0].replace(",", ".")) * database.groupsMap.get(thisGroup_Id).getKilometerAllowance();
         }
         return count;
     }
 
     String calculateDrivenAmount(String userId) {
         double count = 0;
-        if (loggedInUser.getUser_id().equals(userId))
+        if (database.loggedInUser.getUser_id().equals(userId))
             userTripList.clear();
-        for (Map.Entry<String, Trip> entry : groupTripsMap.entrySet()) {
+        for (Map.Entry<String, Trip> entry : database.groupTripMap.get(thisGroup_Id).entrySet()) {
             if (entry.getValue().getDriverId().equals(userId) || userId == null) {
-                if (loggedInUser.getUser_id().equals(userId))
+                if (database.loggedInUser.getUser_id().equals(userId))
                     userTripList.add(entry.getValue());
                 count++;
                 if (entry.getValue().isTwoWay())
@@ -1294,8 +1233,8 @@ class ViewPager_GroupOverview extends Fragment {
         this.listviewOwnDrivenAmount.clear();
 
         sortedUserList = new ArrayList<>();
-        for (String userId : thisGroup.getUserIdList()) {
-            sortedUserList.add(groupPassengerMap.get(userId));
+        for (String userId : database.groupsMap.get(thisGroup_Id).getUserIdList()) {
+            sortedUserList.add(database.groupPassengerMap.get(userId));
         }
         Collections.sort(sortedUserList, new Comparator() {
             public int compare(User obj1, User obj2) {
@@ -1323,7 +1262,7 @@ class ViewPager_GroupOverview extends Fragment {
 
                     ((TextView) ViewIdMap.get(R.id.userList_name)).setText(user.getUserName());
                     ((ImageView) ViewIdMap.get(R.id.userList_image)).setImageResource(
-                            thisGroup.getDriverIdList().contains(user.getUser_id()) ?
+                            database.groupsMap.get(thisGroup_Id).getDriverIdList().contains(user.getUser_id()) ?
                                     R.drawable.ic_lenkrad : R.drawable.ic_leer);
                     ((TextView) ViewIdMap.get(R.id.userList_ownAmount)).setText(calculateDrivenAmount(user.getUser_id()));
                     ((TextView) ViewIdMap.get(R.id.userList_color)).setTextColor(Color.parseColor(user.getUserColor()));
@@ -1342,8 +1281,7 @@ class ViewPager_GroupOverview extends Fragment {
 class  ViewPager_GroupCalender extends Fragment {
 
     View view;
-    User loggedInUser;
-    Group thisGroup;
+    String thisGroup_Id;
     CompactCalendarView calendarView;
     TextView calender_month;
     ImageView calender_previousMonth;
@@ -1352,16 +1290,20 @@ class  ViewPager_GroupCalender extends Fragment {
     LinearLayout calender_tripList_Layout;
 
 
+    Database database = Database.getInstance();
+    Database.OnChangeListener onGroupChangeListener;
 
     List<String> listviewTitle = new ArrayList<String>();
     List<Boolean> listviewIsDriver = new ArrayList<>();
     List<java.io.Serializable> listviewOwnDrivenAmount = new ArrayList<>();
     List<User> sortedUserList = new ArrayList<>();
-    Map<String, User> groupPassengerMap = new HashMap<>();
-    Map<String, Trip> groupTripsMap = new HashMap<>();
     List<Trip> userTripList = new ArrayList<>();
     Map<String, Map<String, Trip>> userTripMap = new HashMap<>();
 
+
+    public void setData(String thisGroup_Id) {
+        this.thisGroup_Id = thisGroup_Id;
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -1391,20 +1333,17 @@ class  ViewPager_GroupCalender extends Fragment {
 //                R.layout.group_calender, container, false);
         reLoadContent();
 
+        onGroupChangeListener = database.addOnGroupChangeListener(() -> reLoadContent());
         return view;
-    }
-
-    public void setData(User pLoggedInUser, Group pThisGroup, Map<String, User> pGroupPassengerMap, Map<String, Trip> pGroupTripsMap) {
-        loggedInUser = pLoggedInUser;
-        thisGroup = pThisGroup;
-        groupPassengerMap = pGroupPassengerMap;
-        groupTripsMap = pGroupTripsMap;
     }
 
     public void reLoadContent() {
         loadCalender();
     }
 
+    public void removeListeners() {
+        database.removeOnGroupChangeListener(onGroupChangeListener);
+    }
 
     private void loadCalender() {
         // Set first day of week to Monday, defaults to Monday so calling setFirstDayOfWeek is not necessary
@@ -1414,9 +1353,9 @@ class  ViewPager_GroupCalender extends Fragment {
         calendarView.shouldSelectFirstDayOfMonthOnScroll(false);
 //        calendarView.displayOtherMonthDays(true);
 
-        for (String tripId : thisGroup.getTripIdList()) {
-            Trip trip = groupTripsMap.get(tripId);
-            Event ev1 = new Event(Color.parseColor(groupPassengerMap.get(trip.getDriverId()).getUserColor())
+        for (String tripId : database.groupsMap.get(thisGroup_Id).getTripIdList()) {
+            Trip trip = database.groupTripMap.get(thisGroup_Id).get(tripId);
+            Event ev1 = new Event(Color.parseColor(database.groupPassengerMap.get(trip.getDriverId()).getUserColor())
                     , trip.getDate().getTime(), tripId);
             calendarView.addEvent(ev1);
 
@@ -1452,8 +1391,8 @@ class  ViewPager_GroupCalender extends Fragment {
 
         calender_tripList_Layout.removeAllViews();
         for (Event event : eventList) {
-            Trip trip = groupTripsMap.get(event.getData().toString());
-            User user = groupPassengerMap.get(trip.getDriverId());
+            Trip trip = database.groupTripMap.get(thisGroup_Id).get(event.getData().toString());
+            User user = database.groupPassengerMap.get(trip.getDriverId());
             if (calender_tripList_Layout.getChildCount() != 0) {
                 View divider = new View(getContext());
                 divider.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().density * 1)));
@@ -1490,4 +1429,5 @@ class  ViewPager_GroupCalender extends Fragment {
         }
 
     }
+
 }

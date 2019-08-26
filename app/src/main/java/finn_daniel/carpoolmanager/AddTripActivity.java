@@ -64,7 +64,6 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
@@ -99,8 +98,6 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Button addTrip_cancel;
     Button addTrip_save;
     Button addTrip_addCar;
-    Button dialogAddCar_cancel;
-    Button dialogAddCar_save;
     TextView addTrip_consumption;
     TextView addTrip_wear;
     TextView addTrip_cost;
@@ -134,7 +131,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
     int costMultiplier = 2;
     User loggedInUser;
-    SharedPreferences mySPR;
+    SharedPreferences mySPR_daten;
     Marker markerFrom;
     Marker markerTo;
     GoogleMap googleMap;
@@ -143,7 +140,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     Dialog dialog_renamePoints;
     Dialog dialog_addCar;
     Gson gson = new Gson();
-    String EXTRA_GROUP = "EXTRA_GROUP";
+    String EXTRA_GROUP = "EXTRA_GROUP_ID";
     String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
     String TAG = "AddTripActivity";
     String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
@@ -164,6 +161,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     String polylineString;
     User selectedUser;
     Trip newBookmark;
+    Database database;
 
 
 
@@ -191,21 +189,27 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_trip);
 
-        mySPR = getSharedPreferences("CarPoolManager_Daten",0);
-        String loggedinUser_string = mySPR.getString("loggedInUser", "--Leer--");
-        if (!loggedinUser_string.equals("--Leer--")) {
-            loggedInUser = gson.fromJson(loggedinUser_string, User.class);
-        }
-        groupPassengerMap = gson.fromJson(
-                getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
-        );
-        groupTripsMap = gson.fromJson(
-                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {
-                }.getType()
-        );
+        database = Database.getInstance();
 
+        mySPR_daten = getSharedPreferences("CarPoolManager_Daten",0);
 
-        thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
+        loggedInUser = database.loggedInUser;
+        groupTripsMap = database.groupTripMap.get(getIntent().getStringExtra(EXTRA_GROUP));
+        groupPassengerMap = database.groupPassengerMap;
+        thisGroup = database.groupsMap.get(getIntent().getStringExtra(EXTRA_GROUP));
+
+//        String loggedinUser_string = mySPR_daten.getString("loggedInUser", "--Leer--");
+//        if (!loggedinUser_string.equals("--Leer--")) {
+//            loggedInUser = gson.fromJson(loggedinUser_string, User.class);
+//        }
+//        groupPassengerMap = gson.fromJson(
+//                getIntent().getStringExtra(EXTRA_PASSENGERMAP), new TypeToken<HashMap<String, User>>() {}.getType()
+//        );
+//        groupTripsMap = gson.fromJson(
+//                getIntent().getStringExtra(EXTRA_TRIPMAP), new TypeToken<Map<String, Trip>>() {
+//                }.getType()
+//        );
+//        thisGroup = gson.fromJson(getIntent().getStringExtra(EXTRA_GROUP), Group.class);
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
         dialog_selectRoute = new Dialog(AddTripActivity.this);
@@ -377,7 +381,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
             newTrip.setFuelCost(fuelCost);
             newTrip.setCost(cost);
             newTrip.setDriverId(selectedUser.getUser_id());
-            newTrip.setPolylineString(polylineString);
+//            newTrip.setPolylineString(polylineString);
 //            newTrip.setBookmark(savedAsBookmark);
 
             savedAsBookmark = false;
@@ -490,7 +494,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                             }
 
                             if (selectedUser.equals(loggedInUser)) {
-                                SharedPreferences.Editor editor = mySPR.edit();
+                                SharedPreferences.Editor editor = mySPR_daten.edit();
                                 editor.putString("loggedInUser", gson.toJson(loggedInUser));
                                 editor.commit();
                             }
@@ -760,14 +764,11 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
 
         dialogSelectRoute_from.setText(trip.getSearchString().get(0));
         dialogSelectRoute_to.setText(trip.getSearchString().get(1));
-        PolylineOptions polylineOptions = new PolylineOptions()
-                .addAll(PolyUtil.decode(trip.getPolylineString()))
-                .width(12)
-                .color(Color.BLUE);
-        googleMap.addPolyline(polylineOptions);
-//        dialogRenamePoints_from.setText(trip.getLocationName().get(0));
-//        dialogRenamePoints_to.setText(trip.getLocationName().get(1));
-//        loadGasPrice();
+//        PolylineOptions polylineOptions = new PolylineOptions()
+//                .addAll(PolyUtil.decode(trip.getPolylineString()))
+//                .width(12)
+//                .color(Color.BLUE);
+//        googleMap.addPolyline(polylineOptions);
         addTrip_twoWays.setChecked(trip.isTwoWay());
         addTrip_selectUser.setSelection(driverList.indexOf(groupPassengerMap.get(trip.getDriverId())));
         addTrip_selectCar.setSelection(carList.indexOf(carIdMap.get(trip.getCarId())));
@@ -983,7 +984,7 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     private void routing(boolean fromBookmark) {
-        if (dialogSelectRoute_from.getText().toString().equals("") || dialogSelectRoute_to.toString().toString().equals(""))
+        if (dialogSelectRoute_from.getText().toString().equals("") || dialogSelectRoute_to.toString().equals(""))
             return;
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
@@ -1000,86 +1001,80 @@ public class AddTripActivity extends AppCompatActivity implements OnMapReadyCall
                 Request.Method.GET,
                 mJSONURLString,
                 null,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        try {
-                            if (!response.get("status").equals("OK")) {
-                                Toast.makeText(AddTripActivity.this, "Keine Verbindung gefunden", Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                response -> {
+                    try {
+                        if (!response.get("status").equals("OK")) {
+                            Toast.makeText(AddTripActivity.this, "Keine Verbindung gefunden", Toast.LENGTH_SHORT).show();
+                            return;
                         }
-                        distance = null;
-                        try {
-                            distance = (String) response.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0).getJSONObject("distance").get("text");
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        dialogSelectRoute_distance.setText(distance);
-                        dialogSelectRoute_distanceLayout.setVisibility(View.VISIBLE);
-                        JSONArray stepsList = null;
-                        try {
-                            stepsList = (JSONArray) response.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0).getJSONArray("steps");
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        List<LatLng> latLngList = new ArrayList<>();
-                        for (int i = 0; i < stepsList.length(); i++) {
-                            try {
-                                latLngList.addAll(PolyUtil.decode((String) stepsList.getJSONObject(i).getJSONObject("polyline").get("points")));
-
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        googleMap.clear();
-                        PolylineOptions polylineOptions = new PolylineOptions()
-                                .addAll(latLngList)
-                                .width(12)
-                                .color(Color.BLUE);
-                        googleMap.addPolyline(polylineOptions);
-                        polylineString = PolyUtil.encode(polylineOptions.getPoints());
-                        List<LatLng> fromTo = new ArrayList<>();
-                        fromTo.add(latLngList.get(0));
-                        fromTo.add(latLngList.get(latLngList.size() - 1));
-
-                        LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                        builder.include(fromTo.get(0));
-                        builder.include(fromTo.get(1));
-                        LatLngBounds bounds = builder.build();
-
-                        markerFrom = googleMap.addMarker(new MarkerOptions()
-                                .title(dialogSelectRoute_from.getText().toString())
-                                .snippet("Breite: " + String.valueOf(fromTo.get(0).latitude).substring(0, 6) + "\n" + "Länge: " + String.valueOf(fromTo.get(0).longitude).substring(0, 6))
-                                .position(fromTo.get(0)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("von", 119, 100))));
-                        markerTo = googleMap.addMarker(new MarkerOptions()
-                                .title(dialogSelectRoute_to.getText().toString())
-                                .snippet("Breite: " + String.valueOf(fromTo.get(1).latitude).substring(0, 6) + "\nLänge: " + String.valueOf(fromTo.get(1).longitude).substring(0, 6))
-                                .position(fromTo.get(1)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("nach", 137, 100))));
-
-                        int padding = 75; // offset from edges of the map in pixels
-                        if (!fromBookmark)
-                            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding));
-
-                        dialogSelectRoute_save.setEnabled(true);
-
-                        loadGasPrice(fromBookmark);
-
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
+                    distance = null;
+                    try {
+                        distance = (String) response.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0).getJSONObject("distance").get("text");
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    dialogSelectRoute_distance.setText(distance);
+                    dialogSelectRoute_distanceLayout.setVisibility(View.VISIBLE);
+                    JSONArray stepsList = null;
+                    try {
+                        stepsList = response.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0).getJSONArray("steps");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    List<LatLng> latLngList = new ArrayList<>();
+                    for (int i = 0; i < stepsList.length(); i++) {
+                        try {
+                            latLngList.addAll(PolyUtil.decode((String) stepsList.getJSONObject(i).getJSONObject("polyline").get("points")));
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    googleMap.clear();
+                    PolylineOptions polylineOptions = new PolylineOptions()
+                            .addAll(latLngList)
+                            .width(12)
+                            .color(Color.BLUE);
+                    googleMap.addPolyline(polylineOptions);
+                    polylineString = PolyUtil.encode(polylineOptions.getPoints());
+                    List<LatLng> fromTo = new ArrayList<>();
+                    fromTo.add(latLngList.get(0));
+                    fromTo.add(latLngList.get(latLngList.size() - 1));
+
+                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                    builder.include(fromTo.get(0));
+                    builder.include(fromTo.get(1));
+                    LatLngBounds bounds = builder.build();
+
+                    markerFrom = googleMap.addMarker(new MarkerOptions()
+                            .title(dialogSelectRoute_from.getText().toString())
+                            .snippet("Breite: " + String.valueOf(fromTo.get(0).latitude).substring(0, 6) + "\n" + "Länge: " + String.valueOf(fromTo.get(0).longitude).substring(0, 6))
+                            .position(fromTo.get(0)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("von", 119, 100))));
+                    markerTo = googleMap.addMarker(new MarkerOptions()
+                            .title(dialogSelectRoute_to.getText().toString())
+                            .snippet("Breite: " + String.valueOf(fromTo.get(1).latitude).substring(0, 6) + "\nLänge: " + String.valueOf(fromTo.get(1).longitude).substring(0, 6))
+                            .position(fromTo.get(1)).icon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("nach", 137, 100))));
+
+                    int padding = 75; // offset from edges of the map in pixels
+                    if (!fromBookmark)
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding));
+
+                    dialogSelectRoute_save.setEnabled(true);
+
+                    loadGasPrice(fromBookmark);
+
                 },
-                new Response.ErrorListener(){
-                    @Override
-                    public void onErrorResponse(VolleyError error){
-                        // Do something when error occurred
+                error -> {
+                    // Do something when error occurred
 //                        Snackbar.make(this,
 //                                "Error.",
 //                                Snackbar.LENGTH_LONG
 //                        ).show();
-                        Toast.makeText(AddTripActivity.this, "Error", Toast.LENGTH_SHORT).show();
-                    }
+                    Toast.makeText(AddTripActivity.this, "Error", Toast.LENGTH_SHORT).show();
                 }
         );
 
