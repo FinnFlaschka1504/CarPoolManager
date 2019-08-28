@@ -152,7 +152,7 @@ public class CustomRecycler {
     }
 
     public interface SetCellContent {
-        void runSetCellContent(MyAdapter.ViewHolder viewHolder, Map<Integer, View> ViewIdMap, Object object);
+        void runSetCellContent(MyAdapter.ViewHolder viewHolder, Map<Integer, View> viewIdMap, Object object);
     }
 
     public CustomRecycler setSetItemContent(SetCellContent setItemContent) {
@@ -309,6 +309,19 @@ public class CustomRecycler {
         recycler.setAdapter(mAdapter);
 
         if (showDivider) {
+            // ToDo: evl. letzten divider löschen
+//            DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(context, orientation) {
+//                @Override
+//                public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
+//                    int position = parent.getChildAdapterPosition(view);
+//                    // hide the divider for the last child
+//                    if (position == parent.getAdapter().getItemCount() - 1) {
+//                        outRect.setEmpty();
+//                    } else {
+//                        super.getItemOffsets(outRect, view, parent, state);
+//                    }
+//                }
+//            };
             DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recycler.getContext(),
                     ((LinearLayoutManager) layoutManager).getOrientation());
             dividerItemDecoration.setDrawable(ContextCompat.getDrawable(context,R.drawable.divider));

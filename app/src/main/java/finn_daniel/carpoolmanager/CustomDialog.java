@@ -4,11 +4,14 @@ import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Pair;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -45,6 +48,7 @@ public class CustomDialog {
     private boolean isDividerVisibilityCustom = false;
     private int titleTextAlignment = View.TEXT_ALIGNMENT_CENTER;
     private boolean isTextBold = false;
+    private SetViewContent setViewContent;
 
     private List<Boolean> dismissDialogList = new ArrayList<>();
     private List<Pair<String, OnClick>> pairList = new ArrayList<>();
@@ -129,7 +133,15 @@ public class CustomDialog {
     public interface OnClick {
         void run(Dialog dialog);
     }
-    
+
+    public interface SetViewContent{
+        void runSetViewContent(View view);
+    }
+
+    public CustomDialog setSetViewContent(SetViewContent setViewContent) {
+        this.setViewContent = setViewContent;
+        return this;
+    }
 
     public CustomDialog setDimensions(boolean width, boolean height) {
         this.dimensions = new Pair<>(width, height);
@@ -159,11 +171,16 @@ public class CustomDialog {
     }
 
     static class EditBuilder {
+        // ToDo: trigger button mit ok
         private String text;
         private String hint;
-        private boolean showKeyboard = false;
-        private boolean selectAll = false;
-        private int diableWhenEmptyId;
+        private boolean showKeyboard = true;
+        private boolean selectAll = true;
+        private boolean disableWhenEmpty = true;
+        private boolean fireButtonOnOK = true;
+        private int buttonId;
+        private String regEx = ".*";
+        private int inputType = InputType.TYPE_TEXT_VARIATION_PERSON_NAME;
 
         public EditBuilder setText(String text) {
             this.text = text;
@@ -186,7 +203,23 @@ public class CustomDialog {
         }
 
         public EditBuilder setDiableButtonWhenEmpty(int buttonId) {
-            this.diableWhenEmptyId = buttonId;
+            this.buttonId = buttonId;
+            return this;
+        }
+
+        public EditBuilder setInputType(int inputType) {
+            this.inputType = inputType;
+            return this;
+        }
+
+        public EditBuilder setCheckRegEx(int buttonId, String regEx) {
+            this.buttonId = buttonId;
+            this.regEx = regEx;
+            return this;
+        }
+
+        public EditBuilder setFireButtonOnOK(boolean fireButtonOnOK) {
+            this.fireButtonOnOK = fireButtonOnOK;
             return this;
         }
     }
@@ -212,19 +245,22 @@ public class CustomDialog {
                 addNewButton("OK");
                 break;
             case CUSTOM:
-                for (Pair<String, OnClick> pair : pairList) addNewButton(pair.first);
+                for (Pair<String, OnClick> pair : pairList) {
+                    addNewButton(pair.first).setId(buttonIdList.get(pairList.indexOf(pair)));
+                }
                 break;
         }
 
     }
 
-    private void addNewButton(String text) {
+    private Button addNewButton(String text) {
         Button button = new Button(context);
         button.setBackground(dialog.findViewById(R.id.dialog_custom_Button1).getBackground().getConstantState().newDrawable());
         button.setTextColor(((Button)dialog.findViewById(R.id.dialog_custom_Button1)).getTextColors());
         button.setText(text);
         ((FlowLayout) dialog.findViewById(R.id.dialog_custom_buttonLayout)).addView(button);
         buttonList.add(button);
+        return button;
     }
 
     private void setOnClickListeners() {
@@ -380,18 +416,18 @@ public class CustomDialog {
             editText.setHint(editBuilder.hint);
         editText.setSelectAllOnFocus(editBuilder.selectAll);
         this.showKeyboard = editBuilder.showKeyboard;
-        Button button = dialog.findViewById(editBuilder.diableWhenEmptyId);
+        Button button = dialog.findViewById(editBuilder.buttonId);
         if (button != null) {
-            button.setEnabled(false);
+            if (editBuilder.disableWhenEmpty && editBuilder.text != null)
+                button.setEnabled(false);
             editText.addTextChangedListener(new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
                 }
 
                 @Override
                 public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                    if (charSequence.toString().equals(""))
+                    if (charSequence.toString().equals("") || !charSequence.toString().matches(editBuilder.regEx))
                         button.setEnabled(false);
                     else
                         button.setEnabled(true);
@@ -404,12 +440,27 @@ public class CustomDialog {
             });
         }
 
+        editText.setInputType(editBuilder.inputType);
+        if (editBuilder.fireButtonOnOK) {
+            editText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+            editText.setOnEditorActionListener((v, actionId, event) -> {
+                if (actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_DOWN || event.getAction() == KeyEvent.KEYCODE_ENTER) {
+                    Button button1 = dialog.findViewById(editBuilder.buttonId);
+                    if (button1.isEnabled())
+                        button1.callOnClick();
+                }
+                return true;
+            });
+
+        }
+
+    }
+
+    public Dialog getDialog() {
+        return dialog;
     }
 
     public Dialog show() {
-        dialog = new Dialog(this.context);
-        dialog.setContentView(R.layout.dialog_custom);
-
         TextView dialog_custom_title = dialog.findViewById(R.id.dialog_custom_title);
         TextView dialog_custom_text = dialog.findViewById(R.id.dialog_custom_text);
 
@@ -465,6 +516,10 @@ public class CustomDialog {
             dialog.findViewById(R.id.dialog_custom_divider6).setVisibility(dividerVisibility ? View.VISIBLE : View.GONE);
         }
 
+//        if (view != null && view.getClass() == RecyclerView.class)
+//            dialog.findViewById(R.id.dialog_custom_divider6).setVisibility(View.GONE);
+
+
 
         setDialogLayoutParameters(dialog, dimensions.first, dimensions.second);
         setButtons();
@@ -475,6 +530,10 @@ public class CustomDialog {
             Utility.changeDialogKeyboard(dialog, true);
             dialog.findViewById(R.id.dialog_custom_edit).requestFocus();
         }
+
+        if (setViewContent != null)
+            setViewContent.runSetViewContent(view);
+
         return dialog;
     }
 

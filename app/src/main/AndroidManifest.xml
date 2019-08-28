@@ -39,6 +39,22 @@
             android:name=".AddTripActivity"
             android:label="Fahrt(-en) hinufügen"
             android:parentActivityName=".GroupActivity" />
+        <!--<receiver android:name=".AppWidgetProvider_custom">-->
+            <!--<intent-filter>-->
+                <!--<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>-->
+            <!--</intent-filter>-->
+            <!--<meta-data-->
+                <!--android:name="androin.appwidget.provider"-->
+                <!--android:resource="@xml/widget_group_list_info"/>-->
+        <!--</receiver>-->
+        <receiver android:name=".AppWidgetProvider_custom">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_group_list_info" />
+        </receiver>
     </application>
 
 </manifest>

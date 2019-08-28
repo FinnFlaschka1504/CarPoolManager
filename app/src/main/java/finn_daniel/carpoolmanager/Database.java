@@ -23,6 +23,7 @@ public class Database {
     public static final String GROUPS = "Groups";
     public static final String TRIPS = "Trips";
     public static final String USERS = "Users";
+    public static final String CARS = "Cars";
 
     private static Database database;
     private static DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
@@ -195,6 +196,14 @@ public class Database {
         });
     }
 
+    public static void databaseCall_write(List<String> stepList, Object object){
+        accessChilds(databaseReference, stepList).setValue(object);
+    }
+
+    public static void databaseCall_delete(List<String> stepList){
+        accessChilds(databaseReference, stepList).removeValue();
+    }
+
     public static DatabaseReference accessChilds(DatabaseReference databaseReference, List<String> steps) {
         List<String> newSteps = new ArrayList<>(steps);
         if (newSteps.size() > 0) {
@@ -209,9 +218,25 @@ public class Database {
     }
 //  <----- Database Call -----
 
-    public String updateGroup(Group group) {
-        return FAILED;
+
+//  <----- Updater -----
+    public static void updateGroup(Group group) {
+        databaseCall_write(Arrays.asList(GROUPS, group.getGroup_id()), group);
     }
+
+    public static void updateUser(User user) {
+        databaseCall_write(Arrays.asList(USERS, user.getUser_id()), user);
+    }
+
+    public static void removeTrip(Group group, Trip trip) {
+        databaseCall_delete(Arrays.asList(GROUPS, group.getGroup_id(), trip.getTrip_id()));
+    }
+
+    public static void removeCar(User user, Car car) {
+        databaseCall_delete(Arrays.asList(CARS, user.getUser_id(), car.getCar_id()));
+    }
+//  ----- Updater ----->
+
 
 //  ----- Change Listener ----->
     // ToDo: onLoggedInUserChange
@@ -256,7 +281,6 @@ public class Database {
 
             groupsMap.remove(removedGroup);
             fireOnGroupChangeListeners();
-//            listeLaden();
             return;
         }
         Group foundGroup = dataSnapshot.getValue(Group.class);
@@ -271,7 +295,12 @@ public class Database {
             return;
         }
 
-//            Findet heraus, ob sich bei den Trips was verändert hat --> groupTripMap muss aktuallisiert werden
+//            Findet heraus, ob sich bei den Lesezeichen was verändert hat
+        if (!foundGroup.getBookmarkList().equals(groupsMap.get(foundGroup.getGroup_id()).getBookmarkList()))
+            groupsMap.get(foundGroup.getGroup_id()).setBookmarkList(foundGroup.getBookmarkList());
+
+
+//            Findet heraus, ob sich bei den Trips was verändert hat
         if (!foundGroup.getTripIdList().equals(groupsMap.get(foundGroup.getGroup_id()).getTripIdList())) {
             onChangedTrip(foundGroup);
             return;
@@ -280,7 +309,7 @@ public class Database {
         groupsMap.replace(foundGroup.getGroup_id(), foundGroup); // Gruppe wird aktuallisiert
 
         fireOnGroupChangeListeners();
-//        listeLaden();
+        // ToDo: group trip map updaten
 
     }
 
@@ -305,7 +334,6 @@ public class Database {
 //                        groupPassengerMap.put(foundTrip.getUser_id(), foundTrip);
                         if (changeList.get(0).size() <= 0)
                             fireOnGroupChangeListeners();
-//                            listeLaden();
                     }
 
                     @Override
@@ -320,7 +348,6 @@ public class Database {
                 groupsMap.get(foundGroup.getGroup_id()).getTripIdList().remove(tripId);
             }
             fireOnGroupChangeListeners();
-//            listeLaden();
         }
     }
     void onChangedUsers(Group foundGroup) {
@@ -342,7 +369,6 @@ public class Database {
                     groupsMap.get(foundGroup.getGroup_id()).getUserIdList().add(foundUser.getUser_id());
                     if (changeList.get(0).size() <= 0)
                         fireOnGroupChangeListeners();
-//                        listeLaden();
                 }
 
                 @Override

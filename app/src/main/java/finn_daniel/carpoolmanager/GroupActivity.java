@@ -44,7 +44,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.gson.Gson;
 
 import java.io.Serializable;
 import java.text.DecimalFormat;
@@ -63,17 +62,15 @@ public class GroupActivity extends FragmentActivity {
     ViewPager mPager;
     PagerAdapter pagerAdapter;
     String standardView_group;
-    Gson gson = new Gson();
-    public static String EXTRA_GROUP_ID = "EXTRA_GROUP_ID";
-    String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
-    String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
+    public final static String EXTRA_GROUP_ID = "EXTRA_GROUP_ID";
     int NEWTRIP = 001;
     String thisGroup_Id;
     FloatingActionButton group_addTrip;
     DatabaseReference databaseReference;
+    SharedPreferences mySPR_daten;
 
-    ViewPager_GroupOverview thisGroupOverview = new ViewPager_GroupOverview();
-    ViewPager_GroupCalender thisGroupCalender = new ViewPager_GroupCalender();
+    ViewPager_GroupOverview thisGroupOverview;
+    ViewPager_GroupCalender thisGroupCalender;
 
     Database database = Database.getInstance();
     Database.OnChangeListener onGroupChangeListener;
@@ -84,13 +81,37 @@ public class GroupActivity extends FragmentActivity {
         setContentView(R.layout.activity_group);
         group_addTrip = findViewById(R.id.group_addTrip);
         databaseReference = FirebaseDatabase.getInstance().getReference();
+        mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
+String test = null;
+        String loggedInUser_Id = mySPR_daten.getString("loggedInUserId", "--Leer--");
+        if (!loggedInUser_Id.equals("--Leer--")) {
+            if (database != null) {
+                onDatabaseConnection();
+                Toast.makeText(this, "alt", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                LinearLayout group_toolbar_load_layout = findViewById(R.id.group_toolbar_load_layout);
+                group_toolbar_load_layout.setVisibility(View.VISIBLE);
+                Toast.makeText(this, "neu", Toast.LENGTH_SHORT).show();
+                Database.getInstance(loggedInUser_Id, database1 -> {
+                    group_toolbar_load_layout.setVisibility(View.GONE);
+                    database = database1;
+                    onDatabaseConnection();
+                });
+            }
+        }
+    }
+
+    private void onDatabaseConnection() {
+        thisGroupOverview = new ViewPager_GroupOverview();
+        thisGroupCalender = new ViewPager_GroupCalender();
 
         thisGroup_Id = getIntent().getStringExtra(EXTRA_GROUP_ID);
-
+        if (thisGroup_Id == null)
+            thisGroup_Id = "group_08a96489-3193-4e28-a54e-f04247b89882";
         thisGroupOverview.setData(thisGroupCalender, thisGroup_Id, group_addTrip);
         thisGroupCalender.setData(thisGroup_Id);
-        SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Settings", 0);
-        standardView_group = mySPR.getString("standardView_group", "Übersicht");
+        standardView_group = mySPR_daten.getString("standardView_group", "Übersicht");
 
         mPager = findViewById(R.id.group_pager);
         pagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager());
@@ -108,14 +129,11 @@ public class GroupActivity extends FragmentActivity {
 
             Intent intent = new Intent(GroupActivity.this, AddTripActivity.class);
             intent.putExtra(EXTRA_GROUP_ID, thisGroup_Id);
-//            intent.putExtra(EXTRA_PASSENGERMAP, gson.toJson(database.groupPassengerMap));
-//            intent.putExtra(EXTRA_TRIPMAP, gson.toJson(database.groupTripMap.get(thisGroup_Id)));
             startActivityForResult(intent, NEWTRIP);
         });
 
         Toolbar toolbar = findViewById(R.id.group_toolbar);
         toolbar.setTitle(database.groupsMap.get(thisGroup_Id).getName());
-//        ((TextView) findViewById(R.id.group_toolbar_title)).setText(database.groupsMap.get(thisGroup_Id).getName());
         toolbar.setNavigationIcon(ContextCompat.getDrawable(this, R.drawable.ic_arrow_back));
         toolbar.setNavigationOnClickListener(v -> {
             database.removeOnGroupChangeListener(onGroupChangeListener);
@@ -151,7 +169,6 @@ public class GroupActivity extends FragmentActivity {
         });
         onGroupChangeListener = database.addOnGroupChangeListener(() ->
                 toolbar.setTitle(database.groupsMap.get(thisGroup_Id).getName()));
-        // ToDo: wegen layout_gravity bescheid sagen
     }
 
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
@@ -508,11 +525,11 @@ class ViewPager_GroupOverview extends Fragment {
                     viewIdList.add(R.id.userList_bubble_email);
                     return viewIdList;
                 })
-                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                .setSetItemContent((viewHolder, viewIdMap, object) -> {
                     User user = (User) object;
-                    ((TextView) ViewIdMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
-                    ((TextView) ViewIdMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
-                    ViewIdMap.get(R.id.userList_bubble_email).setSelected(true);
+                    ((TextView) viewIdMap.get(R.id.userList_bubble_name)).setText(user.getUserName());
+                    ((TextView) viewIdMap.get(R.id.userList_bubble_email)).setText(user.getEmailAddress());
+                    viewIdMap.get(R.id.userList_bubble_email).setSelected(true);
                 })
                 .setOrientation(CustomRecycler.ORIENTATION.HORIZONTAL)
                 .setOnClickListener((recycler, view, object, index) -> {
@@ -553,12 +570,12 @@ class ViewPager_GroupOverview extends Fragment {
                     viewIdList.add(R.id.selectUserList_selected);
                     return viewIdList;
                 })
-                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                .setSetItemContent((viewHolder, viewIdMap, object) -> {
                     User user = (User) object;
-                    ((TextView) ViewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
-                    ((TextView) ViewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
+                    ((TextView) viewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
+                    ((TextView) viewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
                     if (selectedUserList.contains(user))
-                        ((CheckBox) ViewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
+                        ((CheckBox) viewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
                 })
                 .setOnClickListener((recycler, view, object, index) -> {
                     User user = ((User) object);
@@ -964,6 +981,7 @@ class ViewPager_GroupOverview extends Fragment {
                 dialogCostList_list.addView(divider);
             }
 
+            // ToDo: evl. kenaue aufschlüsselung anzeigen
             LayoutInflater li = LayoutInflater.from(getContext());
             View listItem = li.inflate(R.layout.list_item_cost, null);
 
@@ -1257,15 +1275,15 @@ class ViewPager_GroupOverview extends Fragment {
                     viewIdList.add(R.id.userList_color);
                     return viewIdList;
                 })
-                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                .setSetItemContent((viewHolder, viewIdMap, object) -> {
                     User user = (User) object;
 
-                    ((TextView) ViewIdMap.get(R.id.userList_name)).setText(user.getUserName());
-                    ((ImageView) ViewIdMap.get(R.id.userList_image)).setImageResource(
+                    ((TextView) viewIdMap.get(R.id.userList_name)).setText(user.getUserName());
+                    ((ImageView) viewIdMap.get(R.id.userList_image)).setImageResource(
                             database.groupsMap.get(thisGroup_Id).getDriverIdList().contains(user.getUser_id()) ?
                                     R.drawable.ic_lenkrad : R.drawable.ic_leer);
-                    ((TextView) ViewIdMap.get(R.id.userList_ownAmount)).setText(calculateDrivenAmount(user.getUser_id()));
-                    ((TextView) ViewIdMap.get(R.id.userList_color)).setTextColor(Color.parseColor(user.getUserColor()));
+                    ((TextView) viewIdMap.get(R.id.userList_ownAmount)).setText(calculateDrivenAmount(user.getUser_id()));
+                    ((TextView) viewIdMap.get(R.id.userList_color)).setTextColor(Color.parseColor(user.getUserColor()));
                 })
                 .addSubOnClickListener(R.id.userList_image, (recycler, view1, object, index) ->
                         Toast.makeText(getContext(), "Image: " + ((User) object).getUserName(), Toast.LENGTH_SHORT).show())
@@ -1352,7 +1370,7 @@ class  ViewPager_GroupCalender extends Fragment {
         calendarView.setFirstDayOfWeek(Calendar.MONDAY);
         calendarView.shouldSelectFirstDayOfMonthOnScroll(false);
 //        calendarView.displayOtherMonthDays(true);
-
+        // ToDo: distanzfarge ändern
         for (String tripId : database.groupsMap.get(thisGroup_Id).getTripIdList()) {
             Trip trip = database.groupTripMap.get(thisGroup_Id).get(tripId);
             Event ev1 = new Event(Color.parseColor(database.groupPassengerMap.get(trip.getDriverId()).getUserColor())

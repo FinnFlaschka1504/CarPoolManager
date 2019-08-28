@@ -1,5 +1,6 @@
 package finn_daniel.carpoolmanager;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class Car {
@@ -56,5 +57,18 @@ public class Car {
 
     public void setFuelType(Car.fuelType fuelType) {
         this.fuelType = fuelType;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Car car = (Car) o;
+        return car_id.equals(car.car_id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(car_id);
     }
 }

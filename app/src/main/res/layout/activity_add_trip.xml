@@ -227,9 +227,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginVertical="8dp"
                     android:text="Auswählen:"
                     android:textStyle="bold" />
 
@@ -237,7 +235,7 @@
                     android:id="@+id/addTrip_selectCar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    tools:visibility="gone" />
+                    android:layout_marginLeft="8dp" />
 
                 <Button
                     android:id="@+id/addTrip_addCar"
@@ -246,6 +244,14 @@
                     android:layout_height="wrap_content"
                     android:backgroundTint="#F9F9F9"
                     android:text="+"
+                    android:textColor="#E91E63" />
+                <Button
+                    android:id="@+id/addTrip_removeCar"
+                    style="@style/Widget.AppCompat.Button.Small"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#F9F9F9"
+                    android:text="–"
                     android:textColor="#E91E63" />
             </TableRow>
 
@@ -257,16 +263,16 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginVertical="8dp"
                     android:text="Verbrauch:"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/addTrip_consumption"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    tools:text="6,5 l/100km" />
 
             </TableRow>
 
@@ -278,16 +284,31 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginVertical="8dp"
                     android:text="Sprit-Kosten:"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/addTrip_fuelCost"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:foreground="?selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp"
+                    android:text="Auswählen"
+                    android:textColor="@color/colorAccent" />
+
+                <!--<Button-->
+                    <!--android:id="@+id/addTrip_fuelCost"-->
+                    <!--style="@style/Widget.AppCompat.Button.Borderless.Colored"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:minWidth="0dp"-->
+                    <!--android:minHeight="0dp"-->
+                    <!--android:text="1,409 €/l"-->
+                    <!--android:textAlignment="viewStart"-->
+                    <!--android:textAllCaps="false" />-->
 
             </TableRow>
 
@@ -299,16 +320,16 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginVertical="8dp"
                     android:text="Verschleiß:"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/addTrip_wear"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    tools:text="6,0 €/100km" />
 
             </TableRow>
 
@@ -320,9 +341,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginVertical="8dp"
                     android:text="Kosten:"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -331,6 +350,7 @@
                     android:id="@+id/addTrip_cost"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
                     android:textSize="18sp" />
             </TableRow>
         </TableLayout>

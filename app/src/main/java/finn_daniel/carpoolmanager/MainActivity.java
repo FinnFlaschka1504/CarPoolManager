@@ -77,32 +77,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     boolean wizzardManuellAktiviert = false;
     SharedPreferences mySPR_daten;
     SharedPreferences mySPR_settings;
-    int shownContent;
+    String shownContent;
 
 
 
     int SETTINGS_INTENT = 001;
-    private String EXTRA_PASSENGERMAP = "EXTRA_PASSENGERMAP";
-    private String EXTRA_TRIPMAP = "EXTRA_TRIPMAP";
 
 
-//    Map<String, Boolean> hasGroupChangeListener = new HashMap<>();
-//    User loggedInUser;
     String loggedInUser_Name = "FinnF";
     String loggedInUser_Id;
-    //    List<String> loggedInUser_groupsIdList = new ArrayList<>(); //<---
-//    Map<String, Group> database.groupsMap = new HashMap<>();
-//    Map<String, User> database.groupPassengerMap = new HashMap<>(); //<---
     List<Group> sortedGroupList;
-//    Map<String, Map<String, Trip>> database.groupTripMap = new HashMap<>(); //<---
     Database database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
 
         mySPR_daten = getSharedPreferences("CarPoolManager_Daten", 0);
         mySPR_settings = getSharedPreferences("CarPoolManager_Settings", 0);
@@ -127,9 +117,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         stub_groups.setLayoutResource(R.layout.main_content_groups);
         contentView_groups = stub_groups.inflate();
         navigationView.setCheckedItem(R.id.navigation_menu_groups);
-        shownContent = R.id.navigation_menu_groups;
+        shownContent = Settings.NAVIGATION_MENU.GROUPS.toString();
 
-        if (mySPR_settings.getInt("standardView_main", R.id.navigation_menu_groups) != R.id.navigation_menu_groups
+        if (!mySPR_settings.getString("standardView_main", Settings.NAVIGATION_MENU.GROUPS.toString()).equals(Settings.NAVIGATION_MENU.GROUPS.toString())
                     && !loggedInUser_Id.equals("--Leer--")) {
             stub_account = MainActivity.this.findViewById(R.id.layout_stub_account);
             stub_account.setLayoutResource(R.layout.main_content_account);
@@ -137,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             contentView_groups.setVisibility(View.GONE);
             setAccountView();
             navigationView.setCheckedItem(R.id.navigation_menu_account);
-            shownContent = R.id.navigation_menu_account;
+            shownContent = Settings.NAVIGATION_MENU.ACCOUNT.toString();
         }
 
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -351,10 +341,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onStop() {
+        if (database == null) {
+            super.onStop();
+            return;
+        }
         SharedPreferences mySPR = getSharedPreferences("CarPoolManager_Daten", 0);
         SharedPreferences.Editor editor = mySPR.edit();
         editor.clear();
-
+// ToDo: nicht speichern wenn daten fehlerhaft, oer noch nicht geladen
         editor.putString("loggedInUserId", loggedInUser_Id);
         editor.putString("groupsMap", gson.toJson(database.groupsMap));
         editor.putString("groupPassengerMap", gson.toJson(database.groupPassengerMap));
@@ -417,20 +411,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            if (shownContent != mySPR_settings.getInt("standardView_main", R.id.navigation_menu_groups)) {
-                contentView_groups.setVisibility(shownContent == R.id.navigation_menu_groups ? View.GONE : View.VISIBLE);
-                contentView_account.setVisibility(shownContent == R.id.navigation_menu_groups ? View.VISIBLE : View.GONE);
-                shownContent = shownContent == R.id.navigation_menu_groups ? R.id.navigation_menu_account : R.id.navigation_menu_groups;
-
-                navigationView.setCheckedItem(shownContent);
-            } else {
-                super.onBackPressed();
-            }
-        }
+        super.onBackPressed(); // <----
+//        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+//        if (drawer.isDrawerOpen(GravityCompat.START)) {
+//            drawer.closeDrawer(GravityCompat.START);
+//        } else {
+//            if (!shownContent.equals(mySPR_settings.getString("standardView_main", Settings.NAVIGATION_MENU.GROUPS.toString()))) {
+//                contentView_groups.setVisibility(shownContent.equals(Settings.NAVIGATION_MENU.GROUPS.toString()) ? View.GONE : View.VISIBLE);
+//                contentView_account.setVisibility(shownContent.equals(Settings.NAVIGATION_MENU.GROUPS.toString()) ? View.VISIBLE : View.GONE);
+//                shownContent = shownContent.equals(Settings.NAVIGATION_MENU.GROUPS.toString()) ? Settings.NAVIGATION_MENU.ACCOUNT.toString() : Settings.NAVIGATION_MENU.GROUPS.toString();
+//
+//                navigationView.setCheckedItem(shownContent.equals(Settings.NAVIGATION_MENU.GROUPS.toString()) ? R.id.navigation_menu_groups : R.id.navigation_menu_account);
+//            } else {
+//                super.onBackPressed();
+//            }
+//        }
     }
 
 
@@ -449,7 +444,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
                 contentView_groups.setVisibility(View.VISIBLE);
                 contentView_account.setVisibility(View.GONE);
-                shownContent = id;
+                shownContent = Settings.NAVIGATION_MENU.GROUPS.toString();
                 break;
             case R.id.navigation_menu_account:
                 if (contentView_account == null) {
@@ -461,7 +456,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
                 contentView_groups.setVisibility(View.GONE);
                 contentView_account.setVisibility(View.VISIBLE);
-                shownContent = id;
+                shownContent = Settings.NAVIGATION_MENU.ACCOUNT.toString();
                 break;
             case R.id.navigation_menu_settings:
                 Intent intent = new Intent(MainActivity.this, Settings.class);
@@ -498,12 +493,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             viewIdList.add(R.id.selectUserList_selected);
                             return viewIdList;
                         })
-                        .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                        .setSetItemContent((viewHolder, viewIdMap, object) -> {
                             User user = (User) object;
-                            ((TextView) ViewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
-                            ((TextView) ViewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
+                            ((TextView) viewIdMap.get(R.id.selectUserList_name)).setText(user.getUserName());
+                            ((TextView) viewIdMap.get(R.id.selectUserList_email)).setText(user.getEmailAddress());
                             if (user.equals(database.loggedInUser))
-                                ((CheckBox) ViewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
+                                ((CheckBox) viewIdMap.get(R.id.selectUserList_selected)).setChecked(true);
                         })
                         .setOnClickListener((recycler, view, object, index) -> {
 //                            CheckBox checkBox = view.findViewById(R.id.selectUserList_selected);
@@ -593,13 +588,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     return viewIdList;
                 })
                 .setMultipleClickDelay(1000)
-                .setSetItemContent((viewHolder, ViewIdMap, object) -> {
+                .setSetItemContent((viewHolder, viewIdMap, object) -> {
                     Group group = (Group) object;
 
-                    ((ImageView) ViewIdMap.get(R.id.groupList_image)).setImageResource(
+                    ((ImageView) viewIdMap.get(R.id.groupList_image)).setImageResource(
                             group.getDriverIdList().contains(database.loggedInUser.getUser_id())
                                     ? R.drawable.ic_lenkrad : R.drawable.ic_leer);
-                    ((TextView) ViewIdMap.get(R.id.groupList_name)).setText(group.getName());
+                    ((TextView) viewIdMap.get(R.id.groupList_name)).setText(group.getName());
                     String passengers = "";
                     for (int n = 0; n < group.getUserIdList().size(); n++) {
                         passengers = passengers.concat(database.groupPassengerMap.get(group.getUserIdList().get(n)).getUserName());
@@ -607,9 +602,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             passengers = passengers.concat(", ");
                     }
                     count++;
-                    ((TextView) ViewIdMap.get(R.id.groupList_passengers)).setText(passengers);
-                    ((TextView) ViewIdMap.get(R.id.groupList_ownAmount)).setText(calculateDrivenAmount(database.loggedInUser.getUser_id(), group.getGroup_id()));
-                    ((TextView) ViewIdMap.get(R.id.groupList_allAmount)).setText(calculateDrivenAmount(null, group.getGroup_id()));
+                    ((TextView) viewIdMap.get(R.id.groupList_passengers)).setText(passengers);
+                    ((TextView) viewIdMap.get(R.id.groupList_ownAmount)).setText(calculateDrivenAmount(database.loggedInUser.getUser_id(), group.getGroup_id()));
+                    ((TextView) viewIdMap.get(R.id.groupList_allAmount)).setText(calculateDrivenAmount(null, group.getGroup_id()));
                 })
                 .setOnClickListener((recycler, view, object, index) -> {
                     Group selectedGroup = sortedGroupList.get(index);

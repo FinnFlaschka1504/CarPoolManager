@@ -25,6 +25,10 @@ import java.util.Map;
 
 public class Settings extends AppCompatActivity {
 
+    enum NAVIGATION_MENU{
+        GROUPS, ACCOUNT
+    }
+
     // ToDo: strings durch referenzen ersetzen
     // ToDo: einstellen welche view standardmäßig in Mainaktivity + backPress ändern
     DatabaseReference databaseReference;
@@ -70,7 +74,7 @@ public class Settings extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 SharedPreferences.Editor editor = mySPR_settings.edit();
-                editor.putInt("standardView_main", i == 0 ? R.id.navigation_menu_groups : R.id.navigation_menu_account);
+                editor.putString("standardView_main", i == 0 ? NAVIGATION_MENU.GROUPS.toString() : NAVIGATION_MENU.ACCOUNT.toString());
                 editor.apply();
             }
             @Override
